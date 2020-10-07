@@ -19,18 +19,22 @@ async fn main() {
     let (mut incoming_messages, client) =
         TwitchIRCClient::<TCPTransport, StaticLoginCredentials>::new(config);
 
+    let channels = bot_config.channels.clone();
+
     // first thing you should do: start consuming incoming messages,
     // otherwise they will back up.
     let client_clone = client.clone();
     let join_handle = tokio::spawn(async move {
-        let mut bot = Bot::new(bot_config);
+        let mut bot = Bot::new(&bot_config);
         while let Some(message) = incoming_messages.next().await {
             bot.handle_message(&client_clone, message).await;
         }
     });
 
     // join a channel
-    client.join("nertsal".to_owned());
+    for channel in channels {
+        client.join(channel);
+    }
 
     // keep the tokio executor alive.
     // If you return instead of waiting the background task will exit.
@@ -54,11 +58,7 @@ struct Bot {
 }
 
 impl Bot {
-    fn new(config: Config) -> Self {
-        let mut authorized_persons = HashSet::new();
-        authorized_persons.insert("kuviman".to_owned());
-        authorized_persons.insert("Nertsal".to_owned());
-
+    fn new(config: &Config) -> Self {
         let commands = vec![
             Command {
                 name: "help".to_owned(),
@@ -184,7 +184,7 @@ impl Bot {
 
         let mut bot = Self {
             save_file: "nertsalbot.json".to_owned(),
-            authorities: config.authorities,
+            authorities: config.authorities.clone(),
             commands,
             games: VecDeque::new(),
             current_game: None,
