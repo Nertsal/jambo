@@ -1,0 +1,6 @@
+/target
+/Cargo.lock
+/.idea/
+*.iml
+nertsalbot.json
+config.json
