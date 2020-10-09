@@ -201,21 +201,9 @@ impl Bot {
         message: ServerMessage,
     ) {
         match message {
-            ServerMessage::ClearChat(_) => {}
-            ServerMessage::ClearMsg(_) => {}
-            ServerMessage::GlobalUserState(_) => {}
-            ServerMessage::HostTarget(_) => {}
             ServerMessage::Join(message) => {
                 println!("Joined: {}", message.channel_login);
-                client
-                    .say(message.channel_login, "NertsalBot just joined!".to_owned())
-                    .await
-                    .unwrap();
             }
-            ServerMessage::Notice(_) => {}
-            ServerMessage::Part(_) => {}
-            ServerMessage::Ping(_) => {}
-            ServerMessage::Pong(_) => {}
             ServerMessage::Privmsg(message) => {
                 println!(
                     "Got a message in {} from {}: {}",
@@ -225,13 +213,7 @@ impl Bot {
                     client.say(message.channel_login, reply).await.unwrap();
                 }
             }
-            ServerMessage::Reconnect(_) => {}
-            ServerMessage::RoomState(_) => {}
-            ServerMessage::UserNotice(_) => {}
-            ServerMessage::UserState(_) => {}
-            ServerMessage::Whisper(_) => {}
-            ServerMessage::Generic(_) => {}
-            _ => {}
+            _ => (),
         }
     }
     fn check_command(&mut self, message: &PrivmsgMessage) -> Option<String> {
