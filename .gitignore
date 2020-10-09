@@ -2,5 +2,5 @@
 /Cargo.lock
 /.idea/
 *.iml
-nertsalbot.json
 config.json
+*nertsalbot.json

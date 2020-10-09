@@ -1,6 +1,6 @@
 use futures::prelude::*;
 use serde::{Deserialize, Serialize};
-use std::collections::{HashSet, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 use twitch_irc::login::StaticLoginCredentials;
 use twitch_irc::message::{PrivmsgMessage, ServerMessage};
 use twitch_irc::{ClientConfig, TCPTransport, TwitchIRCClient};
@@ -20,14 +20,24 @@ async fn main() {
         TwitchIRCClient::<TCPTransport, StaticLoginCredentials>::new(config);
 
     let channels = bot_config.channels.clone();
+    let mut channels_bot = ChannelsBot {
+        bots: {
+            let mut map = HashMap::new();
+            for channel in &channels {
+                let mut save_file = channel.clone();
+                save_file.push_str("-nertsalbot.json");
+                map.insert(channel.clone(), Bot::new(&bot_config, save_file));
+            }
+            map
+        },
+    };
 
     // first thing you should do: start consuming incoming messages,
     // otherwise they will back up.
     let client_clone = client.clone();
     let join_handle = tokio::spawn(async move {
-        let mut bot = Bot::new(&bot_config);
         while let Some(message) = incoming_messages.next().await {
-            bot.handle_message(&client_clone, message).await;
+            channels_bot.handle_message(&client_clone, message).await;
         }
     });
 
@@ -49,6 +59,39 @@ struct Config {
     authorities: HashSet<String>,
 }
 
+struct ChannelsBot {
+    bots: HashMap<String, Bot>,
+}
+
+impl ChannelsBot {
+    async fn handle_message(
+        &mut self,
+        client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
+        message: ServerMessage,
+    ) {
+        match message {
+            ServerMessage::Join(message) => {
+                println!("Joined: {}", message.channel_login);
+            }
+            ServerMessage::Privmsg(message) => {
+                println!(
+                    "Got a message in {} from {}: {}",
+                    message.channel_login, message.sender.name, message.message_text
+                );
+                if let Some(reply) = self
+                    .bots
+                    .get_mut(&message.channel_login)
+                    .unwrap()
+                    .check_command(&message)
+                {
+                    client.say(message.channel_login, reply).await.unwrap();
+                }
+            }
+            _ => (),
+        }
+    }
+}
+
 struct Bot {
     save_file: String,
     authorities: HashSet<String>,
@@ -58,7 +101,7 @@ struct Bot {
 }
 
 impl Bot {
-    fn new(config: &Config) -> Self {
+    fn new(config: &Config, save_file: String) -> Self {
         let commands = vec![
             Command {
                 name: "help".to_owned(),
@@ -183,38 +226,18 @@ impl Bot {
         ];
 
         let mut bot = Self {
-            save_file: "nertsalbot.json".to_owned(),
+            save_file,
             authorities: config.authorities.clone(),
             commands,
             games: VecDeque::new(),
             current_game: None,
         };
+        println!("Loading data from {}", &bot.save_file);
         match bot.load_games() {
             Ok(_) => println!("Successfully loaded from json"),
             Err(err) => println!("Error loading from json: {}", err),
         }
         bot
-    }
-    async fn handle_message(
-        &mut self,
-        client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
-        message: ServerMessage,
-    ) {
-        match message {
-            ServerMessage::Join(message) => {
-                println!("Joined: {}", message.channel_login);
-            }
-            ServerMessage::Privmsg(message) => {
-                println!(
-                    "Got a message in {} from {}: {}",
-                    message.channel_login, message.sender.name, message.message_text
-                );
-                if let Some(reply) = self.check_command(&message) {
-                    client.say(message.channel_login, reply).await.unwrap();
-                }
-            }
-            _ => (),
-        }
     }
     fn check_command(&mut self, message: &PrivmsgMessage) -> Option<String> {
         let mut message_text = message.message_text.clone();
