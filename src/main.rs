@@ -114,16 +114,35 @@ impl Bot {
                     if args.is_empty() {
                         Some(help_message())
                     } else if args.starts_with("https://ldjam.com/events/ludum-dare/") {
-                        bot.games_state.games_queue.push_back(Game {
-                            author: sender_name.clone(),
-                            name: args,
-                        });
-                        bot.save_games().unwrap();
-                        Some(format!(
-                            "@{}, your game has been submitted! There are {} games in the queue.",
-                            sender_name,
-                            bot.games_state.games_queue.len()
-                        ))
+                        if let Some(current_game) = &bot.games_state.current_game {
+                            if current_game.name == args {
+                                return Some(format!(
+                                    "@{}, we are playing that game right now!",
+                                    sender_name
+                                ));
+                            }
+                        }
+
+                        if let Some((index, _)) = bot
+                            .games_state
+                            .games_queue
+                            .iter()
+                            .enumerate()
+                            .find(|(_, game)| game.name == args)
+                        {
+                            Some(format!("@{}, that game has already been submitted. It is currently {} in the queue.", sender_name, index + 1))
+                        } else {
+                            bot.games_state.games_queue.push_back(Game {
+                                author: sender_name.clone(),
+                                name: args,
+                            });
+                            bot.save_games().unwrap();
+                            Some(format!(
+                                "@{}, your game has been submitted! There are {} games in the queue.",
+                                sender_name,
+                                bot.games_state.games_queue.len()
+                            ))
+                        }
                     } else {
                         Some(format!("@{}, that is not a Ludum Dare page", sender_name))
                     }
