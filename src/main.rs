@@ -96,8 +96,7 @@ struct Bot {
     save_file: String,
     authorities: HashSet<String>,
     commands: Vec<Command>,
-    games: VecDeque<Game>,
-    current_game: Option<Game>,
+    games_state: GamesState,
 }
 
 impl Bot {
@@ -115,7 +114,7 @@ impl Bot {
                     if args.is_empty() {
                         Some(help_message())
                     } else if args.starts_with("https://ldjam.com/events/ludum-dare/") {
-                        bot.games.push_front(Game {
+                        bot.games_state.games_queue.push_front(Game {
                             author: sender_name.clone(),
                             name: args,
                         });
@@ -123,7 +122,7 @@ impl Bot {
                         Some(format!(
                             "@{}, your game has been submitted! There are {} games in the queue.",
                             sender_name,
-                            bot.games.len()
+                            bot.games_state.games_queue.len()
                         ))
                     } else {
                         Some(format!("@{}, that is not a Ludum Dare page", sender_name))
@@ -134,16 +133,16 @@ impl Bot {
                 name: "next".to_owned(),
                 authorities_required: true,
                 command: |bot, _, _| {
-                    let game = bot.games.pop_back();
+                    let game = bot.games_state.games_queue.pop_back();
                     match game {
                         Some(game) => {
-                            bot.save_games().unwrap();
                             let reply = format!("Now playing: {} from @{}", game.name, game.author);
-                            bot.current_game = Some(game);
+                            bot.games_state.current_game = Some(game);
+                            bot.save_games().unwrap();
                             Some(reply)
                         }
                         None => {
-                            bot.current_game = None;
+                            bot.games_state.current_game = None;
                             let reply = format!("The queue is empty. !submit <your game>");
                             Some(reply)
                         }
@@ -156,7 +155,8 @@ impl Bot {
                 command: |bot, sender_name, _| {
                     let mut reply = String::new();
                     if let Some((pos, _)) = bot
-                        .games
+                        .games_state
+                        .games_queue
                         .iter()
                         .enumerate()
                         .find(|(_, game)| game.author == sender_name)
@@ -166,7 +166,7 @@ impl Bot {
                             sender_name,
                             pos + 1
                         ))
-                    } else if let Some(game) = &bot.current_game {
+                    } else if let Some(game) = &bot.games_state.current_game {
                         if game.author == sender_name {
                             reply.push_str(&format!(
                                 "@{}, we are currently playing your game. ",
@@ -174,7 +174,7 @@ impl Bot {
                             ))
                         }
                     }
-                    let games_count = bot.games.len();
+                    let games_count = bot.games_state.games_queue.len();
                     if games_count > 0 {
                         reply.push_str(&format!(
                             "There are {} games in the queue. Next games are: ",
@@ -184,8 +184,8 @@ impl Bot {
                             reply.push_str(&format!(
                                 "{}. {} from {} ",
                                 i + 1,
-                                bot.games[i].name,
-                                bot.games[i].author
+                                bot.games_state.games_queue[i].name,
+                                bot.games_state.games_queue[i].author
                             ))
                         }
                     } else {
@@ -197,7 +197,7 @@ impl Bot {
             Command {
                 name: "current".to_owned(),
                 authorities_required: false,
-                command: |bot, _, _| match &bot.current_game {
+                command: |bot, _, _| match &bot.games_state.current_game {
                     Some(game) => Some(format!(
                         "Current game is: {} from {}",
                         game.name, game.author
@@ -208,9 +208,10 @@ impl Bot {
             Command {
                 name: "current-queue".to_owned(),
                 authorities_required: true,
-                command: |bot, _, _| match bot.current_game.take() {
+                command: |bot, _, _| match bot.games_state.current_game.take() {
                     Some(game) => {
-                        bot.games.push_front(game);
+                        bot.games_state.games_queue.push_front(game);
+                        bot.save_games().unwrap();
                         Some("Game has been put back in queue".to_owned())
                     }
                     None => Some("Not playing any game at the moment".to_owned()),
@@ -220,7 +221,8 @@ impl Bot {
                 name: "stop".to_owned(),
                 authorities_required: true,
                 command: |bot, _, _| {
-                    bot.current_game = None;
+                    bot.games_state.current_game = None;
+                    bot.save_games().unwrap();
                     Some("Current game set to None".to_owned())
                 },
             },
@@ -230,8 +232,7 @@ impl Bot {
             save_file,
             authorities: config.authorities.clone(),
             commands,
-            games: VecDeque::new(),
-            current_game: None,
+            games_state: GamesState::new(),
         };
         println!("Loading data from {}", &bot.save_file);
         match bot.load_games() {
@@ -268,12 +269,12 @@ impl Bot {
     }
     fn save_games(&self) -> Result<(), std::io::Error> {
         let file = std::io::BufWriter::new(std::fs::File::create(&self.save_file)?);
-        serde_json::to_writer(file, &self.games)?;
+        serde_json::to_writer(file, &self.games_state)?;
         Ok(())
     }
     fn load_games(&mut self) -> Result<(), std::io::Error> {
         let file = std::io::BufReader::new(std::fs::File::open(&self.save_file)?);
-        self.games = serde_json::from_reader(file)?;
+        self.games_state = serde_json::from_reader(file)?;
         Ok(())
     }
 }
@@ -292,4 +293,19 @@ struct Command {
 struct Game {
     author: String,
     name: String,
+}
+
+#[derive(Serialize, Deserialize)]
+struct GamesState {
+    current_game: Option<Game>,
+    games_queue: VecDeque<Game>,
+}
+
+impl GamesState {
+    fn new() -> Self {
+        Self {
+            current_game: None,
+            games_queue: VecDeque::new(),
+        }
+    }
 }
