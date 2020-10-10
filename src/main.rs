@@ -114,7 +114,7 @@ impl Bot {
                     if args.is_empty() {
                         Some(help_message())
                     } else if args.starts_with("https://ldjam.com/events/ludum-dare/") {
-                        bot.games_state.games_queue.push_front(Game {
+                        bot.games_state.games_queue.push_back(Game {
                             author: sender_name.clone(),
                             name: args,
                         });
@@ -133,7 +133,7 @@ impl Bot {
                 name: "next".to_owned(),
                 authorities_required: true,
                 command: |bot, _, _| {
-                    let game = bot.games_state.games_queue.pop_back();
+                    let game = bot.games_state.games_queue.pop_front();
                     match game {
                         Some(game) => {
                             let reply = format!("Now playing: {} from @{}", game.name, game.author);
@@ -210,7 +210,7 @@ impl Bot {
                 authorities_required: true,
                 command: |bot, _, _| match bot.games_state.current_game.take() {
                     Some(game) => {
-                        bot.games_state.games_queue.push_front(game);
+                        bot.games_state.games_queue.push_back(game);
                         bot.save_games().unwrap();
                         Some("Game has been put back in queue".to_owned())
                     }
