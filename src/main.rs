@@ -245,6 +245,15 @@ impl Bot {
                     Some("Current game set to None".to_owned())
                 },
             },
+            Command {
+                name: "clear".to_owned(),
+                authorities_required: true,
+                command: |bot, _, _| {
+                    bot.games_state.games_queue.clear();
+                    bot.save_games().unwrap();
+                    Some("The queue has been cleared".to_owned())
+                },
+            },
         ];
 
         let mut bot = Self {
