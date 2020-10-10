@@ -144,7 +144,8 @@ impl Bot {
                         }
                         None => {
                             bot.current_game = None;
-                            None
+                            let reply = format!("The queue is empty. !submit <your game>");
+                            Some(reply)
                         }
                     }
                 },
