@@ -235,7 +235,12 @@ impl Bot {
                                 reply.push_str("Queued games: ");
                                 empty = false;
                             }
-                            reply.push_str(&format!("{}. {} from {}. ", i, game.name, game.author));
+                            reply.push_str(&format!(
+                                "{}) {} from {}. ",
+                                i + 1,
+                                game.name,
+                                game.author
+                            ));
                         }
                     }
                     if empty {
