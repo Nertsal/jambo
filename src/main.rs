@@ -109,6 +109,13 @@ impl Bot {
                 command: |_, _, _| Some(help_message()),
             },
             Command {
+                name: "game".to_owned(),
+                authorities_required: false,
+                command: |_, _, _| {
+                    Some("Try our multiplayer sandbox game: https://ldjam.com/events/ludum-dare/47/the-island".to_owned())
+                },
+            },
+            Command {
                 name: "submit".to_owned(),
                 authorities_required: false,
                 command: |bot, sender_name, args| {
