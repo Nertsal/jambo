@@ -2,6 +2,7 @@ use futures::prelude::*;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet, VecDeque};
+use std::time::Instant;
 use twitch_irc::login::StaticLoginCredentials;
 use twitch_irc::message::{PrivmsgMessage, ServerMessage};
 use twitch_irc::{ClientConfig, TCPTransport, TwitchIRCClient};
@@ -58,6 +59,7 @@ struct Config {
     oauth_token: String,
     channels: Vec<String>,
     authorities: HashSet<String>,
+    response_time_limit: Option<u64>,
 }
 
 struct ChannelsBot {
@@ -70,6 +72,12 @@ impl ChannelsBot {
         client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
         message: ServerMessage,
     ) {
+        for (channel, bot) in &mut self.bots {
+            if let Some(reply) = bot.update() {
+                client.say(channel.clone(), reply).await.unwrap();
+            }
+        }
+
         match message {
             ServerMessage::Join(message) => {
                 println!("Joined: {}", message.channel_login);
@@ -79,12 +87,14 @@ impl ChannelsBot {
                     "Got a message in {} from {}: {}",
                     message.channel_login, message.sender.name, message.message_text
                 );
-                if let Some(reply) = self
-                    .bots
-                    .get_mut(&message.channel_login)
-                    .unwrap()
-                    .check_command(&message)
-                {
+                let bot = self.bots.get_mut(&message.channel_login).unwrap();
+                if let Some(reply) = bot.check_command(&message) {
+                    client
+                        .say(message.channel_login.clone(), reply)
+                        .await
+                        .unwrap();
+                }
+                if let Some(reply) = bot.check_message(&message) {
                     client.say(message.channel_login, reply).await.unwrap();
                 }
             }
@@ -95,9 +105,11 @@ impl ChannelsBot {
 
 struct Bot {
     save_file: String,
+    response_time_limit: Option<u64>,
     authorities: HashSet<String>,
     commands: Vec<Command>,
     games_state: GamesState,
+    time_limit: Option<Instant>,
 }
 
 impl Bot {
@@ -187,26 +199,7 @@ impl Bot {
             Command {
                 name: "next".to_owned(),
                 authorities_required: true,
-                command: |bot, _, _| {
-                    let game = bot
-                        .games_state
-                        .returned_queue
-                        .pop_front()
-                        .or_else(|| bot.games_state.games_queue.pop_front());
-                    match game {
-                        Some(game) => {
-                            let reply = format!("Now playing: {} from @{}", game.name, game.author);
-                            bot.games_state.current_game = Some(game);
-                            bot.save_games().unwrap();
-                            Some(reply)
-                        }
-                        None => {
-                            bot.games_state.current_game = None;
-                            let reply = format!("The queue is empty. !submit <your game>");
-                            Some(reply)
-                        }
-                    }
-                },
+                command: |bot, _, _| bot.next(),
             },
             Command {
                 name: "random".to_owned(),
@@ -301,14 +294,7 @@ impl Bot {
             Command {
                 name: "skip".to_owned(),
                 authorities_required: true,
-                command: |bot, _, _| match bot.games_state.current_game.take() {
-                    Some(game) => {
-                        bot.games_state.skipped.push(game);
-                        bot.save_games().unwrap();
-                        Some("Game has been skipped".to_owned())
-                    }
-                    None => Some("Not playing any game at the moment".to_owned()),
-                },
+                command: |bot, _, _| bot.skip(),
             },
             Command {
                 name: "stop".to_owned(),
@@ -332,9 +318,11 @@ impl Bot {
 
         let mut bot = Self {
             save_file,
+            response_time_limit: config.response_time_limit,
             authorities: config.authorities.clone(),
             commands,
             games_state: GamesState::new(),
+            time_limit: None,
         };
         println!("Loading data from {}", &bot.save_file);
         match bot.load_games() {
@@ -343,9 +331,19 @@ impl Bot {
         }
         bot
     }
+    fn check_message(&mut self, message: &PrivmsgMessage) -> Option<String> {
+        if let Some(_) = self.time_limit {
+            let game = self.games_state.current_game.as_ref().unwrap();
+            if message.sender.name == game.author {
+                return Some(format!("Now playing {} from @{}", game.name, game.author));
+            }
+        }
+        None
+    }
     fn check_command(&mut self, message: &PrivmsgMessage) -> Option<String> {
         let mut message_text = message.message_text.clone();
         let sender_name = message.sender.name.clone();
+
         match message_text.remove(0) {
             '!' => {
                 let mut args = message_text.split_whitespace();
@@ -378,6 +376,54 @@ impl Bot {
         let file = std::io::BufReader::new(std::fs::File::open(&self.save_file)?);
         self.games_state = serde_json::from_reader(file)?;
         Ok(())
+    }
+    fn update(&mut self) -> Option<String> {
+        if let Some(time) = self.time_limit {
+            if time.elapsed().as_secs() >= self.response_time_limit.unwrap() {
+                self.time_limit = None;
+                return self.skip();
+            }
+        }
+        None
+    }
+    fn next(&mut self) -> Option<String> {
+        let game = self
+            .games_state
+            .returned_queue
+            .pop_front()
+            .or_else(|| self.games_state.games_queue.pop_front());
+        match game {
+            Some(game) => {
+                let reply = if let Some(response_time) = self.response_time_limit {
+                    self.time_limit = Some(Instant::now());
+                    format!(
+                        "@{}, we are about to play your game. Please reply in {} seconds. ",
+                        game.author, response_time
+                    )
+                } else {
+                    format!("Now playing {} from @{}. ", game.name, game.author)
+                };
+                self.games_state.current_game = Some(game);
+                self.save_games().unwrap();
+                Some(reply)
+            }
+            None => {
+                self.games_state.current_game = None;
+                let reply = format!("The queue is empty. !submit <your game>. ");
+                Some(reply)
+            }
+        }
+    }
+    fn skip(&mut self) -> Option<String> {
+        match self.games_state.current_game.take() {
+            Some(game) => {
+                self.games_state.skipped.push(game);
+                let mut reply = "Game has been skipped. ".to_owned();
+                reply.push_str(&self.next().unwrap());
+                Some(reply)
+            }
+            None => Some("Not playing any game at the moment. ".to_owned()),
+        }
     }
 }
 
