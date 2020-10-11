@@ -149,6 +149,34 @@ impl Bot {
                 },
             },
             Command {
+                name: "return".to_owned(),
+                authorities_required: false,
+                command: |bot, sender_name, _| {
+                    let mut reply = String::new();
+                    if let Some(game) = bot
+                        .games_state
+                        .skipped
+                        .iter()
+                        .find(|game| game.author == sender_name)
+                    {
+                        bot.games_state.returned_queue.push_back(game.clone());
+                        bot.games_state
+                            .skipped
+                            .retain(|game| game.author != sender_name);
+                        reply.push_str(&format!(
+                            "@{}, your game was returned to the front of the queue",
+                            sender_name
+                        ));
+                    } else {
+                        reply.push_str(&format!(
+                            "@{}, you have caused stack underflow exception, return failed.",
+                            sender_name,
+                        ));
+                    }
+                    Some(reply)
+                },
+            },
+            Command {
                 name: "next".to_owned(),
                 authorities_required: true,
                 command: |bot, _, _| {
@@ -175,8 +203,7 @@ impl Bot {
                     let mut reply = String::new();
                     if let Some((pos, _)) = bot
                         .games_state
-                        .games_queue
-                        .iter()
+                        .queue()
                         .enumerate()
                         .find(|(_, game)| game.author == sender_name)
                     {
@@ -185,6 +212,13 @@ impl Bot {
                             sender_name,
                             pos + 1
                         ))
+                    } else if bot
+                        .games_state
+                        .skipped
+                        .iter()
+                        .any(|game| game.author == sender_name)
+                    {
+                        reply.push_str(&format!("@{}, your game was skipped. You may return to the front of the queue using !return command. ", sender_name))
                     } else if let Some(game) = &bot.games_state.current_game {
                         if game.author == sender_name {
                             reply.push_str(&format!(
@@ -193,22 +227,24 @@ impl Bot {
                             ))
                         }
                     }
-                    let games_count = bot.games_state.games_queue.len();
-                    if games_count > 0 {
-                        reply.push_str(&format!(
-                            "There are {} games in the queue. Next games are: ",
-                            games_count
-                        ));
-                        for i in 0..(3.min(games_count)) {
-                            reply.push_str(&format!(
-                                "{}. {} from {} ",
-                                i + 1,
-                                bot.games_state.games_queue[i].name,
-                                bot.games_state.games_queue[i].author
-                            ))
+                    let mut queue = bot.games_state.queue();
+                    let mut empty = true;
+                    for i in 0..3 {
+                        if let Some(game) = queue.next() {
+                            if empty {
+                                reply.push_str("Queued games: ");
+                                empty = false;
+                            }
+                            reply.push_str(&format!("{}. {} from {}. ", i, game.name, game.author));
                         }
+                    }
+                    if empty {
+                        reply.push_str("The queue is empty");
                     } else {
-                        reply.push_str("No games in queue");
+                        let left_count = queue.count();
+                        if left_count != 0 {
+                            reply.push_str(&format!("And {} more", left_count));
+                        }
                     }
                     Some(reply)
                 },
@@ -225,13 +261,13 @@ impl Bot {
                 },
             },
             Command {
-                name: "current-queue".to_owned(),
+                name: "skip".to_owned(),
                 authorities_required: true,
                 command: |bot, _, _| match bot.games_state.current_game.take() {
                     Some(game) => {
-                        bot.games_state.games_queue.push_back(game);
+                        bot.games_state.skipped.push(game);
                         bot.save_games().unwrap();
-                        Some("Game has been put back in queue".to_owned())
+                        Some("Game has been skipped".to_owned())
                     }
                     None => Some("Not playing any game at the moment".to_owned()),
                 },
@@ -317,7 +353,7 @@ struct Command {
     command: fn(&mut Bot, String, String) -> Option<String>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 struct Game {
     author: String,
     name: String,
@@ -326,14 +362,21 @@ struct Game {
 #[derive(Serialize, Deserialize)]
 struct GamesState {
     current_game: Option<Game>,
+    returned_queue: VecDeque<Game>,
     games_queue: VecDeque<Game>,
+    skipped: Vec<Game>,
 }
 
 impl GamesState {
     fn new() -> Self {
         Self {
             current_game: None,
+            returned_queue: VecDeque::new(),
             games_queue: VecDeque::new(),
+            skipped: Vec::new(),
         }
+    }
+    fn queue(&self) -> impl Iterator<Item = &Game> {
+        self.returned_queue.iter().chain(self.games_queue.iter())
     }
 }
