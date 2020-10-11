@@ -324,6 +324,18 @@ impl Bot {
                     Some("The queue has been cleared".to_owned())
                 },
             },
+            Command {
+                name: "force".to_owned(),
+                authorities_required: true,
+                command: |bot, _, _| {
+                    if let Some(_) = bot.time_limit.take() {
+                        let game = bot.games_state.current_game.as_ref().unwrap();
+                        Some(format!("Now playing {} from @{}", game.name, game.author))
+                    } else {
+                        Some("Not waiting for response at the moment".to_owned())
+                    }
+                },
+            },
         ];
 
         let mut bot = Self {
