@@ -1,4 +1,5 @@
 use futures::prelude::*;
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet, VecDeque};
 use twitch_irc::login::StaticLoginCredentials;
@@ -193,6 +194,27 @@ impl Bot {
                             let reply = format!("The queue is empty. !submit <your game>");
                             Some(reply)
                         }
+                    }
+                },
+            },
+            Command {
+                name: "random".to_owned(),
+                authorities_required: true,
+                command: |bot, _, _| {
+                    let skipped_count = bot.games_state.skipped.len();
+                    if skipped_count > 0 {
+                        let game = bot
+                            .games_state
+                            .skipped
+                            .remove(rand::thread_rng().gen_range(0, skipped_count));
+                        let reply = format!("Now playing: {} from @{}", game.name, game.author);
+                        bot.games_state.current_game = Some(game);
+                        bot.save_games().unwrap();
+                        Some(reply)
+                    } else {
+                        bot.games_state.current_game = None;
+                        let reply = format!("No games have been skipped yet");
+                        Some(reply)
                     }
                 },
             },
