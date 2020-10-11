@@ -131,7 +131,12 @@ impl Bot {
                 name: "submit".to_owned(),
                 authorities_required: false,
                 command: |bot, sender_name, args| {
-                    if args.is_empty() {
+                    if !bot.games_state.is_open {
+                        Some(
+                            "The queue is closed. You can not submit your game at the moment."
+                                .to_owned(),
+                        )
+                    } else if args.is_empty() {
                         Some(help_message())
                     } else if args.starts_with("https://ldjam.com/events/ludum-dare/") {
                         if let Some(current_game) = &bot.games_state.current_game {
@@ -180,6 +185,12 @@ impl Bot {
                 name: "return".to_owned(),
                 authorities_required: false,
                 command: |bot, sender_name, _| {
+                    if !bot.games_state.is_open {
+                        return Some(
+                            "The queue is closed. You can not submit your game at the moment."
+                                .to_owned(),
+                        );
+                    }
                     let mut reply = String::new();
                     if let Some(game) = bot
                         .games_state
@@ -336,6 +347,22 @@ impl Bot {
                     }
                 },
             },
+            Command {
+                name: "close".to_owned(),
+                authorities_required: true,
+                command: |bot, _, _| {
+                    bot.games_state.is_open = false;
+                    Some("The queue is now closed".to_owned())
+                },
+            },
+            Command {
+                name: "open".to_owned(),
+                authorities_required: true,
+                command: |bot, _, _| {
+                    bot.games_state.is_open = true;
+                    Some("The queue is now open".to_owned())
+                },
+            },
         ];
 
         let mut bot = Self {
@@ -469,6 +496,7 @@ struct Game {
 
 #[derive(Serialize, Deserialize)]
 struct GamesState {
+    is_open: bool,
     current_game: Option<Game>,
     returned_queue: VecDeque<Game>,
     games_queue: VecDeque<Game>,
@@ -478,6 +506,7 @@ struct GamesState {
 impl GamesState {
     fn new() -> Self {
         Self {
+            is_open: true,
             current_game: None,
             returned_queue: VecDeque::new(),
             games_queue: VecDeque::new(),
