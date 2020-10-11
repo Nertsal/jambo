@@ -188,7 +188,11 @@ impl Bot {
                 name: "next".to_owned(),
                 authorities_required: true,
                 command: |bot, _, _| {
-                    let game = bot.games_state.games_queue.pop_front();
+                    let game = bot
+                        .games_state
+                        .returned_queue
+                        .pop_front()
+                        .or_else(|| bot.games_state.games_queue.pop_front());
                     match game {
                         Some(game) => {
                             let reply = format!("Now playing: {} from @{}", game.name, game.author);
