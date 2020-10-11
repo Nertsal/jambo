@@ -357,6 +357,7 @@ impl Bot {
         if let Some(_) = self.time_limit {
             let game = self.games_state.current_game.as_ref().unwrap();
             if message.sender.name == game.author {
+                self.time_limit = None;
                 return Some(format!("Now playing {} from @{}", game.name, game.author));
             }
         }
