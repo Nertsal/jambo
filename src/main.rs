@@ -145,24 +145,32 @@ impl Bot {
 
                         if let Some((index, _)) = bot
                             .games_state
-                            .games_queue
-                            .iter()
+                            .queue()
                             .enumerate()
                             .find(|(_, game)| game.name == args)
                         {
-                            Some(format!("@{}, that game has already been submitted. It is currently {} in the queue.", sender_name, index + 1))
-                        } else {
-                            bot.games_state.games_queue.push_back(Game {
-                                author: sender_name.clone(),
-                                name: args,
-                            });
-                            bot.save_games().unwrap();
-                            Some(format!(
-                                "@{}, your game has been submitted! There are {} games in the queue.",
-                                sender_name,
-                                bot.games_state.games_queue.len()
-                            ))
+                            return Some(format!("@{}, that game has already been submitted. It is currently {} in the queue.", sender_name, index + 1));
                         }
+
+                        if let Some(_) = bot
+                            .games_state
+                            .skipped
+                            .iter()
+                            .find(|game| game.name == args)
+                        {
+                            return Some(format!("@{}, your game was skipped. You may return to the front of the queue using !return command", sender_name));
+                        }
+
+                        bot.games_state.games_queue.push_back(Game {
+                            author: sender_name.clone(),
+                            name: args,
+                        });
+                        bot.save_games().unwrap();
+                        Some(format!(
+                            "@{}, your game has been submitted! There are {} games in the queue.",
+                            sender_name,
+                            bot.games_state.games_queue.len()
+                        ))
                     } else {
                         Some(format!("@{}, that is not a Ludum Dare page", sender_name))
                     }
@@ -205,6 +213,7 @@ impl Bot {
                 name: "random".to_owned(),
                 authorities_required: true,
                 command: |bot, _, _| {
+                    bot.time_limit = None;
                     let skipped_count = bot.games_state.skipped.len();
                     if skipped_count > 0 {
                         let game = bot
@@ -300,6 +309,7 @@ impl Bot {
                 name: "stop".to_owned(),
                 authorities_required: true,
                 command: |bot, _, _| {
+                    bot.time_limit = None;
                     bot.games_state.current_game = None;
                     bot.save_games().unwrap();
                     Some("Current game set to None".to_owned())
@@ -387,6 +397,7 @@ impl Bot {
         None
     }
     fn next(&mut self) -> Option<String> {
+        self.time_limit = None;
         let game = self
             .games_state
             .returned_queue
