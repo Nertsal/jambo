@@ -40,7 +40,7 @@ impl LDBot {
         match self.games_state.current_game.take() {
             Some(game) => {
                 self.games_state.skipped.push(game);
-                self.save_games();
+                self.save_games().unwrap();
                 let mut reply = "Game has been skipped. ".to_owned();
                 reply.push_str(&self.next().unwrap());
                 Some(reply)
@@ -291,6 +291,7 @@ impl LDBot {
                 authorities_required: true,
                 command: |bot, _, _| {
                     bot.games_state.is_open = false;
+                    bot.save_games().unwrap();
                     Some("The queue is now closed".to_owned())
                 },
             },
@@ -299,6 +300,7 @@ impl LDBot {
                 authorities_required: true,
                 command: |bot, _, _| {
                     bot.games_state.is_open = true;
+                    bot.save_games().unwrap();
                     Some("The queue is now open".to_owned())
                 },
             },
