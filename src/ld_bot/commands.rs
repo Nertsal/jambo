@@ -40,6 +40,7 @@ impl LDBot {
         match self.games_state.current_game.take() {
             Some(game) => {
                 self.games_state.skipped.push(game);
+                self.save_games();
                 let mut reply = "Game has been skipped. ".to_owned();
                 reply.push_str(&self.next().unwrap());
                 Some(reply)
@@ -139,6 +140,7 @@ impl LDBot {
                         bot.games_state
                             .skipped
                             .retain(|game| game.author != sender_name);
+                        bot.save_games().unwrap();
                         reply.push_str(&format!(
                             "@{}, your game was returned to the front of the queue",
                             sender_name
