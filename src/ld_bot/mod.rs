@@ -54,26 +54,25 @@ impl LDBot {
                         .await
                         .unwrap();
                 }
-                if let Some(reply) = self.check_message(&message) {
-                    client.say(channel_login.clone(), reply).await.unwrap();
-                }
             }
             _ => (),
         };
     }
-    pub fn check_message(&mut self, message: &PrivmsgMessage) -> Option<String> {
+    fn check_command(&mut self, message: &PrivmsgMessage) -> Option<String> {
+        let mut message_text = message.message_text.clone();
+        let sender_name = message.sender.name.clone();
+
         if let Some(_) = self.time_limit {
             let game = self.games_state.current_game.as_ref().unwrap();
             if message.sender.name == game.author {
                 self.time_limit = None;
-                return Some(format!("Now playing {} from @{}", game.name, game.author));
+                let mut reply = format!("Now playing {} from @{}. ", game.name, game.author);
+                if let Some(command_reply) = self.check_command(message) {
+                    reply.push_str(&command_reply);
+                }
+                return Some(reply);
             }
         }
-        None
-    }
-    pub fn check_command(&mut self, message: &PrivmsgMessage) -> Option<String> {
-        let mut message_text = message.message_text.clone();
-        let sender_name = message.sender.name.clone();
 
         match message_text.remove(0) {
             '!' => {
