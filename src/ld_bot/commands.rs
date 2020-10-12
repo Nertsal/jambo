@@ -256,6 +256,28 @@ impl LDBot {
                 command: |bot, _, _| bot.skip(),
             },
             Command {
+                name: "unskip".to_owned(),
+                authorities_required: true,
+                command: |bot, _, _| {
+                    if let Some(skipped) = bot.games_state.skipped.pop() {
+                        bot.time_limit = None;
+                        let mut reply = String::new();
+                        if let Some(current) = bot.games_state.current_game.take() {
+                            bot.games_state.returned_queue.push_front(current);
+                            reply.push_str("Current game has been put at the front of the queue. ");
+                        }
+                        reply.push_str(&format!(
+                            "Now playing {} from @{}",
+                            skipped.name, skipped.author
+                        ));
+                        bot.games_state.current_game = Some(skipped);
+                        Some(reply)
+                    } else {
+                        Some("No game has been skipped yet".to_owned())
+                    }
+                },
+            },
+            Command {
                 name: "stop".to_owned(),
                 authorities_required: true,
                 command: |bot, _, _| {
