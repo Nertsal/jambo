@@ -26,7 +26,9 @@ impl LDBot {
         println!("Loading data from {}", &bot.save_file);
         match bot.load_games() {
             Ok(_) => println!("Successfully loaded from json"),
-            Err(err) => println!("Error loading from json: {}", err),
+            Err(err) => {
+                panic!("Error loading from json: {}", err);
+            }
         }
         bot
     }
