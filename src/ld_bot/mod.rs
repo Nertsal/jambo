@@ -1,10 +1,18 @@
 use super::*;
+use std::collections::{HashSet, VecDeque};
 
 mod commands;
 
 pub use commands::*;
 
+#[derive(Serialize, Deserialize)]
+pub struct LDConfig {
+    authorities: HashSet<String>,
+    response_time_limit: Option<u64>,
+}
+
 pub struct LDBot {
+    channel_login: String,
     save_file: String,
     response_time_limit: Option<u64>,
     authorities: HashSet<String>,
@@ -14,9 +22,15 @@ pub struct LDBot {
 }
 
 impl LDBot {
-    pub fn new(config: &Config, save_file: String) -> Self {
+    pub fn new(channel: &String) -> Self {
+        let config: LDConfig = serde_json::from_reader(std::io::BufReader::new(
+            std::fs::File::open("ld-config.json").unwrap(),
+        ))
+        .unwrap();
+
         let mut bot = Self {
-            save_file,
+            channel_login: channel.clone(),
+            save_file: "ld-nertsalbot.json".to_owned(),
             response_time_limit: config.response_time_limit,
             authorities: config.authorities.clone(),
             commands: Self::commands(),
@@ -96,12 +110,11 @@ impl LDBot {
 impl Bot for LDBot {
     async fn handle_message(
         &mut self,
-        channel_login: String,
         client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
         message: &ServerMessage,
     ) {
         if let Some(reply) = self.update() {
-            client.say(channel_login, reply).await.unwrap();
+            client.say(self.channel_login.clone(), reply).await.unwrap();
         }
         match message {
             ServerMessage::Join(message) => {
