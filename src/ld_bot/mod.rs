@@ -132,6 +132,11 @@ impl Bot for LDBot {
                         .unwrap();
                 }
             }
+            ServerMessage::Notice(message) => {
+                if message.message_text == "Login authentication failed" {
+                    panic!("Login authentication failed.");
+                }
+            }
             _ => (),
         };
     }
