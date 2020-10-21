@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use futures::prelude::*;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
@@ -28,11 +29,14 @@ async fn main() {
     let channels = bot_config.channels.clone();
     let mut channels_bot = ChannelsBot {
         bots: {
-            let mut map = HashMap::new();
+            let mut map: HashMap<String, Box<dyn Bot>> = HashMap::new();
             for channel in &channels {
                 let mut save_file = channel.clone();
                 save_file.push_str("-nertsalbot.json");
-                map.insert(channel.clone(), LDBot::new(&bot_config, save_file));
+                map.insert(
+                    channel.clone(),
+                    Box::new(LDBot::new(&bot_config, save_file)),
+                );
             }
             map
         },
@@ -67,7 +71,7 @@ pub struct Config {
 }
 
 struct ChannelsBot {
-    bots: HashMap<String, LDBot>,
+    bots: HashMap<String, Box<dyn Bot>>,
 }
 
 impl ChannelsBot {
@@ -77,7 +81,17 @@ impl ChannelsBot {
         message: ServerMessage,
     ) {
         for (channel, bot) in &mut self.bots {
-            bot.handle_message(channel, client, &message).await;
+            bot.handle_message(channel.clone(), client, &message).await;
         }
     }
+}
+
+#[async_trait]
+pub trait Bot: Send {
+    async fn handle_message(
+        &mut self,
+        channel_login: String,
+        client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
+        message: &ServerMessage,
+    );
 }

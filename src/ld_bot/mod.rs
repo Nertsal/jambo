@@ -32,34 +32,6 @@ impl LDBot {
         }
         bot
     }
-    pub async fn handle_message(
-        &mut self,
-        channel_login: &String,
-        client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
-        message: &ServerMessage,
-    ) {
-        if let Some(reply) = self.update() {
-            client.say(channel_login.clone(), reply).await.unwrap();
-        }
-        match message {
-            ServerMessage::Join(message) => {
-                println!("Joined: {}", message.channel_login);
-            }
-            ServerMessage::Privmsg(message) => {
-                println!(
-                    "Got a message in {} from {}: {}",
-                    message.channel_login, message.sender.name, message.message_text
-                );
-                if let Some(reply) = self.check_command(&message) {
-                    client
-                        .say(message.channel_login.clone(), reply)
-                        .await
-                        .unwrap();
-                }
-            }
-            _ => (),
-        };
-    }
     fn check_command(&mut self, message: &PrivmsgMessage) -> Option<String> {
         let mut message_text = message.message_text.clone();
         let sender_name = message.sender.name.clone();
@@ -117,6 +89,38 @@ impl LDBot {
         let file = std::io::BufReader::new(std::fs::File::open(&self.save_file)?);
         self.games_state = serde_json::from_reader(file)?;
         Ok(())
+    }
+}
+
+#[async_trait]
+impl Bot for LDBot {
+    async fn handle_message(
+        &mut self,
+        channel_login: String,
+        client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
+        message: &ServerMessage,
+    ) {
+        if let Some(reply) = self.update() {
+            client.say(channel_login, reply).await.unwrap();
+        }
+        match message {
+            ServerMessage::Join(message) => {
+                println!("Joined: {}", message.channel_login);
+            }
+            ServerMessage::Privmsg(message) => {
+                println!(
+                    "Got a message in {} from {}: {}",
+                    message.channel_login, message.sender.name, message.message_text
+                );
+                if let Some(reply) = self.check_command(&message) {
+                    client
+                        .say(message.channel_login.clone(), reply)
+                        .await
+                        .unwrap();
+                }
+            }
+            _ => (),
+        };
     }
 }
 

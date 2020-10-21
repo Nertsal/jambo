@@ -30,7 +30,9 @@ impl LDBot {
                 Some(reply)
             }
             None => {
-                self.games_state.current_game = None;
+                if let Some(_) = self.games_state.current_game.take() {
+                    self.save_games().unwrap();
+                }
                 let reply = format!("The queue is empty. !submit <your game>. ");
                 Some(reply)
             }
