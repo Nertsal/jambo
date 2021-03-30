@@ -118,24 +118,12 @@ impl Bot for LDBot {
             client.say(self.channel_login.clone(), reply).await.unwrap();
         }
         match message {
-            ServerMessage::Join(message) => {
-                println!("Joined: {}", message.channel_login);
-            }
             ServerMessage::Privmsg(message) => {
-                println!(
-                    "Got a message in {} from {}: {}",
-                    message.channel_login, message.sender.name, message.message_text
-                );
-                if let Some(reply) = self.check_command(&message) {
+                if let Some(reply) = self.check_command(message) {
                     client
                         .say(message.channel_login.clone(), reply)
                         .await
                         .unwrap();
-                }
-            }
-            ServerMessage::Notice(message) => {
-                if message.message_text == "Login authentication failed" {
-                    panic!("Login authentication failed.");
                 }
             }
             _ => (),

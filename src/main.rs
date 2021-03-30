@@ -7,8 +7,10 @@ use twitch_irc::message::{PrivmsgMessage, ServerMessage};
 use twitch_irc::{ClientConfig, TCPTransport, TwitchIRCClient};
 
 mod ld_bot;
+mod reply_bot;
 
 use ld_bot::LDBot;
+use reply_bot::ReplyBot;
 
 #[tokio::main]
 async fn main() {
@@ -52,7 +54,10 @@ struct ChannelsBot {
 impl ChannelsBot {
     fn new(config: &Config) -> Self {
         Self {
-            bots: vec![Box::new(LDBot::new(&config.channel))],
+            bots: vec![
+                Box::new(LDBot::new(&config.channel)),
+                Box::new(ReplyBot::new(&config.channel)),
+            ],
         }
     }
     async fn handle_message(
@@ -60,6 +65,23 @@ impl ChannelsBot {
         client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
         message: ServerMessage,
     ) {
+        match &message {
+            ServerMessage::Join(message) => {
+                println!("Joined: {}", message.channel_login);
+            }
+            ServerMessage::Notice(message) => {
+                if message.message_text == "Login authentication failed" {
+                    panic!("Login authentication failed.");
+                }
+            }
+            ServerMessage::Privmsg(message) => {
+                println!(
+                    "Got a message in {} from {}: {}",
+                    message.channel_login, message.sender.name, message.message_text
+                );
+            }
+            _ => (),
+        }
         for bot in &mut self.bots {
             bot.handle_message(client, &message).await;
         }
