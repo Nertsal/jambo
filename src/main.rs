@@ -6,9 +6,11 @@ use twitch_irc::login::StaticLoginCredentials;
 use twitch_irc::message::{PrivmsgMessage, ServerMessage};
 use twitch_irc::{ClientConfig, TCPTransport, TwitchIRCClient};
 
+mod commands;
 mod ld_bot;
 mod reply_bot;
 
+use commands::*;
 use ld_bot::LDBot;
 use reply_bot::ReplyBot;
 

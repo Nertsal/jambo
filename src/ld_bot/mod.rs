@@ -3,10 +3,8 @@ use std::collections::{HashSet, VecDeque};
 
 mod commands;
 
-use commands::*;
-
 #[derive(Serialize, Deserialize)]
-struct LDConfig {
+pub struct LDConfig {
     authorities: HashSet<String>,
     response_time_limit: Option<u64>,
 }
@@ -15,8 +13,7 @@ pub struct LDBot {
     channel_login: String,
     save_file: String,
     response_time_limit: Option<u64>,
-    authorities: HashSet<String>,
-    commands: Vec<Command>,
+    commands: BotCommands<LDBot>,
     games_state: GamesState,
     time_limit: Option<Instant>,
 }
@@ -32,8 +29,7 @@ impl LDBot {
             channel_login: channel.clone(),
             save_file: "config/ludum_dare/ld-nertsalbot.json".to_owned(),
             response_time_limit: config.response_time_limit,
-            authorities: config.authorities.clone(),
-            commands: Self::commands(),
+            commands: Self::commands(&config),
             games_state: GamesState::new(),
             time_limit: None,
         };
@@ -55,7 +51,6 @@ impl LDBot {
     }
     fn check_command(&mut self, message: &PrivmsgMessage) -> Option<String> {
         let mut message_text = message.message_text.clone();
-        let sender_name = message.sender.name.clone();
 
         if let Some(_) = self.time_limit {
             let game = self.games_state.current_game.as_ref().unwrap();
@@ -73,19 +68,12 @@ impl LDBot {
             '!' => {
                 let mut args = message_text.split_whitespace();
                 if let Some(command) = args.next() {
-                    if let Some(command) = self.commands.iter().find_map(|com| {
-                        if com.name == command {
-                            if com.authorities_required
-                                && !self.authorities.contains(&message.sender.login)
-                            {
-                                return None;
-                            }
-                            Some(com.command)
-                        } else {
-                            None
-                        }
-                    }) {
-                        return command(self, sender_name, args.collect());
+                    if let Some(command) = self.commands.find(command, &message.sender.login) {
+                        return (command.command)(
+                            self,
+                            message.sender.name.clone(),
+                            args.collect(),
+                        );
                     }
                 }
                 None
