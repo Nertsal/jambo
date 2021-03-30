@@ -54,10 +54,7 @@ impl Bot for ReplyBot {
         match message {
             ServerMessage::Privmsg(message) => {
                 if let Some(response) = self.check_response(message) {
-                    client
-                        .say(self.channel_login.clone(), response)
-                        .await
-                        .unwrap();
+                    send_message(client, self.channel_login.clone(), response).await;
                 }
             }
             _ => (),

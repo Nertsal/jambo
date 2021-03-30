@@ -115,15 +115,12 @@ impl Bot for LDBot {
         message: &ServerMessage,
     ) {
         if let Some(reply) = self.update() {
-            client.say(self.channel_login.clone(), reply).await.unwrap();
+            send_message(client, self.channel_login.clone(), reply).await;
         }
         match message {
             ServerMessage::Privmsg(message) => {
                 if let Some(reply) = self.check_command(message) {
-                    client
-                        .say(message.channel_login.clone(), reply)
-                        .await
-                        .unwrap();
+                    send_message(client, self.channel_login.clone(), reply).await;
                 }
             }
             _ => (),

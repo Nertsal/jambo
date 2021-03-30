@@ -76,7 +76,7 @@ impl ChannelsBot {
             }
             ServerMessage::Privmsg(message) => {
                 println!(
-                    "Got a message in {} from {}: {}",
+                    "Got a message in channel {} from {}: {}",
                     message.channel_login, message.sender.name, message.message_text
                 );
             }
@@ -95,4 +95,16 @@ pub trait Bot: Send {
         client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
         message: &ServerMessage,
     );
+}
+
+async fn send_message(
+    client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
+    channel_login: String,
+    message: String,
+) {
+    println!(
+        "Sending a message to channel {}: {}",
+        channel_login, message
+    );
+    client.say(channel_login, message).await.unwrap();
 }
