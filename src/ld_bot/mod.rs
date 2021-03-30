@@ -24,24 +24,31 @@ pub struct LDBot {
 impl LDBot {
     pub fn new(channel: &String) -> Self {
         let config: LDConfig = serde_json::from_reader(std::io::BufReader::new(
-            std::fs::File::open("ld-config.json").unwrap(),
+            std::fs::File::open("config/ludum_dare/ld-config.json").unwrap(),
         ))
         .unwrap();
 
         let mut bot = Self {
             channel_login: channel.clone(),
-            save_file: "ld-nertsalbot.json".to_owned(),
+            save_file: "config/ludum_dare/ld-nertsalbot.json".to_owned(),
             response_time_limit: config.response_time_limit,
             authorities: config.authorities.clone(),
             commands: Self::commands(),
             games_state: GamesState::new(),
             time_limit: None,
         };
-        println!("Loading data from {}", &bot.save_file);
+        println!("Loading LDBot data from {}", &bot.save_file);
         match bot.load_games() {
-            Ok(_) => println!("Successfully loaded from json"),
-            Err(err) => {
-                panic!("Error loading from json: {}", err);
+            Ok(_) => println!("Successfully loaded LDBot data"),
+            Err(error) => {
+                use std::io::ErrorKind;
+                match error.kind() {
+                    ErrorKind::NotFound => {
+                        println!("Using default LDBot data");
+                        bot.save_games().unwrap();
+                    }
+                    _ => panic!("Error loading LDBot data: {}", error),
+                }
             }
         }
         bot

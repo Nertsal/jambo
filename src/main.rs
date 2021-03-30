@@ -15,7 +15,7 @@ use reply_bot::ReplyBot;
 #[tokio::main]
 async fn main() {
     let bot_config: Config = serde_json::from_reader(std::io::BufReader::new(
-        std::fs::File::open("bots-config.json").unwrap(),
+        std::fs::File::open("config/bots-config.json").unwrap(),
     ))
     .unwrap();
 
@@ -45,6 +45,13 @@ pub struct Config {
     login_name: String,
     oauth_token: String,
     channel: String,
+    bots: BotsConfig,
+}
+
+#[derive(Serialize, Deserialize)]
+struct BotsConfig {
+    ludum_dare: bool,
+    reply: bool,
 }
 
 struct ChannelsBot {
@@ -53,12 +60,14 @@ struct ChannelsBot {
 
 impl ChannelsBot {
     fn new(config: &Config) -> Self {
-        Self {
-            bots: vec![
-                Box::new(LDBot::new(&config.channel)),
-                Box::new(ReplyBot::new(&config.channel)),
-            ],
+        let mut bots: Vec<Box<dyn Bot>> = Vec::new();
+        if config.bots.ludum_dare {
+            bots.push(Box::new(LDBot::new(&config.channel)));
         }
+        if config.bots.reply {
+            bots.push(Box::new(ReplyBot::new(&config.channel)));
+        }
+        Self { bots }
     }
     async fn handle_message(
         &mut self,

@@ -14,7 +14,7 @@ pub struct ReplyBot {
 impl ReplyBot {
     pub fn new(channel: &String) -> Self {
         let config: ReplyConfig = serde_json::from_reader(std::io::BufReader::new(
-            std::fs::File::open("reply-config.json").unwrap(),
+            std::fs::File::open("config/reply/reply-config.json").unwrap(),
         ))
         .unwrap();
 
