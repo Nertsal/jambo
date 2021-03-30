@@ -40,8 +40,15 @@ impl LDBot {
         println!("Loading LDBot data from {}", &bot.save_file);
         match bot.load_games() {
             Ok(_) => println!("Successfully loaded LDBot data"),
-            Err(err) => {
-                panic!("Error loading LDBot data: {}", err);
+            Err(error) => {
+                use std::io::ErrorKind;
+                match error.kind() {
+                    ErrorKind::NotFound => {
+                        println!("Using default LDBot data");
+                        bot.save_games().unwrap();
+                    }
+                    _ => panic!("Error loading LDBot data: {}", error),
+                }
             }
         }
         bot
