@@ -37,11 +37,11 @@ impl LDBot {
             games_state: GamesState::new(),
             time_limit: None,
         };
-        println!("Loading data from {}", &bot.save_file);
+        println!("Loading LDBot data from {}", &bot.save_file);
         match bot.load_games() {
-            Ok(_) => println!("Successfully loaded from json"),
+            Ok(_) => println!("Successfully loaded LDBot data"),
             Err(err) => {
-                panic!("Error loading from json: {}", err);
+                panic!("Error loading LDBot data: {}", err);
             }
         }
         bot
