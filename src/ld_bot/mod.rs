@@ -3,10 +3,10 @@ use std::collections::{HashSet, VecDeque};
 
 mod commands;
 
-pub use commands::*;
+use commands::*;
 
 #[derive(Serialize, Deserialize)]
-pub struct LDConfig {
+struct LDConfig {
     authorities: HashSet<String>,
     response_time_limit: Option<u64>,
 }
@@ -68,7 +68,8 @@ impl LDBot {
                 if let Some(command) = args.next() {
                     if let Some(command) = self.commands.iter().find_map(|com| {
                         if com.name == command {
-                            if com.authorities_required && !self.authorities.contains(&sender_name)
+                            if com.authorities_required
+                                && !self.authorities.contains(&message.sender.login)
                             {
                                 return None;
                             }
@@ -85,7 +86,7 @@ impl LDBot {
             _ => None,
         }
     }
-    pub fn update(&mut self) -> Option<String> {
+    fn update(&mut self) -> Option<String> {
         if let Some(time) = self.time_limit {
             if time.elapsed().as_secs() >= self.response_time_limit.unwrap() {
                 self.time_limit = None;

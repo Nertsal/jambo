@@ -8,7 +8,7 @@ use twitch_irc::{ClientConfig, TCPTransport, TwitchIRCClient};
 
 mod ld_bot;
 
-use ld_bot::*;
+use ld_bot::LDBot;
 
 #[tokio::main]
 async fn main() {
