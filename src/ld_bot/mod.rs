@@ -24,13 +24,13 @@ pub struct LDBot {
 impl LDBot {
     pub fn new(channel: &String) -> Self {
         let config: LDConfig = serde_json::from_reader(std::io::BufReader::new(
-            std::fs::File::open("ld-config.json").unwrap(),
+            std::fs::File::open("config/ludum_dare/ld-config.json").unwrap(),
         ))
         .unwrap();
 
         let mut bot = Self {
             channel_login: channel.clone(),
-            save_file: "ld-nertsalbot.json".to_owned(),
+            save_file: "config/ludum_dare/ld-nertsalbot.json".to_owned(),
             response_time_limit: config.response_time_limit,
             authorities: config.authorities.clone(),
             commands: Self::commands(),
