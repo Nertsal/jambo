@@ -16,19 +16,23 @@ use reply_bot::ReplyBot;
 
 #[tokio::main]
 async fn main() {
-    let bot_config: Config = serde_json::from_reader(std::io::BufReader::new(
+    let nertsalbot_config: Config = serde_json::from_reader(std::io::BufReader::new(
+        std::fs::File::open("config/nertsalbot.json").unwrap(),
+    ))
+    .unwrap();
+    let bots_config: BotsConfig = serde_json::from_reader(std::io::BufReader::new(
         std::fs::File::open("config/bots-config.json").unwrap(),
     ))
     .unwrap();
 
-    let config = ClientConfig::new_simple(StaticLoginCredentials::new(
-        bot_config.login_name.clone(),
-        Some(bot_config.oauth_token.clone()),
+    let client_config = ClientConfig::new_simple(StaticLoginCredentials::new(
+        nertsalbot_config.login_name.clone(),
+        Some(nertsalbot_config.oauth_token.clone()),
     ));
     let (mut incoming_messages, client) =
-        TwitchIRCClient::<TCPTransport, StaticLoginCredentials>::new(config);
+        TwitchIRCClient::<TCPTransport, StaticLoginCredentials>::new(client_config);
 
-    let mut channels_bot = ChannelsBot::new(&bot_config);
+    let mut channels_bot = ChannelsBot::new(&nertsalbot_config, &bots_config);
 
     let client_clone = client.clone();
     let join_handle = tokio::spawn(async move {
@@ -37,7 +41,7 @@ async fn main() {
         }
     });
 
-    client.join(bot_config.channel);
+    client.join(nertsalbot_config.channel);
 
     join_handle.await.unwrap();
 }
@@ -47,12 +51,11 @@ pub struct Config {
     login_name: String,
     oauth_token: String,
     channel: String,
-    bots: BotsConfig,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
 struct BotsConfig {
-    ludum_dare: bool,
+    ludumdare: bool,
     reply: bool,
 }
 
@@ -63,16 +66,16 @@ struct ChannelsBot {
 }
 
 impl ChannelsBot {
-    fn new(config: &Config) -> Self {
+    fn new(config: &Config, bots_config: &BotsConfig) -> Self {
         let mut bot = Self {
             channel: config.channel.clone(),
             commands: Self::commands(),
             bots: HashMap::new(),
         };
-        if config.bots.ludum_dare {
+        if bots_config.ludumdare {
             bot.spawn_bot("ludumdare");
         }
-        if config.bots.reply {
+        if bots_config.reply {
             bot.spawn_bot("reply");
         }
         bot
