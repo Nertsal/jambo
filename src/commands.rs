@@ -69,12 +69,20 @@ impl ChannelsBot {
                 BotCommand {
                     name: "enable".to_owned(),
                     authority_level: AuthorityLevel::Moderator,
-                    command: |bot, _, args| bot.spawn_bot(args.as_str()),
+                    command: |bot, _, args| {
+                        let response = bot.spawn_bot(args.as_str());
+                        bot.save_bots().unwrap();
+                        response
+                    },
                 },
                 BotCommand {
                     name: "disable".to_owned(),
                     authority_level: AuthorityLevel::Moderator,
-                    command: |bot, _, args| bot.disable_bot(args.as_str()),
+                    command: |bot, _, args| {
+                        let response = bot.disable_bot(args.as_str());
+                        bot.save_bots().unwrap();
+                        response
+                    },
                 },
             ],
         }
@@ -128,5 +136,25 @@ impl ChannelsBot {
             println!("Disabled bot {}", bot_name);
         }
         response
+    }
+    fn save_bots(&self) -> std::io::Result<()> {
+        let bots_config = self.bots_config().unwrap();
+        let file = std::io::BufWriter::new(std::fs::File::create("config/bots-config.json")?);
+        serde_json::to_writer(file, &bots_config)?;
+        Ok(())
+    }
+    fn bots_config(&self) -> Result<BotsConfig, ()> {
+        let mut bots_config = BotsConfig {
+            ludumdare: false,
+            reply: false,
+        };
+        for bot_name in self.bots.keys() {
+            match bot_name.as_str() {
+                "ludumdare" => bots_config.ludumdare = true,
+                "reply" => bots_config.reply = true,
+                _ => return Err(()),
+            }
+        }
+        Ok(bots_config)
     }
 }
