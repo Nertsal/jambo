@@ -55,7 +55,6 @@ fn check_authority(authority_level: &AuthorityLevel, message: &PrivmsgMessage) -
 }
 
 fn check_badges(badges: Vec<&str>, message: &PrivmsgMessage) -> bool {
-    println!("{:?}", message.badges);
     message
         .badges
         .iter()
