@@ -1,14 +1,19 @@
 use async_trait::async_trait;
 use futures::prelude::*;
 use serde::{Deserialize, Serialize};
-use std::time::Instant;
+use std::{
+    collections::{HashMap, HashSet},
+    time::Instant,
+};
 use twitch_irc::login::StaticLoginCredentials;
 use twitch_irc::message::{PrivmsgMessage, ServerMessage};
 use twitch_irc::{ClientConfig, TCPTransport, TwitchIRCClient};
 
+mod commands;
 mod ld_bot;
 mod reply_bot;
 
+use commands::*;
 use ld_bot::LDBot;
 use reply_bot::ReplyBot;
 
@@ -46,28 +51,35 @@ pub struct Config {
     oauth_token: String,
     channel: String,
     bots: BotsConfig,
+    authorities: HashSet<String>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 struct BotsConfig {
     ludum_dare: bool,
     reply: bool,
 }
 
 struct ChannelsBot {
-    bots: Vec<Box<dyn Bot>>,
+    channel: String,
+    commands: BotCommands<ChannelsBot>,
+    bots: HashMap<String, Box<dyn Bot>>,
 }
 
 impl ChannelsBot {
     fn new(config: &Config) -> Self {
-        let mut bots: Vec<Box<dyn Bot>> = Vec::new();
+        let mut bot = Self {
+            channel: config.channel.clone(),
+            commands: Self::commands(config),
+            bots: HashMap::new(),
+        };
         if config.bots.ludum_dare {
-            bots.push(Box::new(LDBot::new(&config.channel)));
+            bot.spawn_bot("ludumdare");
         }
         if config.bots.reply {
-            bots.push(Box::new(ReplyBot::new(&config.channel)));
+            bot.spawn_bot("reply");
         }
-        Self { bots }
+        bot
     }
     async fn handle_message(
         &mut self,
@@ -88,22 +100,46 @@ impl ChannelsBot {
                     "Got a message in channel {} from {}: {}",
                     message.channel_login, message.sender.name, message.message_text
                 );
+                check_command(self, client, self.channel.clone(), message).await;
             }
             _ => (),
         }
-        for bot in &mut self.bots {
+        for bot in self.bots.values_mut() {
             bot.handle_message(client, &message).await;
         }
     }
 }
 
 #[async_trait]
-pub trait Bot: Send {
+pub trait Bot: Send + Sync {
     async fn handle_message(
         &mut self,
         client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
         message: &ServerMessage,
     );
+}
+
+pub trait CommandBot<T> {
+    fn commands(&self) -> &BotCommands<T>;
+}
+
+impl CommandBot<ChannelsBot> for ChannelsBot {
+    fn commands(&self) -> &BotCommands<ChannelsBot> {
+        &self.commands
+    }
+}
+
+async fn check_command<T: CommandBot<T>>(
+    bot: &mut T,
+    client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
+    channel_login: String,
+    message: &PrivmsgMessage,
+) {
+    if let Some((command, args)) = bot.commands().check_command(message) {
+        if let Some(command_reply) = (command.command)(bot, message.sender.name.clone(), args) {
+            send_message(client, channel_login, command_reply).await;
+        }
+    }
 }
 
 async fn send_message(

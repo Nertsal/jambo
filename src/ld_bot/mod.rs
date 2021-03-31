@@ -3,10 +3,8 @@ use std::collections::{HashSet, VecDeque};
 
 mod commands;
 
-use commands::*;
-
 #[derive(Serialize, Deserialize)]
-struct LDConfig {
+pub struct LDConfig {
     authorities: HashSet<String>,
     response_time_limit: Option<u64>,
 }
@@ -15,8 +13,7 @@ pub struct LDBot {
     channel_login: String,
     save_file: String,
     response_time_limit: Option<u64>,
-    authorities: HashSet<String>,
-    commands: Vec<Command>,
+    commands: BotCommands<LDBot>,
     games_state: GamesState,
     time_limit: Option<Instant>,
 }
@@ -32,8 +29,7 @@ impl LDBot {
             channel_login: channel.clone(),
             save_file: "config/ludum_dare/ld-nertsalbot.json".to_owned(),
             response_time_limit: config.response_time_limit,
-            authorities: config.authorities.clone(),
-            commands: Self::commands(),
+            commands: Self::commands(&config),
             games_state: GamesState::new(),
             time_limit: None,
         };
@@ -53,45 +49,16 @@ impl LDBot {
         }
         bot
     }
-    fn check_command(&mut self, message: &PrivmsgMessage) -> Option<String> {
-        let mut message_text = message.message_text.clone();
-        let sender_name = message.sender.name.clone();
-
+    fn check_message(&mut self, message: &PrivmsgMessage) -> Option<String> {
         if let Some(_) = self.time_limit {
             let game = self.games_state.current_game.as_ref().unwrap();
             if message.sender.name == game.author {
                 self.time_limit = None;
-                let mut reply = format!("Now playing {} from @{}. ", game.name, game.author);
-                if let Some(command_reply) = self.check_command(message) {
-                    reply.push_str(&command_reply);
-                }
+                let reply = format!("Now playing {} from @{}. ", game.name, game.author);
                 return Some(reply);
             }
         }
-
-        match message_text.remove(0) {
-            '!' => {
-                let mut args = message_text.split_whitespace();
-                if let Some(command) = args.next() {
-                    if let Some(command) = self.commands.iter().find_map(|com| {
-                        if com.name == command {
-                            if com.authorities_required
-                                && !self.authorities.contains(&message.sender.login)
-                            {
-                                return None;
-                            }
-                            Some(com.command)
-                        } else {
-                            None
-                        }
-                    }) {
-                        return command(self, sender_name, args.collect());
-                    }
-                }
-                None
-            }
-            _ => None,
-        }
+        None
     }
     fn update(&mut self) -> Option<String> {
         if let Some(time) = self.time_limit {
@@ -114,6 +81,12 @@ impl LDBot {
     }
 }
 
+impl CommandBot<LDBot> for LDBot {
+    fn commands(&self) -> &BotCommands<LDBot> {
+        &self.commands
+    }
+}
+
 #[async_trait]
 impl Bot for LDBot {
     async fn handle_message(
@@ -126,9 +99,10 @@ impl Bot for LDBot {
         }
         match message {
             ServerMessage::Privmsg(message) => {
-                if let Some(reply) = self.check_command(message) {
+                if let Some(reply) = self.check_message(message) {
                     send_message(client, self.channel_login.clone(), reply).await;
                 }
+                check_command(self, client, self.channel_login.clone(), message).await;
             }
             _ => (),
         };
