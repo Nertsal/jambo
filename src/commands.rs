@@ -1,14 +1,18 @@
 use super::*;
-use std::collections::HashSet;
 
 pub struct BotCommands<T> {
-    pub authorities: HashSet<String>,
     pub commands: Vec<BotCommand<T>>,
+}
+
+pub enum AuthorityLevel {
+    Broadcaster,
+    Moderator,
+    Any,
 }
 
 pub struct BotCommand<T> {
     pub name: String,
-    pub authorities_required: bool,
+    pub authority_level: AuthorityLevel,
     pub command: fn(&mut T, String, String) -> Option<String>,
 }
 
@@ -19,7 +23,7 @@ impl<T> BotCommands<T> {
             '!' => {
                 let mut args = message_text.split_whitespace();
                 if let Some(command) = args.next() {
-                    self.find(command, &message.sender.login)
+                    self.find(command, message)
                         .map(|command| (command, args.collect()))
                 } else {
                     None
@@ -28,10 +32,10 @@ impl<T> BotCommands<T> {
             _ => None,
         }
     }
-    pub fn find(&self, command: &str, sender_login: &String) -> Option<&BotCommand<T>> {
+    pub fn find(&self, command: &str, message: &PrivmsgMessage) -> Option<&BotCommand<T>> {
         self.commands.iter().find_map(|com| {
             if com.name == command {
-                if com.authorities_required && !self.authorities.contains(sender_login) {
+                if !check_authority(&com.authority_level, message) {
                     return None;
                 }
                 Some(com)
@@ -42,19 +46,34 @@ impl<T> BotCommands<T> {
     }
 }
 
+fn check_authority(authority_level: &AuthorityLevel, message: &PrivmsgMessage) -> bool {
+    match authority_level {
+        AuthorityLevel::Any => true,
+        AuthorityLevel::Broadcaster => check_badges(vec!["broadcaster"], message),
+        AuthorityLevel::Moderator => check_badges(vec!["broadcaster", "moderator"], message),
+    }
+}
+
+fn check_badges(badges: Vec<&str>, message: &PrivmsgMessage) -> bool {
+    println!("{:?}", message.badges);
+    message
+        .badges
+        .iter()
+        .any(|badge| badges.contains(&badge.name.as_str()))
+}
+
 impl ChannelsBot {
-    pub fn commands(config: &Config) -> BotCommands<ChannelsBot> {
+    pub fn commands() -> BotCommands<ChannelsBot> {
         BotCommands {
-            authorities: config.authorities.clone(),
             commands: vec![
                 BotCommand {
                     name: "enable".to_owned(),
-                    authorities_required: true,
+                    authority_level: AuthorityLevel::Moderator,
                     command: |bot, _, args| bot.spawn_bot(args.as_str()),
                 },
                 BotCommand {
                     name: "disable".to_owned(),
-                    authorities_required: true,
+                    authority_level: AuthorityLevel::Moderator,
                     command: |bot, _, args| bot.disable_bot(args.as_str()),
                 },
             ],

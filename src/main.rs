@@ -1,10 +1,7 @@
 use async_trait::async_trait;
 use futures::prelude::*;
 use serde::{Deserialize, Serialize};
-use std::{
-    collections::{HashMap, HashSet},
-    time::Instant,
-};
+use std::{collections::HashMap, time::Instant};
 use twitch_irc::login::StaticLoginCredentials;
 use twitch_irc::message::{PrivmsgMessage, ServerMessage};
 use twitch_irc::{ClientConfig, TCPTransport, TwitchIRCClient};
@@ -51,7 +48,6 @@ pub struct Config {
     oauth_token: String,
     channel: String,
     bots: BotsConfig,
-    authorities: HashSet<String>,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -70,7 +66,7 @@ impl ChannelsBot {
     fn new(config: &Config) -> Self {
         let mut bot = Self {
             channel: config.channel.clone(),
-            commands: Self::commands(config),
+            commands: Self::commands(),
             bots: HashMap::new(),
         };
         if config.bots.ludum_dare {
