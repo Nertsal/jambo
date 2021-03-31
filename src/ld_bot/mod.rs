@@ -1,11 +1,10 @@
 use super::*;
-use std::collections::{HashSet, VecDeque};
+use std::collections::VecDeque;
 
 mod commands;
 
 #[derive(Serialize, Deserialize)]
 pub struct LDConfig {
-    authorities: HashSet<String>,
     response_time_limit: Option<u64>,
 }
 
