@@ -1,7 +1,10 @@
 use async_trait::async_trait;
 use futures::prelude::*;
 use serde::{Deserialize, Serialize};
-use std::{collections::HashSet, time::Instant};
+use std::{
+    collections::{HashMap, HashSet},
+    time::Instant,
+};
 use twitch_irc::login::StaticLoginCredentials;
 use twitch_irc::message::{PrivmsgMessage, ServerMessage};
 use twitch_irc::{ClientConfig, TCPTransport, TwitchIRCClient};
@@ -60,25 +63,23 @@ struct BotsConfig {
 struct ChannelsBot {
     channel: String,
     commands: BotCommands<ChannelsBot>,
-    active_bots: BotsConfig,
-    bots: Vec<Box<dyn Bot>>,
+    bots: HashMap<String, Box<dyn Bot>>,
 }
 
 impl ChannelsBot {
     fn new(config: &Config) -> Self {
-        let mut bots: Vec<Box<dyn Bot>> = Vec::new();
-        if config.bots.ludum_dare {
-            bots.push(Box::new(LDBot::new(&config.channel)));
-        }
-        if config.bots.reply {
-            bots.push(Box::new(ReplyBot::new(&config.channel)));
-        }
-        Self {
+        let mut bot = Self {
             channel: config.channel.clone(),
             commands: Self::commands(config),
-            active_bots: config.bots.clone(),
-            bots,
+            bots: HashMap::new(),
+        };
+        if config.bots.ludum_dare {
+            bot.spawn_bot("ludumdare");
         }
+        if config.bots.reply {
+            bot.spawn_bot("reply");
+        }
+        bot
     }
     async fn handle_message(
         &mut self,
@@ -103,7 +104,7 @@ impl ChannelsBot {
             }
             _ => (),
         }
-        for bot in &mut self.bots {
+        for bot in self.bots.values_mut() {
             bot.handle_message(client, &message).await;
         }
     }
@@ -135,11 +136,7 @@ async fn check_command<T: CommandBot<T>>(
     message: &PrivmsgMessage,
 ) {
     if let Some((command, args)) = bot.commands().check_command(message) {
-        if let Some(command_reply) = (command.command)(
-            bot,
-            message.sender.name.clone(),
-            args,
-        ) {
+        if let Some(command_reply) = (command.command)(bot, message.sender.name.clone(), args) {
             send_message(client, channel_login, command_reply).await;
         }
     }

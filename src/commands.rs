@@ -46,31 +46,68 @@ impl ChannelsBot {
     pub fn commands(config: &Config) -> BotCommands<ChannelsBot> {
         BotCommands {
             authorities: config.authorities.clone(),
-            commands: vec![BotCommand {
-                name: "enable".to_owned(),
-                authorities_required: true,
-                command: |bot, _, args| match args.as_str() {
-                    "ludumdare" => {
-                        if bot.active_bots.ludum_dare {
-                            Some("LDBot is already active".to_owned())
-                        } else {
-                            bot.active_bots.ludum_dare = true;
-                            bot.bots.push(Box::new(LDBot::new(&bot.channel)));
-                            Some("LDBot is now active".to_owned())
-                        }
-                    }
-                    "reply" => {
-                        if bot.active_bots.reply {
-                            Some("ReplyBot is already active".to_owned())
-                        } else {
-                            bot.active_bots.reply = true;
-                            bot.bots.push(Box::new(ReplyBot::new(&bot.channel)));
-                            Some("ReplyBot is now active".to_owned())
-                        }
-                    }
-                    _ => None,
+            commands: vec![
+                BotCommand {
+                    name: "enable".to_owned(),
+                    authorities_required: true,
+                    command: |bot, _, args| bot.spawn_bot(args.as_str()),
                 },
-            }],
+                BotCommand {
+                    name: "disable".to_owned(),
+                    authorities_required: true,
+                    command: |bot, _, args| bot.disable_bot(args.as_str()),
+                },
+            ],
         }
+    }
+    pub fn spawn_bot(&mut self, bot_name: &str) -> Option<String> {
+        let (response, new_bot): (Option<String>, Option<Box<dyn Bot>>) = match bot_name {
+            "ludumdare" => {
+                if self.bots.contains_key(bot_name) {
+                    (Some("LDBot is already active".to_owned()), None)
+                } else {
+                    (
+                        Some("LDBot is now active".to_owned()),
+                        Some(Box::new(LDBot::new(&self.channel))),
+                    )
+                }
+            }
+            "reply" => {
+                if self.bots.contains_key(bot_name) {
+                    (Some("ReplyBot is already active".to_owned()), None)
+                } else {
+                    (
+                        Some("ReplyBot is now active".to_owned()),
+                        Some(Box::new(ReplyBot::new(&self.channel))),
+                    )
+                }
+            }
+            _ => (None, None),
+        };
+        if let Some(new_bot) = new_bot {
+            println!("Spawned bot {}", bot_name);
+            self.bots.insert(bot_name.to_owned(), new_bot);
+        }
+        response
+    }
+    fn disable_bot(&mut self, bot_name: &str) -> Option<String> {
+        let (response, bot) = match bot_name {
+            "ludumdare" => match self.bots.remove(bot_name) {
+                Some(bot) => (Some("LDBot is no longer active".to_owned()), Some(bot)),
+                None => (Some("LDBot is not active at the moment".to_owned()), None),
+            },
+            "reply" => match self.bots.remove(bot_name) {
+                Some(bot) => (Some("ReplyBot is no longer active".to_owned()), Some(bot)),
+                None => (
+                    Some("ReplyBot is not active at the moment".to_owned()),
+                    None,
+                ),
+            },
+            _ => (None, None),
+        };
+        if let Some(_) = bot {
+            println!("Disabled bot {}", bot_name);
+        }
+        response
     }
 }
