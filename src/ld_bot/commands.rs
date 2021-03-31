@@ -48,25 +48,24 @@ impl LDBot {
     fn help_message() -> String {
         "To view current game call !current. To see current queue call !queue. To submit a game call !submit with a link to your game on Ludum Dare website, like so: !submit https://ldjam.com/events/ludum-dare/47/the-island".to_owned()
     }
-    pub fn commands(config: &LDConfig) -> BotCommands<LDBot> {
+    pub fn commands() -> BotCommands<LDBot> {
         BotCommands {
-            authorities: config.authorities.clone(),
             commands: vec![
                 BotCommand {
                     name: "help".to_owned(),
-                    authorities_required: false,
+                    authority_level: AuthorityLevel::Any,
                     command: |_, _, _| Some(Self::help_message()),
                 },
                 BotCommand {
                     name: "game".to_owned(),
-                    authorities_required: false,
+                    authority_level: AuthorityLevel::Any,
                     command: |_, _, _| {
                         Some("Try our multiplayer sandbox game: https://ldjam.com/events/ludum-dare/47/the-island".to_owned())
                     },
                 },
                 BotCommand {
                     name: "submit".to_owned(),
-                    authorities_required: false,
+                    authority_level: AuthorityLevel::Any,
                     command: |bot, sender_name, args| {
                         if !bot.games_state.is_open {
                             Some(
@@ -120,7 +119,7 @@ impl LDBot {
                 },
                 BotCommand {
                     name: "return".to_owned(),
-                    authorities_required: false,
+                    authority_level: AuthorityLevel::Any,
                     command: |bot, sender_name, _| {
                         if !bot.games_state.is_open {
                             return Some(
@@ -155,12 +154,12 @@ impl LDBot {
                 },
                 BotCommand {
                     name: "next".to_owned(),
-                    authorities_required: true,
+                    authority_level: AuthorityLevel::Moderator,
                     command: |bot, _, _| bot.next(),
                 },
                 BotCommand {
                     name: "random".to_owned(),
-                    authorities_required: true,
+                    authority_level: AuthorityLevel::Moderator,
                     command: |bot, _, _| {
                         bot.time_limit = None;
                         let skipped_count = bot.games_state.skipped.len();
@@ -182,7 +181,7 @@ impl LDBot {
                 },
                 BotCommand {
                     name: "queue".to_owned(),
-                    authorities_required: false,
+                    authority_level: AuthorityLevel::Any,
                     command: |bot, sender_name, _| {
                         let mut reply = String::new();
                         if let Some((pos, _)) = bot
@@ -240,7 +239,7 @@ impl LDBot {
                 },
                 BotCommand {
                     name: "current".to_owned(),
-                    authorities_required: false,
+                    authority_level: AuthorityLevel::Any,
                     command: |bot, _, _| match &bot.games_state.current_game {
                         Some(game) => Some(format!(
                             "Current game is: {} from {}",
@@ -251,12 +250,12 @@ impl LDBot {
                 },
                 BotCommand {
                     name: "skip".to_owned(),
-                    authorities_required: true,
+                    authority_level: AuthorityLevel::Moderator,
                     command: |bot, _, _| bot.skip(),
                 },
                 BotCommand {
                     name: "unskip".to_owned(),
-                    authorities_required: true,
+                    authority_level: AuthorityLevel::Moderator,
                     command: |bot, _, _| {
                         if let Some(skipped) = bot.games_state.skipped.pop() {
                             bot.time_limit = None;
@@ -280,7 +279,7 @@ impl LDBot {
                 },
                 BotCommand {
                     name: "stop".to_owned(),
-                    authorities_required: true,
+                    authority_level: AuthorityLevel::Moderator,
                     command: |bot, _, _| {
                         bot.time_limit = None;
                         bot.games_state.current_game = None;
@@ -290,7 +289,7 @@ impl LDBot {
                 },
                 BotCommand {
                     name: "clear".to_owned(),
-                    authorities_required: true,
+                    authority_level: AuthorityLevel::Moderator,
                     command: |bot, _, _| {
                         bot.games_state.games_queue.clear();
                         bot.save_games().unwrap();
@@ -299,7 +298,7 @@ impl LDBot {
                 },
                 BotCommand {
                     name: "force".to_owned(),
-                    authorities_required: true,
+                    authority_level: AuthorityLevel::Moderator,
                     command: |bot, _, _| {
                         if let Some(_) = bot.time_limit.take() {
                             let game = bot.games_state.current_game.as_ref().unwrap();
@@ -311,7 +310,7 @@ impl LDBot {
                 },
                 BotCommand {
                     name: "close".to_owned(),
-                    authorities_required: true,
+                    authority_level: AuthorityLevel::Moderator,
                     command: |bot, _, _| {
                         bot.games_state.is_open = false;
                         bot.save_games().unwrap();
@@ -320,7 +319,7 @@ impl LDBot {
                 },
                 BotCommand {
                     name: "open".to_owned(),
-                    authorities_required: true,
+                    authority_level: AuthorityLevel::Moderator,
                     command: |bot, _, _| {
                         bot.games_state.is_open = true;
                         bot.save_games().unwrap();

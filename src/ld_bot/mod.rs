@@ -29,7 +29,7 @@ impl LDBot {
             channel_login: channel.clone(),
             save_file: "config/ludum_dare/ld-nertsalbot.json".to_owned(),
             response_time_limit: config.response_time_limit,
-            commands: Self::commands(&config),
+            commands: Self::commands(),
             games_state: GamesState::new(),
             time_limit: None,
         };
