@@ -7,12 +7,14 @@ use twitch_irc::message::{PrivmsgMessage, ServerMessage};
 use twitch_irc::{ClientConfig, TCPTransport, TwitchIRCClient};
 
 mod commands;
+mod custom_bot;
 mod id;
 mod ld_bot;
 mod quote_bot;
 mod reply_bot;
 
 use commands::*;
+use custom_bot::CustomBot;
 use id::*;
 use ld_bot::LDBot;
 use quote_bot::QuoteBot;
@@ -62,6 +64,7 @@ struct BotsConfig {
     ludumdare: bool,
     reply: bool,
     quote: bool,
+    custom: bool,
 }
 
 struct ChannelsBot {
@@ -85,6 +88,9 @@ impl ChannelsBot {
         }
         if bots_config.quote {
             bot.spawn_bot("quote");
+        }
+        if bots_config.custom {
+            bot.spawn_bot("custom");
         }
         bot
     }
@@ -143,7 +149,10 @@ async fn check_command<T: CommandBot<T>>(
     message: &PrivmsgMessage,
 ) {
     if let Some((command, args)) = bot.commands().check_command(message) {
-        if let Some(command_reply) = (command.command)(bot, message.sender.name.clone(), args) {
+        let command_name = command.name.clone();
+        if let Some(command_reply) =
+            (command.command)(bot, message.sender.name.clone(), command_name, args)
+        {
             send_message(client, channel_login, command_reply).await;
         }
     }

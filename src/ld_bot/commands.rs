@@ -54,19 +54,19 @@ impl LDBot {
                 BotCommand {
                     name: "help".to_owned(),
                     authority_level: AuthorityLevel::Any,
-                    command: |_, _, _| Some(Self::help_message()),
+                    command: |_, _, _, _| Some(Self::help_message()),
                 },
                 BotCommand {
                     name: "game".to_owned(),
                     authority_level: AuthorityLevel::Any,
-                    command: |_, _, _| {
+                    command: |_, _, _, _| {
                         Some("Try our multiplayer sandbox game: https://ldjam.com/events/ludum-dare/47/the-island".to_owned())
                     },
                 },
                 BotCommand {
                     name: "submit".to_owned(),
                     authority_level: AuthorityLevel::Any,
-                    command: |bot, sender_name, args| {
+                    command: |bot, sender_name, _, args| {
                         if !bot.games_state.is_open {
                             Some(
                                 "The queue is closed. You can not submit your game at the moment."
@@ -120,7 +120,7 @@ impl LDBot {
                 BotCommand {
                     name: "return".to_owned(),
                     authority_level: AuthorityLevel::Any,
-                    command: |bot, sender_name, _| {
+                    command: |bot, sender_name, _, _| {
                         if !bot.games_state.is_open {
                             return Some(
                                 "The queue is closed. You can not submit your game at the moment."
@@ -155,12 +155,12 @@ impl LDBot {
                 BotCommand {
                     name: "next".to_owned(),
                     authority_level: AuthorityLevel::Moderator,
-                    command: |bot, _, _| bot.next(),
+                    command: |bot, _, _, _| bot.next(),
                 },
                 BotCommand {
                     name: "random".to_owned(),
                     authority_level: AuthorityLevel::Moderator,
-                    command: |bot, _, _| {
+                    command: |bot, _, _, _| {
                         bot.time_limit = None;
                         let skipped_count = bot.games_state.skipped.len();
                         if skipped_count > 0 {
@@ -182,7 +182,7 @@ impl LDBot {
                 BotCommand {
                     name: "queue".to_owned(),
                     authority_level: AuthorityLevel::Any,
-                    command: |bot, sender_name, _| {
+                    command: |bot, sender_name, _, _| {
                         let mut reply = String::new();
                         if let Some((pos, _)) = bot
                             .games_state
@@ -240,7 +240,7 @@ impl LDBot {
                 BotCommand {
                     name: "current".to_owned(),
                     authority_level: AuthorityLevel::Any,
-                    command: |bot, _, _| match &bot.games_state.current_game {
+                    command: |bot, _, _, _| match &bot.games_state.current_game {
                         Some(game) => Some(format!(
                             "Current game is: {} from {}",
                             game.name, game.author
@@ -251,12 +251,12 @@ impl LDBot {
                 BotCommand {
                     name: "skip".to_owned(),
                     authority_level: AuthorityLevel::Moderator,
-                    command: |bot, _, _| bot.skip(),
+                    command: |bot, _, _, _| bot.skip(),
                 },
                 BotCommand {
                     name: "unskip".to_owned(),
                     authority_level: AuthorityLevel::Moderator,
-                    command: |bot, _, _| {
+                    command: |bot, _, _, _| {
                         if let Some(skipped) = bot.games_state.skipped.pop() {
                             bot.time_limit = None;
                             let mut reply = String::new();
@@ -280,7 +280,7 @@ impl LDBot {
                 BotCommand {
                     name: "stop".to_owned(),
                     authority_level: AuthorityLevel::Moderator,
-                    command: |bot, _, _| {
+                    command: |bot, _, _, _| {
                         bot.time_limit = None;
                         bot.games_state.current_game = None;
                         bot.save_games().unwrap();
@@ -290,7 +290,7 @@ impl LDBot {
                 BotCommand {
                     name: "clear".to_owned(),
                     authority_level: AuthorityLevel::Moderator,
-                    command: |bot, _, _| {
+                    command: |bot, _, _, _| {
                         bot.games_state.games_queue.clear();
                         bot.save_games().unwrap();
                         Some("The queue has been cleared".to_owned())
@@ -299,7 +299,7 @@ impl LDBot {
                 BotCommand {
                     name: "force".to_owned(),
                     authority_level: AuthorityLevel::Moderator,
-                    command: |bot, _, _| {
+                    command: |bot, _, _, _| {
                         if let Some(_) = bot.time_limit.take() {
                             let game = bot.games_state.current_game.as_ref().unwrap();
                             Some(format!("Now playing {} from @{}", game.name, game.author))
@@ -311,7 +311,7 @@ impl LDBot {
                 BotCommand {
                     name: "close".to_owned(),
                     authority_level: AuthorityLevel::Moderator,
-                    command: |bot, _, _| {
+                    command: |bot, _, _, _| {
                         bot.games_state.is_open = false;
                         bot.save_games().unwrap();
                         Some("The queue is now closed".to_owned())
@@ -320,7 +320,7 @@ impl LDBot {
                 BotCommand {
                     name: "open".to_owned(),
                     authority_level: AuthorityLevel::Moderator,
-                    command: |bot, _, _| {
+                    command: |bot, _, _, _| {
                         bot.games_state.is_open = true;
                         bot.save_games().unwrap();
                         Some("The queue is now open".to_owned())

@@ -13,7 +13,7 @@ pub enum AuthorityLevel {
 pub struct BotCommand<T> {
     pub name: String,
     pub authority_level: AuthorityLevel,
-    pub command: fn(&mut T, String, String) -> Option<String>,
+    pub command: fn(&mut T, String, String, String) -> Option<String>,
 }
 
 impl<T> BotCommands<T> {
@@ -22,7 +22,7 @@ impl<T> BotCommands<T> {
         match message_text.remove(0) {
             '!' => self.find(message_text.as_str(), message).map(|command| {
                 message_text.replace_range(0..command.name.len(), "");
-                (command, message_text)
+                (command, message_text.trim().to_owned())
             }),
             _ => None,
         }
@@ -63,7 +63,7 @@ impl ChannelsBot {
                 BotCommand {
                     name: "enable".to_owned(),
                     authority_level: AuthorityLevel::Moderator,
-                    command: |bot, _, args| {
+                    command: |bot, _, _, args| {
                         let response = bot.spawn_bot(args.as_str());
                         bot.save_bots().unwrap();
                         response
@@ -72,7 +72,7 @@ impl ChannelsBot {
                 BotCommand {
                     name: "disable".to_owned(),
                     authority_level: AuthorityLevel::Moderator,
-                    command: |bot, _, args| {
+                    command: |bot, _, _, args| {
                         let response = bot.disable_bot(args.as_str());
                         bot.save_bots().unwrap();
                         response
@@ -110,6 +110,16 @@ impl ChannelsBot {
                     (
                         Some("QuoteBot is now active".to_owned()),
                         Some(Box::new(QuoteBot::new(&self.channel))),
+                    )
+                }
+            }
+            "custom" => {
+                if self.bots.contains_key(bot_name) {
+                    (Some("CustomBot is already active".to_owned()), None)
+                } else {
+                    (
+                        Some("CustomBot is now active".to_owned()),
+                        Some(Box::new(CustomBot::new(&self.channel))),
                     )
                 }
             }
@@ -152,12 +162,14 @@ impl ChannelsBot {
             ludumdare: false,
             reply: false,
             quote: false,
+            custom: false,
         };
         for bot_name in self.bots.keys() {
             match bot_name.as_str() {
                 "ludumdare" => bots_config.ludumdare = true,
                 "reply" => bots_config.reply = true,
                 "quote" => bots_config.quote = true,
+                "custom" => bots_config.custom = true,
                 _ => return Err(()),
             }
         }
