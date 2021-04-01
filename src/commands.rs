@@ -20,21 +20,16 @@ impl<T> BotCommands<T> {
     pub fn check_command(&self, message: &PrivmsgMessage) -> Option<(&BotCommand<T>, String)> {
         let mut message_text = message.message_text.clone();
         match message_text.remove(0) {
-            '!' => {
-                let mut args = message_text.split_whitespace();
-                if let Some(command) = args.next() {
-                    self.find(command, message)
-                        .map(|command| (command, args.collect()))
-                } else {
-                    None
-                }
-            }
+            '!' => self.find(message_text.as_str(), message).map(|command| {
+                message_text.replace_range(0..command.name.len(), "");
+                (command, message_text)
+            }),
             _ => None,
         }
     }
     pub fn find(&self, command: &str, message: &PrivmsgMessage) -> Option<&BotCommand<T>> {
         self.commands.iter().find_map(|com| {
-            if com.name == command {
+            if command.starts_with(&com.name) {
                 if !check_authority(&com.authority_level, message) {
                     return None;
                 }
@@ -108,6 +103,16 @@ impl ChannelsBot {
                     )
                 }
             }
+            "quote" => {
+                if self.bots.contains_key(bot_name) {
+                    (Some("QuoteBot is already active".to_owned()), None)
+                } else {
+                    (
+                        Some("QuoteBot is now active".to_owned()),
+                        Some(Box::new(QuoteBot::new(&self.channel))),
+                    )
+                }
+            }
             _ => (None, None),
         };
         if let Some(new_bot) = new_bot {
@@ -146,11 +151,13 @@ impl ChannelsBot {
         let mut bots_config = BotsConfig {
             ludumdare: false,
             reply: false,
+            quote: false,
         };
         for bot_name in self.bots.keys() {
             match bot_name.as_str() {
                 "ludumdare" => bots_config.ludumdare = true,
                 "reply" => bots_config.reply = true,
+                "quote" => bots_config.quote = true,
                 _ => return Err(()),
             }
         }
