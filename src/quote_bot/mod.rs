@@ -63,7 +63,7 @@ impl QuoteBot {
                 BotCommand {
                     name: "quote add".to_owned(),
                     authority_level: AuthorityLevel::Moderator,
-                    command: |bot, _, args| {
+                    command: |bot, _, _, args| {
                         let quote_id = bot.config.id_generator.gen();
                         let response =
                             Some(format!("Added new quote {}: {}", quote_id.raw(), args));
@@ -75,7 +75,7 @@ impl QuoteBot {
                 BotCommand {
                     name: "quote delete".to_owned(),
                     authority_level: AuthorityLevel::Moderator,
-                    command: |bot, _, args| {
+                    command: |bot, _, _, args| {
                         if let Ok(quote_id) = serde_json::from_str(args.as_str()) {
                             if let Some(quote) = bot.config.quotes.remove(&quote_id) {
                                 let response =
@@ -90,7 +90,7 @@ impl QuoteBot {
                 BotCommand {
                     name: "quote replace".to_owned(),
                     authority_level: AuthorityLevel::Moderator,
-                    command: |bot, _, args| {
+                    command: |bot, _, _, args| {
                         let mut words = args.split_whitespace();
                         if let Some(quote_id) = words.next() {
                             let args = words.collect();
@@ -124,7 +124,7 @@ impl QuoteBot {
                 BotCommand {
                     name: "quote".to_owned(),
                     authority_level: AuthorityLevel::Any,
-                    command: |bot, _, args| {
+                    command: |bot, _, _, args| {
                         if let Ok(quote_id) = serde_json::from_str(args.as_str()) {
                             if let Some(quote) = bot.config.quotes.get(&quote_id) {
                                 let response = Some(quote.clone());
