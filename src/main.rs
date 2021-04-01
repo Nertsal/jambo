@@ -7,11 +7,15 @@ use twitch_irc::message::{PrivmsgMessage, ServerMessage};
 use twitch_irc::{ClientConfig, TCPTransport, TwitchIRCClient};
 
 mod commands;
+mod id;
 mod ld_bot;
+mod quote_bot;
 mod reply_bot;
 
 use commands::*;
+use id::*;
 use ld_bot::LDBot;
+use quote_bot::QuoteBot;
 use reply_bot::ReplyBot;
 
 #[tokio::main]
@@ -57,6 +61,7 @@ pub struct Config {
 struct BotsConfig {
     ludumdare: bool,
     reply: bool,
+    quote: bool,
 }
 
 struct ChannelsBot {
@@ -77,6 +82,9 @@ impl ChannelsBot {
         }
         if bots_config.reply {
             bot.spawn_bot("reply");
+        }
+        if bots_config.quote {
+            bot.spawn_bot("quote");
         }
         bot
     }
