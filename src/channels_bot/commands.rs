@@ -1,26 +1,44 @@
 use super::*;
 
+impl CommandBot<Self> for ChannelsBot {
+    fn get_commands(&self) -> &BotCommands<Self> {
+        &self.commands
+    }
+}
+
 impl ChannelsBot {
-    pub fn commands() -> BotCommands<ChannelsBot> {
+    pub fn commands() -> BotCommands<Self> {
         BotCommands {
             commands: vec![
-                BotCommand {
-                    name: "enable".to_owned(),
-                    authority_level: AuthorityLevel::Moderator,
-                    command: |bot, _, _, args| {
-                        let response = bot.spawn_bot(args.as_str());
-                        bot.save_bots().unwrap();
-                        response
-                    },
+                CommandNode::LiteralNode {
+                    literal: "enable".to_owned(),
+                    child_nodes: vec![CommandNode::ArgumentNode {
+                        argument_type: ArgumentType::Word,
+                        child_node: Box::new(CommandNode::FinalNode {
+                            authority_level: AuthorityLevel::Moderator,
+                            command: |bot, _, mut args| {
+                                let bot_name = args.remove(0);
+                                let response = bot.spawn_bot(bot_name.as_str());
+                                bot.save_bots().unwrap();
+                                response
+                            },
+                        }),
+                    }],
                 },
-                BotCommand {
-                    name: "disable".to_owned(),
-                    authority_level: AuthorityLevel::Moderator,
-                    command: |bot, _, _, args| {
-                        let response = bot.disable_bot(args.as_str());
-                        bot.save_bots().unwrap();
-                        response
-                    },
+                CommandNode::LiteralNode {
+                    literal: "disable".to_owned(),
+                    child_nodes: vec![CommandNode::ArgumentNode {
+                        argument_type: ArgumentType::Word,
+                        child_node: Box::new(CommandNode::FinalNode {
+                            authority_level: AuthorityLevel::Moderator,
+                            command: |bot, _, mut args| {
+                                let bot_name = args.remove(0);
+                                let response = bot.disable_bot(bot_name.as_str());
+                                bot.save_bots().unwrap();
+                                response
+                            },
+                        }),
+                    }],
                 },
             ],
         }

@@ -12,14 +12,8 @@ pub struct BotsConfig {
 
 pub struct ChannelsBot {
     channel: String,
-    commands: BotCommands<ChannelsBot>,
+    commands: BotCommands<Self>,
     bots: HashMap<String, Box<dyn Bot>>,
-}
-
-impl CommandBot<ChannelsBot> for ChannelsBot {
-    fn commands(&self) -> &BotCommands<ChannelsBot> {
-        &self.commands
-    }
 }
 
 impl ChannelsBot {
@@ -62,7 +56,8 @@ impl ChannelsBot {
                     "Got a message in channel {} from {}: {}",
                     message.channel_login, message.sender.name, message.message_text
                 );
-                check_command(self, client, self.channel.clone(), message).await;
+                let channel_login = self.channel.clone();
+                check_command(self, client, channel_login, message).await;
             }
             _ => (),
         }

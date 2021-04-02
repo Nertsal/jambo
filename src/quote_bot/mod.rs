@@ -1,5 +1,7 @@
 use super::*;
 
+mod commands;
+
 #[derive(Serialize, Deserialize)]
 struct QuoteConfig {
     id_generator: IdGenerator,
@@ -56,92 +58,6 @@ impl QuoteBot {
             config,
             commands: Self::commands(),
         }
-    }
-    fn commands() -> BotCommands<Self> {
-        BotCommands {
-            commands: vec![
-                BotCommand {
-                    name: "quote add".to_owned(),
-                    authority_level: AuthorityLevel::Moderator,
-                    command: |bot, _, _, args| {
-                        let quote_id = bot.config.id_generator.gen();
-                        let response =
-                            Some(format!("Added new quote {}: {}", quote_id.raw(), args));
-                        bot.config.quotes.insert(quote_id, args);
-                        bot.config.save().unwrap();
-                        response
-                    },
-                },
-                BotCommand {
-                    name: "quote delete".to_owned(),
-                    authority_level: AuthorityLevel::Moderator,
-                    command: |bot, _, _, args| {
-                        if let Ok(quote_id) = serde_json::from_str(args.as_str()) {
-                            if let Some(quote) = bot.config.quotes.remove(&quote_id) {
-                                let response =
-                                    Some(format!("Deleted quote {:?}: {}", quote_id.raw(), quote));
-                                bot.config.save().unwrap();
-                                return response;
-                            }
-                        }
-                        None
-                    },
-                },
-                BotCommand {
-                    name: "quote replace".to_owned(),
-                    authority_level: AuthorityLevel::Moderator,
-                    command: |bot, _, _, args| {
-                        let mut words = args.split_whitespace();
-                        if let Some(quote_id) = words.next() {
-                            let args = words.collect();
-                            if let Ok(quote_id) = serde_json::from_str(quote_id) {
-                                let response =
-                                    if let Some(quote) = bot.config.quotes.get_mut(&quote_id) {
-                                        let response = Some(format!(
-                                            "Replaced quote {}: {}. New quote: {}",
-                                            quote_id.raw(),
-                                            quote,
-                                            args
-                                        ));
-                                        *quote = args;
-                                        response
-                                    } else {
-                                        let response = Some(format!(
-                                            "Added new quote {}: {}",
-                                            quote_id.raw(),
-                                            args
-                                        ));
-                                        bot.config.quotes.insert(quote_id, args);
-                                        response
-                                    };
-                                bot.config.save().unwrap();
-                                return response;
-                            }
-                        }
-                        None
-                    },
-                },
-                BotCommand {
-                    name: "quote".to_owned(),
-                    authority_level: AuthorityLevel::Any,
-                    command: |bot, _, _, args| {
-                        if let Ok(quote_id) = serde_json::from_str(args.as_str()) {
-                            if let Some(quote) = bot.config.quotes.get(&quote_id) {
-                                let response = Some(quote.clone());
-                                return response;
-                            }
-                        }
-                        None
-                    },
-                },
-            ],
-        }
-    }
-}
-
-impl CommandBot<QuoteBot> for QuoteBot {
-    fn commands(&self) -> &BotCommands<Self> {
-        &self.commands
     }
 }
 

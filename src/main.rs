@@ -70,26 +70,6 @@ pub trait Bot: Send + Sync {
     );
 }
 
-pub trait CommandBot<T> {
-    fn commands(&self) -> &BotCommands<T>;
-}
-
-async fn check_command<T: CommandBot<T>>(
-    bot: &mut T,
-    client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
-    channel_login: String,
-    message: &PrivmsgMessage,
-) {
-    if let Some((command, args)) = bot.commands().check_command(message) {
-        let command_name = command.name.clone();
-        if let Some(command_reply) =
-            (command.command)(bot, message.sender.name.clone(), command_name, args)
-        {
-            send_message(client, channel_login, command_reply).await;
-        }
-    }
-}
-
 async fn send_message(
     client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
     channel_login: String,
