@@ -12,7 +12,7 @@ pub struct LDBot {
     channel_login: String,
     save_file: String,
     response_time_limit: Option<u64>,
-    commands: BotCommands<LDBot>,
+    commands: BotCommands<Self>,
     games_state: GamesState,
     time_limit: Option<Instant>,
 }
@@ -77,12 +77,6 @@ impl LDBot {
         let file = std::io::BufReader::new(std::fs::File::open(&self.save_file)?);
         self.games_state = serde_json::from_reader(file)?;
         Ok(())
-    }
-}
-
-impl CommandBot<LDBot> for LDBot {
-    fn commands(&self) -> &BotCommands<LDBot> {
-        &self.commands
     }
 }
 
