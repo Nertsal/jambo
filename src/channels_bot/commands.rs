@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use super::*;
 
 impl CommandBot<Self> for ChannelsBot {
@@ -16,12 +18,12 @@ impl ChannelsBot {
                         argument_type: ArgumentType::Word,
                         child_node: Box::new(CommandNode::FinalNode {
                             authority_level: AuthorityLevel::Moderator,
-                            command: |bot, _, mut args| {
+                            command: Arc::new(|bot, _, mut args| {
                                 let bot_name = args.remove(0);
                                 let response = bot.spawn_bot(bot_name.as_str());
                                 bot.save_bots().unwrap();
                                 response
-                            },
+                            }),
                         }),
                     }],
                 },
@@ -31,12 +33,12 @@ impl ChannelsBot {
                         argument_type: ArgumentType::Word,
                         child_node: Box::new(CommandNode::FinalNode {
                             authority_level: AuthorityLevel::Moderator,
-                            command: |bot, _, mut args| {
+                            command: Arc::new(|bot, _, mut args| {
                                 let bot_name = args.remove(0);
                                 let response = bot.disable_bot(bot_name.as_str());
                                 bot.save_bots().unwrap();
                                 response
-                            },
+                            }),
                         }),
                     }],
                 },

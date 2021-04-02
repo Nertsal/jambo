@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use super::*;
 
 pub enum CommandNode<T> {
@@ -19,7 +21,8 @@ pub type Argument = String;
 
 pub type SenderName = String;
 
-pub type Command<T> = fn(&mut T, SenderName, Vec<Argument>) -> Option<String>;
+pub type Command<T> =
+    Arc<dyn Fn(&mut T, SenderName, Vec<Argument>) -> Option<String> + Send + Sync>;
 
 pub enum ArgumentType {
     Word,

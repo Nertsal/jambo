@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use super::*;
 use rand::Rng;
 
@@ -61,16 +63,16 @@ impl LDBot {
                     literal: "help".to_owned(),
                     child_nodes: vec![CommandNode::FinalNode {
                         authority_level: AuthorityLevel::Any,
-                        command: |_, _, _| Some(Self::help_message()),
+                        command: Arc::new(|_, _, _| Some(Self::help_message())),
                     }],
                 },
                 CommandNode::LiteralNode {
                     literal: "game".to_owned(),
                     child_nodes: vec![CommandNode::FinalNode {
                         authority_level: AuthorityLevel::Any,
-                        command: |_, _, _| {
+                        command: Arc::new(|_, _, _| {
                             Some("Try our multiplayer sandbox game: https://ldjam.com/events/ludum-dare/47/the-island".to_owned())
-                        },
+                        }),
                     }],
                 },
                 CommandNode::LiteralNode {
@@ -78,13 +80,13 @@ impl LDBot {
                     child_nodes: vec![
                         CommandNode::FinalNode {
                             authority_level: AuthorityLevel::Any,
-                            command: |_, _, _| Some(Self::help_message()),
+                            command: Arc::new(|_, _, _| Some(Self::help_message())),
                         },
                         CommandNode::ArgumentNode {
                             argument_type: ArgumentType::Word,
                             child_node: Box::new(CommandNode::FinalNode {
                                 authority_level: AuthorityLevel::Any,
-                                command: |bot, sender_name, mut args| {
+                                command: Arc::new(|bot, sender_name, mut args| {
                                     let game_link = args.remove(0);
                                     if !bot.games_state.is_open {
                                         Some(
@@ -137,7 +139,7 @@ impl LDBot {
                                             sender_name
                                         ))
                                     }
-                                },
+                                }),
                             }),
                         },
                     ],
@@ -146,7 +148,7 @@ impl LDBot {
                     literal: "return".to_owned(),
                     child_nodes: vec![CommandNode::FinalNode {
                         authority_level: AuthorityLevel::Any,
-                        command: |bot, sender_name, _| {
+                        command: Arc::new(|bot, sender_name, _| {
                             if !bot.games_state.is_open {
                                 return Some(
                                     "The queue is closed. You can not submit your game at the moment."
@@ -176,21 +178,21 @@ impl LDBot {
                                 ));
                             }
                             Some(reply)
-                        },
+                        }),
                     }],
                 },
                 CommandNode::LiteralNode {
                     literal: "next".to_owned(),
                     child_nodes: vec![CommandNode::FinalNode {
                         authority_level: AuthorityLevel::Moderator,
-                        command: |bot, _, _| bot.next(),
+                        command: Arc::new(|bot, _, _| bot.next()),
                     }],
                 },
                 CommandNode::LiteralNode {
                     literal: "random".to_owned(),
                     child_nodes: vec![CommandNode::FinalNode {
                         authority_level: AuthorityLevel::Moderator,
-                        command: |bot, _, _| {
+                        command: Arc::new(|bot, _, _| {
                             bot.time_limit = None;
                             let skipped_count = bot.games_state.skipped.len();
                             if skipped_count > 0 {
@@ -208,14 +210,14 @@ impl LDBot {
                                 let reply = format!("No games have been skipped yet");
                                 Some(reply)
                             }
-                        },
+                        }),
                     }],
                 },
                 CommandNode::LiteralNode {
                     literal: "queue".to_owned(),
                     child_nodes: vec![CommandNode::FinalNode {
                         authority_level: AuthorityLevel::Any,
-                        command: |bot, sender_name, _| {
+                        command: Arc::new(|bot, sender_name, _| {
                             let mut reply = String::new();
                             if let Some((pos, _)) = bot
                                 .games_state
@@ -268,34 +270,34 @@ impl LDBot {
                                 }
                             }
                             Some(reply)
-                        },
+                        }),
                     }],
                 },
                 CommandNode::LiteralNode {
                     literal: "current".to_owned(),
                     child_nodes: vec![CommandNode::FinalNode {
                         authority_level: AuthorityLevel::Any,
-                        command: |bot, _, _| match &bot.games_state.current_game {
+                        command: Arc::new(|bot, _, _| match &bot.games_state.current_game {
                             Some(game) => Some(format!(
                                 "Current game is: {} from {}",
                                 game.name, game.author
                             )),
                             None => Some("Not playing any game at the moment".to_owned()),
-                        },
+                        }),
                     }],
                 },
                 CommandNode::LiteralNode {
                     literal: "skip".to_owned(),
                     child_nodes: vec![CommandNode::FinalNode {
                         authority_level: AuthorityLevel::Moderator,
-                        command: |bot, _, _| bot.skip(),
+                        command: Arc::new(|bot, _, _| bot.skip()),
                     }],
                 },
                 CommandNode::LiteralNode {
                     literal: "unskip".to_owned(),
                     child_nodes: vec![CommandNode::FinalNode {
                         authority_level: AuthorityLevel::Moderator,
-                        command: |bot, _, _| {
+                        command: Arc::new(|bot, _, _| {
                             if let Some(skipped) = bot.games_state.skipped.pop() {
                                 bot.time_limit = None;
                                 let mut reply = String::new();
@@ -314,66 +316,66 @@ impl LDBot {
                             } else {
                                 Some("No game has been skipped yet".to_owned())
                             }
-                        },
+                        }),
                     }],
                 },
                 CommandNode::LiteralNode {
                     literal: "stop".to_owned(),
                     child_nodes: vec![CommandNode::FinalNode {
                         authority_level: AuthorityLevel::Moderator,
-                        command: |bot, _, _| {
+                        command: Arc::new(|bot, _, _| {
                             bot.time_limit = None;
                             bot.games_state.current_game = None;
                             bot.save_games().unwrap();
                             Some("Current game set to None".to_owned())
-                        },
+                        }),
                     }],
                 },
                 CommandNode::LiteralNode {
                     literal: "clear".to_owned(),
                     child_nodes: vec![CommandNode::FinalNode {
                         authority_level: AuthorityLevel::Moderator,
-                        command: |bot, _, _| {
+                        command: Arc::new(|bot, _, _| {
                             bot.games_state.games_queue.clear();
                             bot.save_games().unwrap();
                             Some("The queue has been cleared".to_owned())
-                        },
+                        }),
                     }],
                 },
                 CommandNode::LiteralNode {
                     literal: "force".to_owned(),
                     child_nodes: vec![CommandNode::FinalNode {
                         authority_level: AuthorityLevel::Moderator,
-                        command: |bot, _, _| {
+                        command: Arc::new(|bot, _, _| {
                             if let Some(_) = bot.time_limit.take() {
                                 let game = bot.games_state.current_game.as_ref().unwrap();
                                 Some(format!("Now playing {} from @{}", game.name, game.author))
                             } else {
                                 Some("Not waiting for response at the moment".to_owned())
                             }
-                        },
+                        }),
                     }],
                 },
                 CommandNode::LiteralNode {
                     literal: "close".to_owned(),
                     child_nodes: vec![CommandNode::FinalNode {
                         authority_level: AuthorityLevel::Moderator,
-                        command: |bot, _, _| {
+                        command: Arc::new(|bot, _, _| {
                             bot.games_state.is_open = false;
                             bot.save_games().unwrap();
                             Some("The queue is now closed".to_owned())
-                        },
+                        }),
                     }],
                 },
                 CommandNode::LiteralNode {
                     literal: "open".to_owned(),
                     child_nodes: vec![CommandNode::FinalNode {
                         authority_level: AuthorityLevel::Moderator,
-                        command: |bot, _, _| {
+                        command: Arc::new(|bot, _, _| {
                             bot.games_state.is_open = true;
                             bot.save_games().unwrap();
                             Some("The queue is now open".to_owned())
-                        },
+                        }),
                     }],
                 },
             ],

@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use super::*;
 
 impl CommandBot<Self> for QuoteBot {
@@ -18,7 +20,7 @@ impl QuoteBot {
                             argument_type: ArgumentType::Line,
                             child_node: Box::new(CommandNode::FinalNode {
                                 authority_level: AuthorityLevel::Moderator,
-                                command: |bot, _, mut args| {
+                                command: Arc::new(|bot, _, mut args| {
                                     let quote = args.remove(0);
                                     let quote_id = bot.config.id_generator.gen();
                                     let response = Some(format!(
@@ -29,7 +31,7 @@ impl QuoteBot {
                                     bot.config.quotes.insert(quote_id, quote);
                                     bot.config.save().unwrap();
                                     response
-                                },
+                                }),
                             }),
                         }],
                     },
@@ -39,7 +41,7 @@ impl QuoteBot {
                             argument_type: ArgumentType::Word,
                             child_node: Box::new(CommandNode::FinalNode {
                                 authority_level: AuthorityLevel::Moderator,
-                                command: |bot, _, mut args| {
+                                command: Arc::new(|bot, _, mut args| {
                                     let quote_id = args.remove(0);
                                     if let Ok(quote_id) = serde_json::from_str(quote_id.as_str()) {
                                         if let Some(quote) = bot.config.quotes.remove(&quote_id) {
@@ -53,7 +55,7 @@ impl QuoteBot {
                                         }
                                     }
                                     None
-                                },
+                                }),
                             }),
                         }],
                     },
@@ -65,7 +67,7 @@ impl QuoteBot {
                                 argument_type: ArgumentType::Line,
                                 child_node: Box::new(CommandNode::FinalNode {
                                     authority_level: AuthorityLevel::Moderator,
-                                    command: |bot, _, args| {
+                                    command: Arc::new(|bot, _, args| {
                                         if let [quote_id, quote] = args.as_slice() {
                                             if let Ok(quote_id) = serde_json::from_str(quote_id) {
                                                 let response = if let Some(old_quote) =
@@ -96,7 +98,7 @@ impl QuoteBot {
                                         }
 
                                         None
-                                    },
+                                    }),
                                 }),
                             }),
                         }],
@@ -105,7 +107,7 @@ impl QuoteBot {
                         argument_type: ArgumentType::Word,
                         child_node: Box::new(CommandNode::FinalNode {
                             authority_level: AuthorityLevel::Any,
-                            command: |bot, _, mut args| {
+                            command: Arc::new(|bot, _, mut args| {
                                 let quote_id = args.remove(0);
                                 if let Ok(quote_id) = serde_json::from_str(quote_id.as_str()) {
                                     if let Some(quote) = bot.config.quotes.get(&quote_id) {
@@ -114,7 +116,7 @@ impl QuoteBot {
                                     }
                                 }
                                 None
-                            },
+                            }),
                         }),
                     },
                 ],

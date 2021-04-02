@@ -15,7 +15,7 @@ pub async fn check_command<T: CommandBot<T>>(
     message: &PrivmsgMessage,
 ) {
     if let Some((command, args)) = bot.get_commands().find_command(message) {
-        if let Some(command_reply) = command(bot, message.sender.name.clone(), args) {
+        if let Some(command_reply) = command.clone()(bot, message.sender.name.clone(), args) {
             send_message(client, channel_login, command_reply).await;
         }
     }
