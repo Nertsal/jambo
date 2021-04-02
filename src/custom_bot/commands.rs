@@ -42,7 +42,7 @@ impl CustomBot {
                         }],
                     },
                     CommandNode::LiteralNode {
-                        literal: "remove".to_owned(),
+                        literal: "delete".to_owned(),
                         child_nodes: vec![CommandNode::ArgumentNode {
                             argument_type: ArgumentType::Word,
                             child_node: Box::new(CommandNode::FinalNode {
@@ -53,7 +53,7 @@ impl CustomBot {
                                         bot.config.commands.remove(&command_name)
                                     {
                                         let response = Some(format!(
-                                            "Removed command {}: {}",
+                                            "Deleted command {}: {}",
                                             command_name, command_response
                                         ));
                                         let com_index = bot
