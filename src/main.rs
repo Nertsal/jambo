@@ -6,6 +6,7 @@ use twitch_irc::login::StaticLoginCredentials;
 use twitch_irc::message::{PrivmsgMessage, ServerMessage};
 use twitch_irc::{ClientConfig, TCPTransport, TwitchIRCClient};
 
+mod channels_bot;
 mod commands;
 mod custom_bot;
 mod id;
@@ -13,6 +14,7 @@ mod ld_bot;
 mod quote_bot;
 mod reply_bot;
 
+use channels_bot::{BotsConfig, ChannelsBot};
 use commands::*;
 use custom_bot::CustomBot;
 use id::*;
@@ -59,70 +61,6 @@ pub struct Config {
     channel: String,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
-struct BotsConfig {
-    ludumdare: bool,
-    reply: bool,
-    quote: bool,
-    custom: bool,
-}
-
-struct ChannelsBot {
-    channel: String,
-    commands: BotCommands<ChannelsBot>,
-    bots: HashMap<String, Box<dyn Bot>>,
-}
-
-impl ChannelsBot {
-    fn new(config: &Config, bots_config: &BotsConfig) -> Self {
-        let mut bot = Self {
-            channel: config.channel.clone(),
-            commands: Self::commands(),
-            bots: HashMap::new(),
-        };
-        if bots_config.ludumdare {
-            bot.spawn_bot("ludumdare");
-        }
-        if bots_config.reply {
-            bot.spawn_bot("reply");
-        }
-        if bots_config.quote {
-            bot.spawn_bot("quote");
-        }
-        if bots_config.custom {
-            bot.spawn_bot("custom");
-        }
-        bot
-    }
-    async fn handle_message(
-        &mut self,
-        client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
-        message: ServerMessage,
-    ) {
-        match &message {
-            ServerMessage::Join(message) => {
-                println!("Joined: {}", message.channel_login);
-            }
-            ServerMessage::Notice(message) => {
-                if message.message_text == "Login authentication failed" {
-                    panic!("Login authentication failed.");
-                }
-            }
-            ServerMessage::Privmsg(message) => {
-                println!(
-                    "Got a message in channel {} from {}: {}",
-                    message.channel_login, message.sender.name, message.message_text
-                );
-                check_command(self, client, self.channel.clone(), message).await;
-            }
-            _ => (),
-        }
-        for bot in self.bots.values_mut() {
-            bot.handle_message(client, &message).await;
-        }
-    }
-}
-
 #[async_trait]
 pub trait Bot: Send + Sync {
     async fn handle_message(
@@ -134,12 +72,6 @@ pub trait Bot: Send + Sync {
 
 pub trait CommandBot<T> {
     fn commands(&self) -> &BotCommands<T>;
-}
-
-impl CommandBot<ChannelsBot> for ChannelsBot {
-    fn commands(&self) -> &BotCommands<ChannelsBot> {
-        &self.commands
-    }
 }
 
 async fn check_command<T: CommandBot<T>>(
