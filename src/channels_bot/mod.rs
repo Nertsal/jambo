@@ -11,7 +11,7 @@ pub struct BotsConfig {
 }
 
 pub struct ChannelsBot {
-    channel: String,
+    channel_login: String,
     commands: BotCommands<Self>,
     bots: HashMap<String, Box<dyn Bot>>,
 }
@@ -19,7 +19,7 @@ pub struct ChannelsBot {
 impl ChannelsBot {
     pub fn new(config: &Config, bots_config: &BotsConfig) -> Self {
         let mut bot = Self {
-            channel: config.channel.clone(),
+            channel_login: config.channel_login.clone(),
             commands: Self::commands(),
             bots: HashMap::new(),
         };
@@ -56,7 +56,7 @@ impl ChannelsBot {
                     "Got a message in channel {} from {}: {}",
                     message.channel_login, message.sender.name, message.message_text
                 );
-                let channel_login = self.channel.clone();
+                let channel_login = self.channel_login.clone();
                 check_command(self, client, channel_login, message).await;
             }
             _ => (),

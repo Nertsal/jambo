@@ -53,7 +53,7 @@ impl ChannelsBot {
                 } else {
                     (
                         Some("LDBot is now active".to_owned()),
-                        Some(Box::new(LDBot::new(&self.channel))),
+                        Some(Box::new(LDBot::new(&self.channel_login))),
                     )
                 }
             }
@@ -63,7 +63,7 @@ impl ChannelsBot {
                 } else {
                     (
                         Some("ReplyBot is now active".to_owned()),
-                        Some(Box::new(ReplyBot::new(&self.channel))),
+                        Some(Box::new(ReplyBot::new(&self.channel_login))),
                     )
                 }
             }
@@ -73,7 +73,7 @@ impl ChannelsBot {
                 } else {
                     (
                         Some("QuoteBot is now active".to_owned()),
-                        Some(Box::new(QuoteBot::new(&self.channel))),
+                        Some(Box::new(QuoteBot::new(&self.channel_login))),
                     )
                 }
             }
@@ -83,7 +83,7 @@ impl ChannelsBot {
                 } else {
                     (
                         Some("CustomBot is now active".to_owned()),
-                        Some(Box::new(CustomBot::new(&self.channel))),
+                        Some(Box::new(CustomBot::new(&self.channel_login))),
                     )
                 }
             }

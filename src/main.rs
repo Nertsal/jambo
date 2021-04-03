@@ -49,7 +49,7 @@ async fn main() {
         }
     });
 
-    client.join(nertsalbot_config.channel);
+    client.join(nertsalbot_config.channel_login);
 
     join_handle.await.unwrap();
 }
@@ -58,7 +58,7 @@ async fn main() {
 pub struct Config {
     login_name: String,
     oauth_token: String,
-    channel: String,
+    channel_login: String,
 }
 
 #[async_trait]
