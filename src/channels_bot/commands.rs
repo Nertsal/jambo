@@ -46,48 +46,13 @@ impl ChannelsBot {
         }
     }
     pub fn spawn_bot(&mut self, bot_name: &str) -> Option<String> {
-        let (response, new_bot): (Option<String>, Option<Box<dyn Bot>>) = match bot_name {
-            "ludumdare" => {
-                if self.bots.contains_key(bot_name) {
-                    (Some("LDBot is already active".to_owned()), None)
-                } else {
-                    (
-                        Some("LDBot is now active".to_owned()),
-                        Some(Box::new(LDBot::new(&self.channel_login))),
-                    )
-                }
+        let (response, new_bot) = if self.bots.contains_key(bot_name) {
+            (Some(format!("{} is already active", bot_name)), None)
+        } else {
+            match self.new_bot(bot_name) {
+                Some(new_bot) => (Some(format!("{} is now active", bot_name)), Some(new_bot)),
+                None => (None, None),
             }
-            "reply" => {
-                if self.bots.contains_key(bot_name) {
-                    (Some("ReplyBot is already active".to_owned()), None)
-                } else {
-                    (
-                        Some("ReplyBot is now active".to_owned()),
-                        Some(Box::new(ReplyBot::new(&self.channel_login))),
-                    )
-                }
-            }
-            "quote" => {
-                if self.bots.contains_key(bot_name) {
-                    (Some("QuoteBot is already active".to_owned()), None)
-                } else {
-                    (
-                        Some("QuoteBot is now active".to_owned()),
-                        Some(Box::new(QuoteBot::new(&self.channel_login))),
-                    )
-                }
-            }
-            "custom" => {
-                if self.bots.contains_key(bot_name) {
-                    (Some("CustomBot is already active".to_owned()), None)
-                } else {
-                    (
-                        Some("CustomBot is now active".to_owned()),
-                        Some(Box::new(CustomBot::new(&self.channel_login))),
-                    )
-                }
-            }
-            _ => (None, None),
         };
         if let Some(new_bot) = new_bot {
             println!("Spawned bot {}", bot_name);
@@ -114,14 +79,31 @@ impl ChannelsBot {
             custom: false,
         };
         for bot_name in self.bots.keys() {
-            match bot_name.as_str() {
-                "ludumdare" => bots_config.ludumdare = true,
-                "reply" => bots_config.reply = true,
-                "quote" => bots_config.quote = true,
-                "custom" => bots_config.custom = true,
-                _ => return Err(()),
+            if bot_name == LDBot::name() {
+                bots_config.ludumdare = true;
+            } else if bot_name == ReplyBot::name() {
+                bots_config.reply = true;
+            } else if bot_name == QuoteBot::name() {
+                bots_config.quote = true;
+            } else if bot_name == CustomBot::name() {
+                bots_config.custom = true;
+            } else {
+                return Err(());
             }
         }
         Ok(bots_config)
+    }
+    fn new_bot(&self, bot_name: &str) -> Option<Box<dyn Bot>> {
+        if bot_name == LDBot::name() {
+            Some(Box::new(LDBot::new(&self.channel_login)))
+        } else if bot_name == ReplyBot::name() {
+            Some(Box::new(ReplyBot::new(&self.channel_login)))
+        } else if bot_name == QuoteBot::name() {
+            Some(Box::new(QuoteBot::new(&self.channel_login)))
+        } else if bot_name == CustomBot::name() {
+            Some(Box::new(CustomBot::new(&self.channel_login)))
+        } else {
+            None
+        }
     }
 }

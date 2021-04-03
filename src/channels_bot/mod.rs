@@ -24,16 +24,16 @@ impl ChannelsBot {
             bots: HashMap::new(),
         };
         if bots_config.ludumdare {
-            bot.spawn_bot("ludumdare");
+            bot.spawn_bot(LDBot::name());
         }
         if bots_config.reply {
-            bot.spawn_bot("reply");
+            bot.spawn_bot(ReplyBot::name());
         }
         if bots_config.quote {
-            bot.spawn_bot("quote");
+            bot.spawn_bot(QuoteBot::name());
         }
         if bots_config.custom {
-            bot.spawn_bot("custom");
+            bot.spawn_bot(CustomBot::name());
         }
         bot
     }

@@ -18,6 +18,9 @@ pub struct LDBot {
 }
 
 impl LDBot {
+    pub fn name() -> &'static str {
+        "LDBot"
+    }
     pub fn new(channel: &String) -> Self {
         let config: LDConfig = serde_json::from_reader(std::io::BufReader::new(
             std::fs::File::open("config/ludum_dare/ld-config.json").unwrap(),
@@ -83,7 +86,7 @@ impl LDBot {
 #[async_trait]
 impl Bot for LDBot {
     fn name(&self) -> &str {
-        "LDBot"
+        Self::name()
     }
     async fn handle_message(
         &mut self,

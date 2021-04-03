@@ -41,6 +41,9 @@ pub struct QuoteBot {
 }
 
 impl QuoteBot {
+    pub fn name() -> &'static str {
+        "QuoteBot"
+    }
     pub fn new(channel_login: &String) -> Self {
         let config = match QuoteConfig::load() {
             Ok(config) => config,
@@ -64,7 +67,7 @@ impl QuoteBot {
 #[async_trait]
 impl Bot for QuoteBot {
     fn name(&self) -> &str {
-        "QuoteBot"
+        Self::name()
     }
     async fn handle_message(
         &mut self,

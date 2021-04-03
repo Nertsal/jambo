@@ -29,6 +29,9 @@ pub struct CustomBot {
 }
 
 impl CustomBot {
+    pub fn name() -> &'static str {
+        "CustomBot"
+    }
     pub fn new(channel_login: &String) -> Self {
         let config = match CustomConfig::load() {
             Ok(config) => config,
@@ -58,7 +61,7 @@ impl CustomBot {
 #[async_trait]
 impl Bot for CustomBot {
     fn name(&self) -> &str {
-        "CustomBot"
+        Self::name()
     }
     async fn handle_message(
         &mut self,

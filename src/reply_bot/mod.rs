@@ -12,6 +12,9 @@ pub struct ReplyBot {
 }
 
 impl ReplyBot {
+    pub fn name() -> &'static str {
+        "ReplyBot"
+    }
     pub fn new(channel: &String) -> Self {
         let config: ReplyConfig = serde_json::from_reader(std::io::BufReader::new(
             std::fs::File::open("config/reply/reply-config.json").unwrap(),
@@ -47,7 +50,7 @@ impl ReplyBot {
 #[async_trait]
 impl Bot for ReplyBot {
     fn name(&self) -> &str {
-        "ReplyBot"
+        Self::name()
     }
     async fn handle_message(
         &mut self,
