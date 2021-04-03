@@ -63,6 +63,9 @@ impl QuoteBot {
 
 #[async_trait]
 impl Bot for QuoteBot {
+    fn name(&self) -> &str {
+        "QuoteBot"
+    }
     async fn handle_message(
         &mut self,
         client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,

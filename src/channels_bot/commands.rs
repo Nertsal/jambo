@@ -96,23 +96,8 @@ impl ChannelsBot {
         response
     }
     fn disable_bot(&mut self, bot_name: &str) -> Option<String> {
-        let (response, bot) = match bot_name {
-            "ludumdare" => match self.bots.remove(bot_name) {
-                Some(bot) => (Some("LDBot is no longer active".to_owned()), Some(bot)),
-                None => (Some("LDBot is not active at the moment".to_owned()), None),
-            },
-            "reply" => match self.bots.remove(bot_name) {
-                Some(bot) => (Some("ReplyBot is no longer active".to_owned()), Some(bot)),
-                None => (
-                    Some("ReplyBot is not active at the moment".to_owned()),
-                    None,
-                ),
-            },
-            _ => (None, None),
-        };
-        if let Some(_) = bot {
-            println!("Disabled bot {}", bot_name);
-        }
+        let bot = self.bots.remove(bot_name);
+        let response = bot.map(|bot| format!("{} is not longer active", bot.name()));
         response
     }
     fn save_bots(&self) -> std::io::Result<()> {

@@ -46,6 +46,9 @@ impl ReplyBot {
 
 #[async_trait]
 impl Bot for ReplyBot {
+    fn name(&self) -> &str {
+        "ReplyBot"
+    }
     async fn handle_message(
         &mut self,
         client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,

@@ -63,6 +63,7 @@ pub struct Config {
 
 #[async_trait]
 pub trait Bot: Send + Sync {
+    fn name(&self) -> &str;
     async fn handle_message(
         &mut self,
         client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,

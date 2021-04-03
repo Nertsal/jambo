@@ -82,6 +82,9 @@ impl LDBot {
 
 #[async_trait]
 impl Bot for LDBot {
+    fn name(&self) -> &str {
+        "LDBot"
+    }
     async fn handle_message(
         &mut self,
         client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,

@@ -57,6 +57,9 @@ impl CustomBot {
 
 #[async_trait]
 impl Bot for CustomBot {
+    fn name(&self) -> &str {
+        "CustomBot"
+    }
     async fn handle_message(
         &mut self,
         client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
