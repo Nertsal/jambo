@@ -19,7 +19,7 @@ impl LDBot {
             .or_else(|| self.games_state.games_queue.pop_front());
         match game {
             Some(game) => {
-                let reply = if let Some(response_time) = self.response_time_limit {
+                let reply = if let Some(response_time) = self.config.response_time_limit {
                     self.time_limit = Some(Instant::now());
                     format!(
                         "@{}, we are about to play your game. Please reply in {} seconds. ",
@@ -55,6 +55,13 @@ impl LDBot {
     }
     fn help_message() -> String {
         "To view current game call !current. To see current queue call !queue. To submit a game call !submit with a link to your game on Ludum Dare website, like so: !submit https://ldjam.com/events/ludum-dare/47/the-island".to_owned()
+    }
+    fn check_link(&self, game_link: &str) -> bool {
+        if let Some(link_start) = &self.config.link_start {
+            game_link.starts_with(link_start)
+        } else {
+            false
+        }
     }
     pub fn commands() -> BotCommands<Self> {
         BotCommands {
@@ -93,9 +100,7 @@ impl LDBot {
                                         "The queue is closed. You can not submit your game at the moment."
                                             .to_owned(),
                                     )
-                                    } else if game_link
-                                        .starts_with("https://ldjam.com/events/ludum-dare/")
-                                    {
+                                    } else if bot.check_link(&game_link) {
                                         if let Some(current_game) = &bot.games_state.current_game {
                                             if current_game.name == game_link {
                                                 return Some(format!(
@@ -135,7 +140,7 @@ impl LDBot {
                                     ))
                                     } else {
                                         Some(format!(
-                                            "@{}, that is not a Ludum Dare page",
+                                            "@{}, that link can not be submitted",
                                             sender_name
                                         ))
                                     }

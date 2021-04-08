@@ -6,12 +6,13 @@ mod commands;
 #[derive(Serialize, Deserialize)]
 pub struct LDConfig {
     response_time_limit: Option<u64>,
+    link_start: Option<String>,
 }
 
 pub struct LDBot {
     channel_login: String,
     save_file: String,
-    response_time_limit: Option<u64>,
+    config: LDConfig,
     commands: BotCommands<Self>,
     games_state: GamesState,
     time_limit: Option<Instant>,
@@ -30,7 +31,7 @@ impl LDBot {
         let mut bot = Self {
             channel_login: channel.clone(),
             save_file: "config/ludum_dare/ld-nertsalbot.json".to_owned(),
-            response_time_limit: config.response_time_limit,
+            config,
             commands: Self::commands(),
             games_state: GamesState::new(),
             time_limit: None,
@@ -64,7 +65,7 @@ impl LDBot {
     }
     fn update(&mut self) -> Option<String> {
         if let Some(time) = self.time_limit {
-            if time.elapsed().as_secs() >= self.response_time_limit.unwrap() {
+            if time.elapsed().as_secs() >= self.config.response_time_limit.unwrap() {
                 self.time_limit = None;
                 return self.skip();
             }
