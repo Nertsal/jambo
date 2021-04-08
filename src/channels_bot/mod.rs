@@ -24,7 +24,7 @@ impl ChannelsBot {
             bots: HashMap::new(),
         };
         if bots_config.ludumdare {
-            bot.spawn_bot(LDBot::name());
+            bot.spawn_bot(GameJamBot::name());
         }
         if bots_config.reply {
             bot.spawn_bot(ReplyBot::name());

@@ -3,13 +3,13 @@ use std::sync::Arc;
 use super::*;
 use rand::Rng;
 
-impl CommandBot<Self> for LDBot {
+impl CommandBot<Self> for GameJamBot {
     fn get_commands(&self) -> &BotCommands<Self> {
         &self.commands
     }
 }
 
-impl LDBot {
+impl GameJamBot {
     pub fn next(&mut self) -> Option<String> {
         self.time_limit = None;
         let game = self
@@ -54,7 +54,7 @@ impl LDBot {
         }
     }
     fn help_message() -> String {
-        "To view current game call !current. To see current queue call !queue. To submit a game call !submit with a link to your game on Ludum Dare website, like so: !submit https://ldjam.com/events/ludum-dare/47/the-island".to_owned()
+        "To view current game call !current. To see current queue call !queue. To submit a game call !submit with a link to your game, like so: !submit https://ldjam.com/events/ludum-dare/47/the-island".to_owned()
     }
     fn check_link(&self, game_link: &str) -> bool {
         if let Some(link_start) = &self.config.link_start {

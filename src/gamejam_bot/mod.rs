@@ -4,50 +4,50 @@ use std::collections::VecDeque;
 mod commands;
 
 #[derive(Serialize, Deserialize)]
-pub struct LDConfig {
+pub struct GameJamConfig {
     response_time_limit: Option<u64>,
     link_start: Option<String>,
     allow_direct_link_submit: bool,
 }
 
-pub struct LDBot {
+pub struct GameJamBot {
     channel_login: String,
     save_file: String,
-    config: LDConfig,
+    config: GameJamConfig,
     commands: BotCommands<Self>,
     games_state: GamesState,
     time_limit: Option<Instant>,
 }
 
-impl LDBot {
+impl GameJamBot {
     pub fn name() -> &'static str {
-        "LDBot"
+        "GameJamBot"
     }
     pub fn new(channel: &String) -> Self {
-        let config: LDConfig = serde_json::from_reader(std::io::BufReader::new(
-            std::fs::File::open("config/ludum_dare/ld-config.json").unwrap(),
+        let config: GameJamConfig = serde_json::from_reader(std::io::BufReader::new(
+            std::fs::File::open("config/gamejam/gamejam-config.json").unwrap(),
         ))
         .unwrap();
 
         let mut bot = Self {
             channel_login: channel.clone(),
-            save_file: "config/ludum_dare/ld-nertsalbot.json".to_owned(),
+            save_file: "config/gamejam/gamejam-nertsalbot.json".to_owned(),
             config,
             commands: Self::commands(),
             games_state: GamesState::new(),
             time_limit: None,
         };
-        println!("Loading LDBot data from {}", &bot.save_file);
+        println!("Loading GameJamBot data from {}", &bot.save_file);
         match bot.load_games() {
-            Ok(_) => println!("Successfully loaded LDBot data"),
+            Ok(_) => println!("Successfully loaded GameJamBot data"),
             Err(error) => {
                 use std::io::ErrorKind;
                 match error.kind() {
                     ErrorKind::NotFound => {
-                        println!("Using default LDBot data");
+                        println!("Using default GameJamBot data");
                         bot.save_games().unwrap();
                     }
-                    _ => panic!("Error loading LDBot data: {}", error),
+                    _ => panic!("Error loading GameJamBot data: {}", error),
                 }
             }
         }
@@ -86,7 +86,7 @@ impl LDBot {
 }
 
 #[async_trait]
-impl Bot for LDBot {
+impl Bot for GameJamBot {
     fn name(&self) -> &str {
         Self::name()
     }

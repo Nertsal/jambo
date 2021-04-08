@@ -79,7 +79,7 @@ impl ChannelsBot {
             custom: false,
         };
         for bot_name in self.bots.keys() {
-            if bot_name == LDBot::name() {
+            if bot_name == GameJamBot::name() {
                 bots_config.ludumdare = true;
             } else if bot_name == ReplyBot::name() {
                 bots_config.reply = true;
@@ -94,8 +94,8 @@ impl ChannelsBot {
         Ok(bots_config)
     }
     fn new_bot(&self, bot_name: &str) -> Option<Box<dyn Bot>> {
-        if bot_name == LDBot::name() {
-            Some(Box::new(LDBot::new(&self.channel_login)))
+        if bot_name == GameJamBot::name() {
+            Some(Box::new(GameJamBot::new(&self.channel_login)))
         } else if bot_name == ReplyBot::name() {
             Some(Box::new(ReplyBot::new(&self.channel_login)))
         } else if bot_name == QuoteBot::name() {
