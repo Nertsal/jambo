@@ -62,7 +62,7 @@ impl ChannelsBot {
     }
     fn disable_bot(&mut self, bot_name: &str) -> Option<String> {
         let bot = self.bots.remove(bot_name);
-        let response = bot.map(|bot| format!("{} is not longer active", bot.name()));
+        let response = bot.map(|bot| format!("{} is no longer active", bot.name()));
         response
     }
     fn save_bots(&self) -> std::io::Result<()> {
