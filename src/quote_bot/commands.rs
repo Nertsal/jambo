@@ -12,7 +12,7 @@ impl QuoteBot {
     pub fn commands() -> BotCommands<Self> {
         BotCommands {
             commands: vec![CommandNode::LiteralNode {
-                literal: "quote".to_owned(),
+                literal: "!quote".to_owned(),
                 child_nodes: vec![
                     CommandNode::LiteralNode {
                         literal: "add".to_owned(),

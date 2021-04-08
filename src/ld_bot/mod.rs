@@ -7,6 +7,7 @@ mod commands;
 pub struct LDConfig {
     response_time_limit: Option<u64>,
     link_start: Option<String>,
+    allow_direct_link_submit: bool,
 }
 
 pub struct LDBot {

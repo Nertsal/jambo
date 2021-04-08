@@ -33,26 +33,21 @@ pub enum AuthorityLevel {
 
 impl<T> BotCommands<T> {
     pub fn find_command(&self, message: &PrivmsgMessage) -> Option<(&Command<T>, Vec<Argument>)> {
-        let mut message_text = message.message_text.clone();
-        match message_text.remove(0) {
-            '!' => self
-                .find(message_text.as_str())
-                .map(|(command, arguments)| match command {
-                    CommandNode::FinalNode {
-                        authority_level,
-                        command,
-                    } => {
-                        if check_authority(authority_level, message) {
-                            Some((command, arguments))
-                        } else {
-                            None
-                        }
+        self.find(&message.message_text)
+            .map(|(command, arguments)| match command {
+                CommandNode::FinalNode {
+                    authority_level,
+                    command,
+                } => {
+                    if check_authority(authority_level, message) {
+                        Some((command, arguments))
+                    } else {
+                        None
                     }
-                    _ => unreachable!(),
-                })
-                .flatten(),
-            _ => None,
-        }
+                }
+                _ => unreachable!(),
+            })
+            .flatten()
     }
     fn find(&self, message: &str) -> Option<(&CommandNode<T>, Vec<Argument>)> {
         self.commands

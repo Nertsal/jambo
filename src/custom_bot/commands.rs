@@ -12,7 +12,7 @@ impl CustomBot {
     pub fn commands() -> BotCommands<Self> {
         BotCommands {
             commands: vec![CommandNode::LiteralNode {
-                literal: "command".to_owned(),
+                literal: "!command".to_owned(),
                 child_nodes: vec![
                     CommandNode::LiteralNode {
                         literal: "new".to_owned(),

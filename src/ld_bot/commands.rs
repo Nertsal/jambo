@@ -60,21 +60,86 @@ impl LDBot {
         if let Some(link_start) = &self.config.link_start {
             game_link.starts_with(link_start)
         } else {
-            false
+            true
+        }
+    }
+    fn submit(&mut self, game_link: String, sender_name: String) -> Option<String> {
+        if !self.games_state.is_open {
+            Some("The queue is closed. You can not submit your game at the moment.".to_owned())
+        } else if self.check_link(&game_link) {
+            if let Some(current_game) = &self.games_state.current_game {
+                if current_game.name == game_link {
+                    return Some(format!(
+                        "@{}, we are playing that game right now!",
+                        sender_name
+                    ));
+                }
+            }
+
+            if let Some((index, _)) = self
+                .games_state
+                .queue()
+                .enumerate()
+                .find(|(_, game)| game.name == game_link)
+            {
+                return Some(format!(
+                    "@{}, that game has already been submitted. It is currently {} in the queue.",
+                    sender_name,
+                    index + 1
+                ));
+            }
+
+            if let Some(_) = self
+                .games_state
+                .skipped
+                .iter()
+                .find(|game| game.name == game_link)
+            {
+                return Some(format!("@{}, your game was skipped. You may return to the front of the queue using !return command", sender_name));
+            }
+
+            self.games_state.games_queue.push_back(Game {
+                author: sender_name.clone(),
+                name: game_link,
+            });
+            self.save_games().unwrap();
+            Some(format!(
+                "@{}, your game has been submitted! There are {} games in the queue.",
+                sender_name,
+                self.games_state.games_queue.len()
+            ))
+        } else {
+            Some(format!("@{}, that link can not be submitted", sender_name))
         }
     }
     pub fn commands() -> BotCommands<Self> {
         BotCommands {
             commands: vec![
+                CommandNode::ArgumentNode {
+                    argument_type: ArgumentType::Word,
+                    child_node: Box::new(CommandNode::FinalNode {
+                        authority_level: AuthorityLevel::Any,
+                        command: Arc::new(|bot, sender_name, mut args| {
+                            let game_link = args.remove(0);
+                            if bot.config.allow_direct_link_submit
+                                && bot.config.link_start.is_some()
+                                && bot.check_link(&game_link)
+                            {
+                                return bot.submit(game_link, sender_name);
+                            }
+                            None
+                        }),
+                    }),
+                },
                 CommandNode::LiteralNode {
-                    literal: "help".to_owned(),
+                    literal: "!help".to_owned(),
                     child_nodes: vec![CommandNode::FinalNode {
                         authority_level: AuthorityLevel::Any,
                         command: Arc::new(|_, _, _| Some(Self::help_message())),
                     }],
                 },
                 CommandNode::LiteralNode {
-                    literal: "game".to_owned(),
+                    literal: "!game".to_owned(),
                     child_nodes: vec![CommandNode::FinalNode {
                         authority_level: AuthorityLevel::Any,
                         command: Arc::new(|_, _, _| {
@@ -83,7 +148,7 @@ impl LDBot {
                     }],
                 },
                 CommandNode::LiteralNode {
-                    literal: "submit".to_owned(),
+                    literal: "!submit".to_owned(),
                     child_nodes: vec![
                         CommandNode::FinalNode {
                             authority_level: AuthorityLevel::Any,
@@ -95,70 +160,22 @@ impl LDBot {
                                 authority_level: AuthorityLevel::Any,
                                 command: Arc::new(|bot, sender_name, mut args| {
                                     let game_link = args.remove(0);
-                                    if !bot.games_state.is_open {
-                                        Some(
-                                        "The queue is closed. You can not submit your game at the moment."
-                                            .to_owned(),
-                                    )
-                                    } else if bot.check_link(&game_link) {
-                                        if let Some(current_game) = &bot.games_state.current_game {
-                                            if current_game.name == game_link {
-                                                return Some(format!(
-                                                    "@{}, we are playing that game right now!",
-                                                    sender_name
-                                                ));
-                                            }
-                                        }
-
-                                        if let Some((index, _)) = bot
-                                            .games_state
-                                            .queue()
-                                            .enumerate()
-                                            .find(|(_, game)| game.name == game_link)
-                                        {
-                                            return Some(format!("@{}, that game has already been submitted. It is currently {} in the queue.", sender_name, index + 1));
-                                        }
-
-                                        if let Some(_) = bot
-                                            .games_state
-                                            .skipped
-                                            .iter()
-                                            .find(|game| game.name == game_link)
-                                        {
-                                            return Some(format!("@{}, your game was skipped. You may return to the front of the queue using !return command", sender_name));
-                                        }
-
-                                        bot.games_state.games_queue.push_back(Game {
-                                            author: sender_name.clone(),
-                                            name: game_link,
-                                        });
-                                        bot.save_games().unwrap();
-                                        Some(format!(
-                                        "@{}, your game has been submitted! There are {} games in the queue.",
-                                        sender_name,
-                                        bot.games_state.games_queue.len()
-                                    ))
-                                    } else {
-                                        Some(format!(
-                                            "@{}, that link can not be submitted",
-                                            sender_name
-                                        ))
-                                    }
+                                    bot.submit(game_link, sender_name)
                                 }),
                             }),
                         },
                     ],
                 },
                 CommandNode::LiteralNode {
-                    literal: "return".to_owned(),
+                    literal: "!return".to_owned(),
                     child_nodes: vec![CommandNode::FinalNode {
                         authority_level: AuthorityLevel::Any,
                         command: Arc::new(|bot, sender_name, _| {
                             if !bot.games_state.is_open {
                                 return Some(
-                                    "The queue is closed. You can not submit your game at the moment."
-                                        .to_owned(),
-                                );
+                                            "The queue is closed. You can not submit your game at the moment."
+                                                .to_owned(),
+                                        );
                             }
                             let mut reply = String::new();
                             if let Some(game) = bot
@@ -178,23 +195,23 @@ impl LDBot {
                                 ));
                             } else {
                                 reply.push_str(&format!(
-                                    "@{}, you have caused stack underflow exception, return failed.",
-                                    sender_name,
-                                ));
+                                            "@{}, you have caused stack underflow exception, return failed.",
+                                            sender_name,
+                                        ));
                             }
                             Some(reply)
                         }),
                     }],
                 },
                 CommandNode::LiteralNode {
-                    literal: "next".to_owned(),
+                    literal: "!next".to_owned(),
                     child_nodes: vec![CommandNode::FinalNode {
                         authority_level: AuthorityLevel::Moderator,
                         command: Arc::new(|bot, _, _| bot.next()),
                     }],
                 },
                 CommandNode::LiteralNode {
-                    literal: "random".to_owned(),
+                    literal: "!random".to_owned(),
                     child_nodes: vec![CommandNode::FinalNode {
                         authority_level: AuthorityLevel::Moderator,
                         command: Arc::new(|bot, _, _| {
@@ -219,7 +236,7 @@ impl LDBot {
                     }],
                 },
                 CommandNode::LiteralNode {
-                    literal: "queue".to_owned(),
+                    literal: "!queue".to_owned(),
                     child_nodes: vec![CommandNode::FinalNode {
                         authority_level: AuthorityLevel::Any,
                         command: Arc::new(|bot, sender_name, _| {
@@ -279,7 +296,7 @@ impl LDBot {
                     }],
                 },
                 CommandNode::LiteralNode {
-                    literal: "current".to_owned(),
+                    literal: "!current".to_owned(),
                     child_nodes: vec![CommandNode::FinalNode {
                         authority_level: AuthorityLevel::Any,
                         command: Arc::new(|bot, _, _| match &bot.games_state.current_game {
@@ -292,14 +309,14 @@ impl LDBot {
                     }],
                 },
                 CommandNode::LiteralNode {
-                    literal: "skip".to_owned(),
+                    literal: "!skip".to_owned(),
                     child_nodes: vec![CommandNode::FinalNode {
                         authority_level: AuthorityLevel::Moderator,
                         command: Arc::new(|bot, _, _| bot.skip()),
                     }],
                 },
                 CommandNode::LiteralNode {
-                    literal: "unskip".to_owned(),
+                    literal: "!unskip".to_owned(),
                     child_nodes: vec![CommandNode::FinalNode {
                         authority_level: AuthorityLevel::Moderator,
                         command: Arc::new(|bot, _, _| {
@@ -325,7 +342,7 @@ impl LDBot {
                     }],
                 },
                 CommandNode::LiteralNode {
-                    literal: "stop".to_owned(),
+                    literal: "!stop".to_owned(),
                     child_nodes: vec![CommandNode::FinalNode {
                         authority_level: AuthorityLevel::Moderator,
                         command: Arc::new(|bot, _, _| {
@@ -337,7 +354,7 @@ impl LDBot {
                     }],
                 },
                 CommandNode::LiteralNode {
-                    literal: "clear".to_owned(),
+                    literal: "!clear".to_owned(),
                     child_nodes: vec![CommandNode::FinalNode {
                         authority_level: AuthorityLevel::Moderator,
                         command: Arc::new(|bot, _, _| {
@@ -348,7 +365,7 @@ impl LDBot {
                     }],
                 },
                 CommandNode::LiteralNode {
-                    literal: "force".to_owned(),
+                    literal: "!force".to_owned(),
                     child_nodes: vec![CommandNode::FinalNode {
                         authority_level: AuthorityLevel::Moderator,
                         command: Arc::new(|bot, _, _| {
@@ -362,7 +379,7 @@ impl LDBot {
                     }],
                 },
                 CommandNode::LiteralNode {
-                    literal: "close".to_owned(),
+                    literal: "!close".to_owned(),
                     child_nodes: vec![CommandNode::FinalNode {
                         authority_level: AuthorityLevel::Moderator,
                         command: Arc::new(|bot, _, _| {
@@ -373,7 +390,7 @@ impl LDBot {
                     }],
                 },
                 CommandNode::LiteralNode {
-                    literal: "open".to_owned(),
+                    literal: "!open".to_owned(),
                     child_nodes: vec![CommandNode::FinalNode {
                         authority_level: AuthorityLevel::Moderator,
                         command: Arc::new(|bot, _, _| {
