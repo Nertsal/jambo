@@ -139,15 +139,6 @@ impl LDBot {
                     }],
                 },
                 CommandNode::LiteralNode {
-                    literal: "!game".to_owned(),
-                    child_nodes: vec![CommandNode::FinalNode {
-                        authority_level: AuthorityLevel::Any,
-                        command: Arc::new(|_, _, _| {
-                            Some("Try our multiplayer sandbox game: https://ldjam.com/events/ludum-dare/47/the-island".to_owned())
-                        }),
-                    }],
-                },
-                CommandNode::LiteralNode {
                     literal: "!submit".to_owned(),
                     child_nodes: vec![
                         CommandNode::FinalNode {
