@@ -25,7 +25,7 @@ impl CustomBot {
                                     command: Arc::new(|bot, _, args| {
                                         if let [command_name, command_response] = args.as_slice() {
                                             let response = Some(format!(
-                                                "Added new command !{}: {}",
+                                                "Added new command {}: {}",
                                                 command_name, command_response
                                             ));
                                             if bot.new_command(
