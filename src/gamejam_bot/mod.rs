@@ -12,9 +12,11 @@ pub struct GameJamConfig {
 
 pub struct GameJamBot {
     channel_login: String,
-    save_file: String,
     config: GameJamConfig,
     commands: BotCommands<Self>,
+    save_file: String,
+    played_games_file: String,
+    played_games: Vec<Game>,
     games_state: GamesState,
     time_limit: Option<Instant>,
 }
@@ -31,9 +33,11 @@ impl GameJamBot {
 
         let mut bot = Self {
             channel_login: channel.clone(),
-            save_file: "config/gamejam/gamejam-nertsalbot.json".to_owned(),
             config,
             commands: Self::commands(),
+            save_file: "config/gamejam/gamejam-nertsalbot.json".to_owned(),
+            played_games_file: "config/gamejam/games-played.json".to_owned(),
+            played_games: Vec::new(),
             games_state: GamesState::new(),
             time_limit: None,
         };
@@ -72,6 +76,11 @@ impl GameJamBot {
             }
         }
         None
+    }
+    fn save_played(&self) -> Result<(), std::io::Error> {
+        let file = std::io::BufWriter::new(std::fs::File::create(&self.played_games_file)?);
+        serde_json::to_writer(file, &self.played_games)?;
+        Ok(())
     }
     fn save_games(&self) -> Result<(), std::io::Error> {
         let file = std::io::BufWriter::new(std::fs::File::create(&self.save_file)?);

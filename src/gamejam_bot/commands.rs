@@ -11,13 +11,18 @@ impl CommandBot<Self> for GameJamBot {
 
 impl GameJamBot {
     pub fn next(&mut self) -> Option<String> {
+        if let Some(old_game) = self.games_state.current_game.take() {
+            self.played_games.push(old_game);
+            self.save_played().unwrap();
+        }
+
         self.time_limit = None;
         let game = self
             .games_state
             .returned_queue
             .pop_front()
             .or_else(|| self.games_state.games_queue.pop_front());
-        match game {
+        let reply = match game {
             Some(game) => {
                 let reply = if let Some(response_time) = self.config.response_time_limit {
                     self.time_limit = Some(Instant::now());
@@ -29,17 +34,16 @@ impl GameJamBot {
                     format!("Now playing {} from @{}. ", game.name, game.author)
                 };
                 self.games_state.current_game = Some(game);
-                self.save_games().unwrap();
                 Some(reply)
             }
             None => {
-                if let Some(_) = self.games_state.current_game.take() {
-                    self.save_games().unwrap();
-                }
                 let reply = format!("The queue is empty. !submit <your game>. ");
                 Some(reply)
             }
-        }
+        };
+
+        self.save_games().unwrap();
+        reply
     }
     pub fn skip(&mut self) -> Option<String> {
         match self.games_state.current_game.take() {
