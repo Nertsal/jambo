@@ -13,7 +13,7 @@ impl GameJamBot {
     pub fn next(&mut self) -> Option<String> {
         if let Some(old_game) = self.games_state.current_game.take() {
             self.played_games.push(old_game);
-            self.save_played().unwrap();
+            save_into(&self.played_games, &self.played_games_file).unwrap();
         }
 
         self.time_limit = None;

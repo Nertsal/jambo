@@ -42,8 +42,11 @@ impl GameJamBot {
             time_limit: None,
         };
         println!("Loading GameJamBot data from {}", &bot.save_file);
-        match bot.load_games() {
-            Ok(_) => println!("Successfully loaded GameJamBot data"),
+        match load_from(&bot.save_file) {
+            Ok(games_state) => {
+                bot.games_state = games_state;
+                println!("Successfully loaded GameJamBot data")
+            }
             Err(error) => {
                 use std::io::ErrorKind;
                 match error.kind() {
@@ -55,13 +58,13 @@ impl GameJamBot {
                 }
             }
         }
-        match bot.load_played() {
-            Ok(_) => (),
+        match load_from(&bot.played_games_file) {
+            Ok(played_games) => bot.played_games = played_games,
             Err(error) => {
                 use std::io::ErrorKind;
                 match error.kind() {
                     ErrorKind::NotFound => {
-                        bot.save_played().unwrap();
+                        save_into(&bot.played_games, &bot.played_games_file).unwrap();
                     }
                     _ => panic!("Error loading GameJamBot data: {}", error),
                 }
@@ -89,26 +92,24 @@ impl GameJamBot {
         }
         None
     }
-    fn save_played(&self) -> Result<(), std::io::Error> {
-        let file = std::io::BufWriter::new(std::fs::File::create(&self.played_games_file)?);
-        serde_json::to_writer(file, &self.played_games)?;
-        Ok(())
-    }
     fn save_games(&self) -> Result<(), std::io::Error> {
-        let file = std::io::BufWriter::new(std::fs::File::create(&self.save_file)?);
-        serde_json::to_writer(file, &self.games_state)?;
-        Ok(())
+        save_into(&self.games_state, &self.save_file)
     }
-    fn load_played(&mut self) -> Result<(), std::io::Error> {
-        let file = std::io::BufReader::new(std::fs::File::open(&self.played_games_file)?);
-        self.played_games = serde_json::from_reader(file)?;
-        Ok(())
-    }
-    fn load_games(&mut self) -> Result<(), std::io::Error> {
-        let file = std::io::BufReader::new(std::fs::File::open(&self.save_file)?);
-        self.games_state = serde_json::from_reader(file)?;
-        Ok(())
-    }
+}
+
+fn save_into<T: Serialize>(
+    value: &T,
+    path: impl AsRef<std::path::Path>,
+) -> Result<(), std::io::Error> {
+    let file = std::io::BufWriter::new(std::fs::File::create(path)?);
+    serde_json::to_writer(file, value)?;
+    Ok(())
+}
+fn load_from<T: serde::de::DeserializeOwned>(
+    path: impl AsRef<std::path::Path>,
+) -> Result<T, std::io::Error> {
+    let file = std::io::BufReader::new(std::fs::File::open(path)?);
+    Ok(serde_json::from_reader(file)?)
 }
 
 #[async_trait]
