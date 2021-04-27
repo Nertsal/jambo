@@ -90,6 +90,8 @@ impl GameJamBot {
     fn load_games(&mut self) -> Result<(), std::io::Error> {
         let file = std::io::BufReader::new(std::fs::File::open(&self.save_file)?);
         self.games_state = serde_json::from_reader(file)?;
+        let file = std::io::BufReader::new(std::fs::File::open(&self.played_games_file)?);
+        self.played_games = serde_json::from_reader(file)?;
         Ok(())
     }
 }

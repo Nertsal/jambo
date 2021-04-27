@@ -102,6 +102,13 @@ impl GameJamBot {
                 return Some(format!("@{}, your game was skipped. You may return to the front of the queue using !return command", sender_name));
             }
 
+            if let Some(_) = self.played_games.iter().find(|game| game.name == game_link) {
+                return Some(format!(
+                    "@{}, we have already played that game.",
+                    sender_name
+                ));
+            }
+
             self.games_state.games_queue.push_back(Game {
                 author: sender_name.clone(),
                 name: game_link,
