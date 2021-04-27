@@ -55,6 +55,18 @@ impl GameJamBot {
                 }
             }
         }
+        match bot.load_played() {
+            Ok(_) => (),
+            Err(error) => {
+                use std::io::ErrorKind;
+                match error.kind() {
+                    ErrorKind::NotFound => {
+                        bot.save_played().unwrap();
+                    }
+                    _ => panic!("Error loading GameJamBot data: {}", error),
+                }
+            }
+        }
         bot
     }
     fn check_message(&mut self, message: &PrivmsgMessage) -> Option<String> {
@@ -87,11 +99,14 @@ impl GameJamBot {
         serde_json::to_writer(file, &self.games_state)?;
         Ok(())
     }
+    fn load_played(&mut self) -> Result<(), std::io::Error> {
+        let file = std::io::BufReader::new(std::fs::File::open(&self.played_games_file)?);
+        self.played_games = serde_json::from_reader(file)?;
+        Ok(())
+    }
     fn load_games(&mut self) -> Result<(), std::io::Error> {
         let file = std::io::BufReader::new(std::fs::File::open(&self.save_file)?);
         self.games_state = serde_json::from_reader(file)?;
-        let file = std::io::BufReader::new(std::fs::File::open(&self.played_games_file)?);
-        self.played_games = serde_json::from_reader(file)?;
         Ok(())
     }
 }
