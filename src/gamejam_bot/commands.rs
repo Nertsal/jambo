@@ -10,34 +10,33 @@ impl CommandBot<Self> for GameJamBot {
 }
 
 impl GameJamBot {
-    pub fn next(&mut self, author_name: Option<String>) -> Option<String> {
-        let game = match author_name {
-            Some(author_name) => {
+    fn remove_game(&mut self, author_name: &str) -> Option<Game> {
+        let pos = self
+            .games_state
+            .returned_queue
+            .iter()
+            .enumerate()
+            .find(|&(_, game)| game.author == author_name)
+            .map(|(pos, _)| pos);
+        pos.map(|pos| self.games_state.returned_queue.remove(pos))
+            .or_else(|| {
                 let pos = self
                     .games_state
-                    .returned_queue
+                    .games_queue
                     .iter()
                     .enumerate()
                     .find(|&(_, game)| game.author == author_name)
                     .map(|(pos, _)| pos);
-                match pos
-                    .map(|pos| self.games_state.returned_queue.remove(pos))
-                    .or_else(|| {
-                        let pos = self
-                            .games_state
-                            .games_queue
-                            .iter()
-                            .enumerate()
-                            .find(|&(_, game)| game.author == author_name)
-                            .map(|(pos, _)| pos);
-                        pos.map(|pos| self.games_state.games_queue.remove(pos))
-                    })
-                    .flatten()
-                {
-                    Some(game) => Ok(game),
-                    None => Err(format!("Couldn't find a game from {}", author_name)),
-                }
-            }
+                pos.map(|pos| self.games_state.games_queue.remove(pos))
+            })
+            .flatten()
+    }
+    pub fn next(&mut self, author_name: Option<String>) -> Option<String> {
+        let game = match author_name {
+            Some(author_name) => match self.remove_game(&author_name) {
+                Some(game) => Ok(game),
+                None => Err(format!("Couldn't find a game from {}", author_name)),
+            },
             None => match self
                 .games_state
                 .returned_queue
@@ -249,6 +248,55 @@ impl GameJamBot {
                                 command: Arc::new(|bot, _, mut args| {
                                     let author_name = args.remove(0);
                                     bot.next(Some(author_name))
+                                }),
+                            }),
+                        },
+                    ],
+                },
+                CommandNode::LiteralNode {
+                    literal: "!cancel".to_owned(),
+                    child_nodes: vec![
+                        CommandNode::FinalNode {
+                            authority_level: AuthorityLevel::Any,
+                            command: Arc::new(|bot, sender_name, _| {
+                                match bot.remove_game(&sender_name) {
+                                    Some(_) => {
+                                        let reply = format!(
+                                            "{}'s game has been remove from the queue",
+                                            sender_name
+                                        );
+                                        Some(reply)
+                                    }
+                                    None => {
+                                        let reply =
+                                            format!("Couldn't find a game from {}", sender_name);
+                                        Some(reply)
+                                    }
+                                }
+                            }),
+                        },
+                        CommandNode::ArgumentNode {
+                            argument_type: ArgumentType::Line,
+                            child_node: Box::new(CommandNode::FinalNode {
+                                authority_level: AuthorityLevel::Moderator,
+                                command: Arc::new(|bot, _, mut args| {
+                                    let author_name = args.remove(0);
+                                    match bot.remove_game(&author_name) {
+                                        Some(_) => {
+                                            let reply = format!(
+                                                "{}'s game has been remove from the queue",
+                                                author_name
+                                            );
+                                            Some(reply)
+                                        }
+                                        None => {
+                                            let reply = format!(
+                                                "Couldn't find a game from {}",
+                                                author_name
+                                            );
+                                            Some(reply)
+                                        }
+                                    }
                                 }),
                             }),
                         },
