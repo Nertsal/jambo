@@ -10,20 +10,53 @@ impl CommandBot<Self> for GameJamBot {
 }
 
 impl GameJamBot {
-    pub fn next(&mut self) -> Option<String> {
+    pub fn next(&mut self, author_name: Option<String>) -> Option<String> {
+        let game = match author_name {
+            Some(author_name) => {
+                let pos = self
+                    .games_state
+                    .returned_queue
+                    .iter()
+                    .enumerate()
+                    .find(|&(_, game)| game.author == author_name)
+                    .map(|(pos, _)| pos);
+                match pos
+                    .map(|pos| self.games_state.returned_queue.remove(pos))
+                    .or_else(|| {
+                        let pos = self
+                            .games_state
+                            .games_queue
+                            .iter()
+                            .enumerate()
+                            .find(|&(_, game)| game.author == author_name)
+                            .map(|(pos, _)| pos);
+                        pos.map(|pos| self.games_state.games_queue.remove(pos))
+                    })
+                    .flatten()
+                {
+                    Some(game) => Ok(game),
+                    None => Err(format!("Couldn't find a game from {}", author_name)),
+                }
+            }
+            None => match self
+                .games_state
+                .returned_queue
+                .pop_front()
+                .or_else(|| self.games_state.games_queue.pop_front())
+            {
+                Some(game) => Ok(game),
+                None => Err(format!("The queue is empty. !submit <your game>. ")),
+            },
+        };
+
         if let Some(old_game) = self.games_state.current_game.take() {
             self.played_games.push(old_game);
             save_into(&self.played_games, &self.played_games_file).unwrap();
         }
 
         self.time_limit = None;
-        let game = self
-            .games_state
-            .returned_queue
-            .pop_front()
-            .or_else(|| self.games_state.games_queue.pop_front());
         let reply = match game {
-            Some(game) => {
+            Ok(game) => {
                 let reply = if let Some(response_time) = self.config.response_time_limit {
                     self.time_limit = Some(Instant::now());
                     format!(
@@ -36,10 +69,7 @@ impl GameJamBot {
                 self.games_state.current_game = Some(game);
                 Some(reply)
             }
-            None => {
-                let reply = format!("The queue is empty. !submit <your game>. ");
-                Some(reply)
-            }
+            Err(reply) => Some(reply),
         };
 
         self.save_games().unwrap();
@@ -51,7 +81,7 @@ impl GameJamBot {
                 self.games_state.skipped.push(game);
                 self.save_games().unwrap();
                 let mut reply = "Game has been skipped. ".to_owned();
-                reply.push_str(&self.next().unwrap());
+                reply.push_str(&self.next(None).unwrap());
                 Some(reply)
             }
             None => Some("Not playing any game at the moment. ".to_owned()),
@@ -207,15 +237,27 @@ impl GameJamBot {
                 },
                 CommandNode::LiteralNode {
                     literal: "!next".to_owned(),
-                    child_nodes: vec![CommandNode::FinalNode {
-                        authority_level: AuthorityLevel::Moderator,
-                        command: Arc::new(|bot, _, _| bot.next()),
-                    }],
+                    child_nodes: vec![
+                        CommandNode::FinalNode {
+                            authority_level: AuthorityLevel::Broadcaster,
+                            command: Arc::new(|bot, _, _| bot.next(None)),
+                        },
+                        CommandNode::ArgumentNode {
+                            argument_type: ArgumentType::Line,
+                            child_node: Box::new(CommandNode::FinalNode {
+                                authority_level: AuthorityLevel::Broadcaster,
+                                command: Arc::new(|bot, _, mut args| {
+                                    let author_name = args.remove(0);
+                                    bot.next(Some(author_name))
+                                }),
+                            }),
+                        },
+                    ],
                 },
                 CommandNode::LiteralNode {
                     literal: "!random".to_owned(),
                     child_nodes: vec![CommandNode::FinalNode {
-                        authority_level: AuthorityLevel::Moderator,
+                        authority_level: AuthorityLevel::Broadcaster,
                         command: Arc::new(|bot, _, _| {
                             bot.time_limit = None;
                             let skipped_count = bot.games_state.skipped.len();
