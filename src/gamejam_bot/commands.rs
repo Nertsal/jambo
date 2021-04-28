@@ -31,7 +31,11 @@ impl GameJamBot {
             })
             .flatten()
     }
-    pub fn next(&mut self, author_name: Option<String>) -> Option<String> {
+    pub fn next(
+        &mut self,
+        author_name: Option<String>,
+        confirmation_required: bool,
+    ) -> Option<String> {
         let game = match &author_name {
             Some(author_name) => match self.remove_game(author_name) {
                 Some(game) => Ok(game),
@@ -56,7 +60,7 @@ impl GameJamBot {
         self.time_limit = None;
         let reply = match game {
             Ok(game) => {
-                let reply = if author_name.is_none() {
+                let reply = if confirmation_required {
                     if let Some(response_time) = self.config.response_time_limit {
                         self.time_limit = Some(Instant::now());
                         format!(
@@ -242,7 +246,7 @@ impl GameJamBot {
                     child_nodes: vec![
                         CommandNode::FinalNode {
                             authority_level: AuthorityLevel::Broadcaster,
-                            command: Arc::new(|bot, _, _| bot.next(None)),
+                            command: Arc::new(|bot, _, _| bot.next(None, true)),
                         },
                         CommandNode::ArgumentNode {
                             argument_type: ArgumentType::Line,
@@ -250,7 +254,7 @@ impl GameJamBot {
                                 authority_level: AuthorityLevel::Broadcaster,
                                 command: Arc::new(|bot, _, mut args| {
                                     let author_name = args.remove(0);
-                                    bot.next(Some(author_name))
+                                    bot.next(Some(author_name), false)
                                 }),
                             }),
                         },
@@ -316,7 +320,7 @@ impl GameJamBot {
                                 let random_game =
                                     games[rand::thread_rng().gen_range(0, games.len())];
                                 let random_author = random_game.author.clone();
-                                bot.next(Some(random_author))
+                                bot.next(Some(random_author), true)
                             } else {
                                 bot.games_state.current_game = None;
                                 let reply = format!("No games in the queue");
