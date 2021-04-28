@@ -30,6 +30,16 @@ impl GameJamBot {
                 pos.map(|pos| self.games_state.games_queue.remove(pos))
             })
             .flatten()
+            .or_else(|| {
+                let pos = self
+                    .games_state
+                    .skipped
+                    .iter()
+                    .enumerate()
+                    .find(|&(_, game)| game.author == author_name)
+                    .map(|(pos, _)| pos);
+                pos.map(|pos| self.games_state.skipped.remove(pos))
+            })
     }
     pub fn next(
         &mut self,
