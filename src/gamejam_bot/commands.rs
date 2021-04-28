@@ -32,8 +32,8 @@ impl GameJamBot {
             .flatten()
     }
     pub fn next(&mut self, author_name: Option<String>) -> Option<String> {
-        let game = match author_name {
-            Some(author_name) => match self.remove_game(&author_name) {
+        let game = match &author_name {
+            Some(author_name) => match self.remove_game(author_name) {
                 Some(game) => Ok(game),
                 None => Err(format!("Couldn't find a game from {}", author_name)),
             },
@@ -56,12 +56,16 @@ impl GameJamBot {
         self.time_limit = None;
         let reply = match game {
             Ok(game) => {
-                let reply = if let Some(response_time) = self.config.response_time_limit {
-                    self.time_limit = Some(Instant::now());
-                    format!(
-                        "@{}, we are about to play your game. Please reply in {} seconds. ",
-                        game.author, response_time
-                    )
+                let reply = if author_name.is_none() {
+                    if let Some(response_time) = self.config.response_time_limit {
+                        self.time_limit = Some(Instant::now());
+                        format!(
+                            "@{}, we are about to play your game. Please reply in {} seconds. ",
+                            game.author, response_time
+                        )
+                    } else {
+                        format!("Now playing {} from @{}. ", game.name, game.author)
+                    }
                 } else {
                     format!("Now playing {} from @{}. ", game.name, game.author)
                 };
@@ -79,8 +83,7 @@ impl GameJamBot {
             Some(game) => {
                 self.games_state.skipped.push(game);
                 self.save_games().unwrap();
-                let mut reply = "Game has been skipped. ".to_owned();
-                reply.push_str(&self.next(None).unwrap());
+                let reply = "Game has been skipped. ".to_owned();
                 Some(reply)
             }
             None => Some("Not playing any game at the moment. ".to_owned()),
@@ -313,12 +316,7 @@ impl GameJamBot {
                                 let random_game =
                                     games[rand::thread_rng().gen_range(0, games.len())];
                                 let random_author = random_game.author.clone();
-                                let game = bot.remove_game(&random_author).unwrap();
-                                let reply =
-                                    format!("Now playing: {} from @{}", game.name, game.author);
-                                bot.games_state.current_game = Some(game);
-                                bot.save_games().unwrap();
-                                Some(reply)
+                                bot.next(Some(random_author))
                             } else {
                                 bot.games_state.current_game = None;
                                 let reply = format!("No games in the queue");
