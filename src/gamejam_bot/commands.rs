@@ -308,12 +308,12 @@ impl GameJamBot {
                         authority_level: AuthorityLevel::Broadcaster,
                         command: Arc::new(|bot, _, _| {
                             bot.time_limit = None;
-                            let skipped_count = bot.games_state.skipped.len();
-                            if skipped_count > 0 {
-                                let game = bot
-                                    .games_state
-                                    .skipped
-                                    .remove(rand::thread_rng().gen_range(0, skipped_count));
+                            let games: Vec<&Game> = bot.games_state.queue().collect();
+                            if games.len() > 0 {
+                                let random_game =
+                                    games[rand::thread_rng().gen_range(0, games.len())];
+                                let random_author = random_game.author.clone();
+                                let game = bot.remove_game(&random_author).unwrap();
                                 let reply =
                                     format!("Now playing: {} from @{}", game.name, game.author);
                                 bot.games_state.current_game = Some(game);
@@ -321,7 +321,7 @@ impl GameJamBot {
                                 Some(reply)
                             } else {
                                 bot.games_state.current_game = None;
-                                let reply = format!("No games have been skipped yet");
+                                let reply = format!("No games in the queue");
                                 Some(reply)
                             }
                         }),
