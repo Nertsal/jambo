@@ -1,5 +1,5 @@
 use super::*;
-use std::collections::VecDeque;
+use std::collections::{HashSet, VecDeque};
 
 mod commands;
 
@@ -19,6 +19,43 @@ pub struct GameJamBot {
     played_games: Vec<Game>,
     games_state: GamesState,
     time_limit: Option<Instant>,
+    raffle: Raffle,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+struct Game {
+    author: String,
+    name: String,
+}
+
+#[derive(Serialize, Deserialize)]
+struct GamesState {
+    is_open: bool,
+    current_game: Option<Game>,
+    returned_queue: VecDeque<Game>,
+    games_queue: VecDeque<Game>,
+    skipped: Vec<Game>,
+}
+
+impl GamesState {
+    fn new() -> Self {
+        Self {
+            is_open: true,
+            current_game: None,
+            returned_queue: VecDeque::new(),
+            games_queue: VecDeque::new(),
+            skipped: Vec::new(),
+        }
+    }
+    fn queue(&self) -> impl Iterator<Item = &Game> {
+        self.returned_queue.iter().chain(self.games_queue.iter())
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+enum Raffle {
+    Inactive,
+    Active { joined: HashSet<String> },
 }
 
 impl GameJamBot {
@@ -40,6 +77,7 @@ impl GameJamBot {
             played_games: Vec::new(),
             games_state: GamesState::new(),
             time_limit: None,
+            raffle: Raffle::Inactive,
         };
         println!("Loading GameJamBot data from {}", &bot.save_file);
         match load_from(&bot.save_file) {
@@ -134,35 +172,5 @@ impl Bot for GameJamBot {
             }
             _ => (),
         };
-    }
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-struct Game {
-    author: String,
-    name: String,
-}
-
-#[derive(Serialize, Deserialize)]
-struct GamesState {
-    is_open: bool,
-    current_game: Option<Game>,
-    returned_queue: VecDeque<Game>,
-    games_queue: VecDeque<Game>,
-    skipped: Vec<Game>,
-}
-
-impl GamesState {
-    fn new() -> Self {
-        Self {
-            is_open: true,
-            current_game: None,
-            returned_queue: VecDeque::new(),
-            games_queue: VecDeque::new(),
-            skipped: Vec::new(),
-        }
-    }
-    fn queue(&self) -> impl Iterator<Item = &Game> {
-        self.returned_queue.iter().chain(self.games_queue.iter())
     }
 }

@@ -1,7 +1,7 @@
+use rand::seq::SliceRandom;
 use std::sync::Arc;
 
 use super::*;
-use rand::Rng;
 
 impl CommandBot<Self> for GameJamBot {
     fn get_commands(&self) -> &BotCommands<Self> {
@@ -10,6 +10,11 @@ impl CommandBot<Self> for GameJamBot {
 }
 
 impl GameJamBot {
+    fn set_current(&mut self, game: Game) -> Option<String> {
+        let reply = format!("Now playing {} from @{}. ", game.name, game.author);
+        self.games_state.current_game = Some(game);
+        Some(reply)
+    }
     fn remove_game(&mut self, author_name: &str) -> Option<Game> {
         let pos = self
             .games_state
@@ -70,21 +75,18 @@ impl GameJamBot {
         self.time_limit = None;
         let reply = match game {
             Ok(game) => {
-                let reply = if confirmation_required {
+                let mut reply = None;
+                if confirmation_required {
                     if let Some(response_time) = self.config.response_time_limit {
                         self.time_limit = Some(Instant::now());
-                        format!(
+                        reply = Some(format!(
                             "@{}, we are about to play your game. Please reply in {} seconds. ",
                             game.author, response_time
-                        )
-                    } else {
-                        format!("Now playing {} from @{}. ", game.name, game.author)
+                        ))
                     }
-                } else {
-                    format!("Now playing {} from @{}. ", game.name, game.author)
-                };
-                self.games_state.current_game = Some(game);
-                Some(reply)
+                }
+                let reply = reply.or(self.set_current(game));
+                reply
             }
             Err(reply) => Some(reply),
         };
@@ -168,6 +170,38 @@ impl GameJamBot {
         } else {
             Some(format!("@{}, that link can not be submitted", sender_name))
         }
+    }
+    fn raffle_start(&mut self) -> Option<String> {
+        self.raffle = Raffle::Active {
+            joined: HashSet::new(),
+        };
+        Some(format!(
+            "The raffle has started! Type !join to join the raffle."
+        ))
+    }
+    fn raffle_finish(&mut self) -> Option<String> {
+        let raffle = std::mem::replace(&mut self.raffle, Raffle::Inactive);
+        match raffle {
+            Raffle::Active { joined } => match (joined.into_iter().collect::<Vec<String>>())
+                .choose(&mut rand::thread_rng())
+            {
+                Some(sender_name) => match self.remove_game(sender_name) {
+                    Some(game) => self.set_current(game),
+                    None => Some(format!("{} has won the raffle!", sender_name)),
+                },
+                None => Some(format!("Noone has joined the raffle :(")),
+            },
+            _ => Some(format!("The raffle should be started first: !raffle")),
+        }
+    }
+    fn raffle_join(&mut self, sender_name: String) -> Option<String> {
+        match &mut self.raffle {
+            Raffle::Active { joined } => {
+                joined.insert(sender_name);
+            }
+            _ => (),
+        }
+        None
     }
     pub fn commands() -> BotCommands<Self> {
         BotCommands {
@@ -320,26 +354,6 @@ impl GameJamBot {
                     ],
                 },
                 CommandNode::LiteralNode {
-                    literal: "!random".to_owned(),
-                    child_nodes: vec![CommandNode::FinalNode {
-                        authority_level: AuthorityLevel::Broadcaster,
-                        command: Arc::new(|bot, _, _| {
-                            bot.time_limit = None;
-                            let games: Vec<&Game> = bot.games_state.queue().collect();
-                            if games.len() > 0 {
-                                let random_game =
-                                    games[rand::thread_rng().gen_range(0, games.len())];
-                                let random_author = random_game.author.clone();
-                                bot.next(Some(random_author), true)
-                            } else {
-                                bot.games_state.current_game = None;
-                                let reply = format!("No games in the queue");
-                                Some(reply)
-                            }
-                        }),
-                    }],
-                },
-                CommandNode::LiteralNode {
                     literal: "!queue".to_owned(),
                     child_nodes: vec![CommandNode::FinalNode {
                         authority_level: AuthorityLevel::Any,
@@ -433,11 +447,10 @@ impl GameJamBot {
                                         "Current game has been put at the front of the queue. ",
                                     );
                                 }
-                                reply.push_str(&format!(
-                                    "Now playing {} from @{}",
-                                    skipped.name, skipped.author
-                                ));
-                                bot.games_state.current_game = Some(skipped);
+                                match bot.set_current(skipped) {
+                                    Some(set_reply) => reply.push_str(&set_reply),
+                                    None => (),
+                                }
                                 Some(reply)
                             } else {
                                 Some("No game has been skipped yet".to_owned())
@@ -502,6 +515,29 @@ impl GameJamBot {
                             bot.save_games().unwrap();
                             Some("The queue is now open".to_owned())
                         }),
+                    }],
+                },
+                CommandNode::LiteralNode {
+                    literal: "!raffle".to_owned(),
+                    child_nodes: vec![
+                        CommandNode::FinalNode {
+                            authority_level: AuthorityLevel::Broadcaster,
+                            command: Arc::new(|bot, _, _| bot.raffle_start()),
+                        },
+                        CommandNode::LiteralNode {
+                            literal: "finish".to_owned(),
+                            child_nodes: vec![CommandNode::FinalNode {
+                                authority_level: AuthorityLevel::Broadcaster,
+                                command: Arc::new(|bot, _, _| bot.raffle_finish()),
+                            }],
+                        },
+                    ],
+                },
+                CommandNode::LiteralNode {
+                    literal: "!join".to_owned(),
+                    child_nodes: vec![CommandNode::FinalNode {
+                        authority_level: AuthorityLevel::Any,
+                        command: Arc::new(|bot, sender_name, _| bot.raffle_join(sender_name)),
                     }],
                 },
             ],
