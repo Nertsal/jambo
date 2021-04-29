@@ -24,7 +24,6 @@ impl GameJamBot {
                 let reply = format!("Now playing {} from @{}. ", game.name, game.author);
                 self.games_state.raffle.viewers_weight.remove(&game.author);
                 self.games_state.current_game = Some(game);
-
                 Some(reply)
             }
             None => {
