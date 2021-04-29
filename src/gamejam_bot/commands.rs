@@ -213,7 +213,6 @@ impl GameJamBot {
             }
             _ => (),
         }
-        self.save_games().unwrap();
         None
     }
     fn raffle_undo(&mut self) -> Option<String> {
