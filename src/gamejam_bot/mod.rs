@@ -1,5 +1,5 @@
 use super::*;
-use std::collections::{HashSet, VecDeque};
+use std::collections::VecDeque;
 
 mod commands;
 
@@ -8,6 +8,7 @@ pub struct GameJamConfig {
     response_time_limit: Option<u64>,
     link_start: Option<String>,
     allow_direct_link_submit: bool,
+    raffle_default_weight: usize,
 }
 
 pub struct GameJamBot {
@@ -19,7 +20,6 @@ pub struct GameJamBot {
     played_games: Vec<Game>,
     games_state: GamesState,
     time_limit: Option<Instant>,
-    raffle: Raffle,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -35,6 +35,7 @@ struct GamesState {
     returned_queue: VecDeque<Game>,
     games_queue: VecDeque<Game>,
     skipped: Vec<Game>,
+    raffle: Raffle,
 }
 
 impl GamesState {
@@ -45,6 +46,7 @@ impl GamesState {
             returned_queue: VecDeque::new(),
             games_queue: VecDeque::new(),
             skipped: Vec::new(),
+            raffle: Raffle::new(),
         }
     }
     fn queue(&self) -> impl Iterator<Item = &Game> {
@@ -53,9 +55,24 @@ impl GamesState {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
-enum Raffle {
+struct Raffle {
+    viewers_weight: HashMap<String, usize>,
+    mode: RaffleMode,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+enum RaffleMode {
     Inactive,
-    Active { joined: HashSet<String> },
+    Active { joined: HashMap<String, usize> },
+}
+
+impl Raffle {
+    fn new() -> Self {
+        Self {
+            viewers_weight: HashMap::new(),
+            mode: RaffleMode::Inactive,
+        }
+    }
 }
 
 impl GameJamBot {
@@ -77,7 +94,6 @@ impl GameJamBot {
             played_games: Vec::new(),
             games_state: GamesState::new(),
             time_limit: None,
-            raffle: Raffle::Inactive,
         };
         println!("Loading GameJamBot data from {}", &bot.save_file);
         match load_from(&bot.save_file) {

@@ -12,6 +12,7 @@ impl CommandBot<Self> for GameJamBot {
 impl GameJamBot {
     fn set_current(&mut self, game: Game) -> Option<String> {
         let reply = format!("Now playing {} from @{}. ", game.name, game.author);
+        self.games_state.raffle.viewers_weight.remove(&game.author);
         self.games_state.current_game = Some(game);
         Some(reply)
     }
@@ -172,39 +173,58 @@ impl GameJamBot {
         }
     }
     fn raffle_start(&mut self) -> Option<String> {
-        self.raffle = Raffle::Active {
-            joined: HashSet::new(),
+        self.games_state.raffle.mode = RaffleMode::Active {
+            joined: HashMap::new(),
         };
+        self.save_games().unwrap();
         Some(format!(
             "The raffle has started! Type !join to join the raffle."
         ))
     }
     fn raffle_finish(&mut self) -> Option<String> {
-        let raffle = std::mem::replace(&mut self.raffle, Raffle::Inactive);
-        match raffle {
-            Raffle::Active { joined } => match (joined.into_iter().collect::<Vec<String>>())
-                .choose(&mut rand::thread_rng())
-            {
-                Some(sender_name) => match self.remove_game(sender_name) {
-                    Some(game) => self.set_current(game),
-                    None => Some(format!("{} has won the raffle!", sender_name)),
-                },
-                None => Some(format!("Noone has joined the raffle :(")),
-            },
+        let raffle_mode =
+            std::mem::replace(&mut self.games_state.raffle.mode, RaffleMode::Inactive);
+        let reply = match raffle_mode {
+            RaffleMode::Active { joined } => {
+                match (joined.into_iter().collect::<Vec<(String, usize)>>())
+                    .choose_weighted(&mut rand::thread_rng(), |&(_, weight)| weight)
+                {
+                    Ok((sender_name, _)) => match self.remove_game(sender_name) {
+                        Some(game) => self.set_current(game),
+                        None => {
+                            self.games_state.raffle.viewers_weight.remove(sender_name);
+                            Some(format!("{} has won the raffle!", sender_name))
+                        }
+                    },
+                    Err(_) => Some(format!("Error trying to finish the raffle")),
+                }
+            }
             _ => Some(format!("The raffle should be started first: !raffle")),
-        }
+        };
+        self.save_games().unwrap();
+        reply
     }
     fn raffle_join(&mut self, sender_name: String) -> Option<String> {
-        match &mut self.raffle {
-            Raffle::Active { joined } => {
-                joined.insert(sender_name);
+        let viewer_weight = self
+            .games_state
+            .raffle
+            .viewers_weight
+            .entry(sender_name.clone())
+            .or_insert(self.config.raffle_default_weight);
+        let weight = *viewer_weight;
+        *viewer_weight += 1;
+        match &mut self.games_state.raffle.mode {
+            RaffleMode::Active { joined } => {
+                joined.insert(sender_name, weight);
             }
             _ => (),
         }
+        self.save_games().unwrap();
         None
     }
     fn raffle_undo(&mut self) -> Option<String> {
-        self.raffle = Raffle::Inactive;
+        self.games_state.raffle.mode = RaffleMode::Inactive;
+        self.save_games().unwrap();
         Some(format!("Raffle is now inactive"))
     }
     pub fn commands() -> BotCommands<Self> {
