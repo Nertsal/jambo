@@ -203,6 +203,10 @@ impl GameJamBot {
         }
         None
     }
+    fn raffle_undo(&mut self) -> Option<String> {
+        self.raffle = Raffle::Inactive;
+        Some(format!("Raffle is now inactive"))
+    }
     pub fn commands() -> BotCommands<Self> {
         BotCommands {
             commands: vec![
@@ -529,6 +533,13 @@ impl GameJamBot {
                             child_nodes: vec![CommandNode::FinalNode {
                                 authority_level: AuthorityLevel::Broadcaster,
                                 command: Arc::new(|bot, _, _| bot.raffle_finish()),
+                            }],
+                        },
+                        CommandNode::LiteralNode {
+                            literal: "undo".to_owned(),
+                            child_nodes: vec![CommandNode::FinalNode {
+                                authority_level: AuthorityLevel::Broadcaster,
+                                command: Arc::new(|bot, _, _| bot.raffle_undo()),
                             }],
                         },
                     ],
