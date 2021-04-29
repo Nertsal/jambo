@@ -11,9 +11,14 @@ impl CommandBot<Self> for GameJamBot {
 
 impl GameJamBot {
     fn set_current(&mut self, game: Game) -> Option<String> {
+        self.played_games.push(game.clone());
+        save_into(&self.played_games, &self.played_games_file).unwrap();
+
         let reply = format!("Now playing {} from @{}. ", game.name, game.author);
         self.games_state.raffle.viewers_weight.remove(&game.author);
         self.games_state.current_game = Some(game);
+
+        self.save_games().unwrap();
         Some(reply)
     }
     fn remove_game(&mut self, author_name: &str) -> Option<Game> {
@@ -68,11 +73,6 @@ impl GameJamBot {
             },
         };
 
-        if let Some(old_game) = self.games_state.current_game.take() {
-            self.played_games.push(old_game);
-            save_into(&self.played_games, &self.played_games_file).unwrap();
-        }
-
         self.time_limit = None;
         let reply = match game {
             Ok(game) => {
@@ -91,8 +91,6 @@ impl GameJamBot {
             }
             Err(reply) => Some(reply),
         };
-
-        self.save_games().unwrap();
         reply
     }
     pub fn skip(&mut self) -> Option<String> {
