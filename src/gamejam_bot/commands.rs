@@ -111,13 +111,16 @@ impl GameJamBot {
         };
         reply
     }
-    pub fn skip(&mut self) -> Option<String> {
+    pub fn skip(&mut self, auto_next: bool) -> Option<String> {
         match self.games_state.current_game.take() {
             Some(game) => {
                 self.games_state.skipped.push(game);
-                let reply = self
-                    .next(None, true)
-                    .unwrap_or("Game has been skipped.".to_owned());
+                let reply = "Game has been skipped.".to_owned();
+                let reply = if auto_next {
+                    self.next(None, true).unwrap_or(reply)
+                } else {
+                    reply
+                };
                 Some(reply)
             }
             None => Some("Not playing any game at the moment.".to_owned()),
@@ -451,10 +454,19 @@ impl GameJamBot {
                 },
                 CommandNode::LiteralNode {
                     literal: "!skip".to_owned(),
-                    child_nodes: vec![CommandNode::FinalNode {
-                        authority_level: AuthorityLevel::Broadcaster,
-                        command: Arc::new(|bot, _, _| bot.skip()),
-                    }],
+                    child_nodes: vec![
+                        CommandNode::LiteralNode {
+                            literal: "next".to_owned(),
+                            child_nodes: vec![CommandNode::FinalNode {
+                                authority_level: AuthorityLevel::Broadcaster,
+                                command: Arc::new(|bot, _, _| bot.skip(true)),
+                            }],
+                        },
+                        CommandNode::FinalNode {
+                            authority_level: AuthorityLevel::Broadcaster,
+                            command: Arc::new(|bot, _, _| bot.skip(false)),
+                        },
+                    ],
                 },
                 CommandNode::LiteralNode {
                     literal: "!unskip".to_owned(),
