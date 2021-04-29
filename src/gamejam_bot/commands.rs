@@ -172,7 +172,7 @@ impl GameJamBot {
         }
     }
     fn raffle_start(&mut self) -> Option<String> {
-        self.games_state.raffle = Raffle::Active {
+        self.raffle = Raffle::Active {
             joined: HashSet::new(),
         };
         Some(format!(
@@ -180,7 +180,7 @@ impl GameJamBot {
         ))
     }
     fn raffle_finish(&mut self) -> Option<String> {
-        let raffle = std::mem::replace(&mut self.games_state.raffle, Raffle::Inactive);
+        let raffle = std::mem::replace(&mut self.raffle, Raffle::Inactive);
         match raffle {
             Raffle::Active { joined } => match (joined.into_iter().collect::<Vec<String>>())
                 .choose(&mut rand::thread_rng())
@@ -195,7 +195,7 @@ impl GameJamBot {
         }
     }
     fn raffle_join(&mut self, sender_name: String) -> Option<String> {
-        match &mut self.games_state.raffle {
+        match &mut self.raffle {
             Raffle::Active { joined } => {
                 joined.insert(sender_name);
             }
@@ -204,7 +204,7 @@ impl GameJamBot {
         None
     }
     fn raffle_undo(&mut self) -> Option<String> {
-        self.games_state.raffle = Raffle::Inactive;
+        self.raffle = Raffle::Inactive;
         Some(format!("Raffle is now inactive"))
     }
     pub fn commands() -> BotCommands<Self> {
