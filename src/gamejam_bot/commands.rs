@@ -106,9 +106,6 @@ impl GameJamBot {
             None => Some("Not playing any game at the moment. ".to_owned()),
         }
     }
-    fn help_message() -> String {
-        "To view current game call !current. To see current queue call !queue. To submit a game call !submit with a link to your game, like so: !submit https://ldjam.com/events/ludum-dare/47/the-island".to_owned()
-    }
     fn check_link(&self, game_link: &str) -> bool {
         if let Some(link_start) = &self.config.link_start {
             game_link.starts_with(link_start)
@@ -129,16 +126,10 @@ impl GameJamBot {
                 }
             }
 
-            if let Some((index, _)) = self
-                .games_state
-                .queue()
-                .enumerate()
-                .find(|(_, game)| game.name == game_link)
-            {
+            if let Some(_) = self.games_state.queue().find(|game| game.name == game_link) {
                 return Some(format!(
-                    "@{}, that game has already been submitted. It is currently {} in the queue.",
+                    "@{}, that game has already been submitted.",
                     sender_name,
-                    index + 1
                 ));
             }
 
@@ -247,30 +238,17 @@ impl GameJamBot {
                     }),
                 },
                 CommandNode::LiteralNode {
-                    literal: "!help".to_owned(),
-                    child_nodes: vec![CommandNode::FinalNode {
-                        authority_level: AuthorityLevel::Any,
-                        command: Arc::new(|_, _, _| Some(Self::help_message())),
-                    }],
-                },
-                CommandNode::LiteralNode {
                     literal: "!submit".to_owned(),
-                    child_nodes: vec![
-                        CommandNode::FinalNode {
+                    child_nodes: vec![CommandNode::ArgumentNode {
+                        argument_type: ArgumentType::Word,
+                        child_node: Box::new(CommandNode::FinalNode {
                             authority_level: AuthorityLevel::Any,
-                            command: Arc::new(|_, _, _| Some(Self::help_message())),
-                        },
-                        CommandNode::ArgumentNode {
-                            argument_type: ArgumentType::Word,
-                            child_node: Box::new(CommandNode::FinalNode {
-                                authority_level: AuthorityLevel::Any,
-                                command: Arc::new(|bot, sender_name, mut args| {
-                                    let game_link = args.remove(0);
-                                    bot.submit(game_link, sender_name)
-                                }),
+                            command: Arc::new(|bot, sender_name, mut args| {
+                                let game_link = args.remove(0);
+                                bot.submit(game_link, sender_name)
                             }),
-                        },
-                    ],
+                        }),
+                    }],
                 },
                 CommandNode::LiteralNode {
                     literal: "!return".to_owned(),
@@ -347,7 +325,7 @@ impl GameJamBot {
                             }),
                         },
                         CommandNode::ArgumentNode {
-                            argument_type: ArgumentType::Line,
+                            argument_type: ArgumentType::Word,
                             child_node: Box::new(CommandNode::FinalNode {
                                 authority_level: AuthorityLevel::Moderator,
                                 command: Arc::new(|bot, _, mut args| {
@@ -378,58 +356,62 @@ impl GameJamBot {
                     child_nodes: vec![CommandNode::FinalNode {
                         authority_level: AuthorityLevel::Any,
                         command: Arc::new(|bot, sender_name, _| {
-                            let mut reply = String::new();
-                            if let Some((pos, _)) = bot
-                                .games_state
-                                .queue()
-                                .enumerate()
-                                .find(|(_, game)| game.author == sender_name)
-                            {
-                                reply.push_str(&format!(
-                                    "@{}, your game is {} in the queue. ",
-                                    sender_name,
-                                    pos + 1
-                                ))
-                            } else if bot
-                                .games_state
-                                .skipped
-                                .iter()
-                                .any(|game| game.author == sender_name)
-                            {
-                                reply.push_str(&format!("@{}, your game was skipped. You may return to the front of the queue using !return command. ", sender_name))
-                            } else if let Some(game) = &bot.games_state.current_game {
-                                if game.author == sender_name {
+                            if bot.config.enable_queue_command {
+                                let mut reply = String::new();
+                                if let Some((pos, _)) = bot
+                                    .games_state
+                                    .queue()
+                                    .enumerate()
+                                    .find(|(_, game)| game.author == sender_name)
+                                {
                                     reply.push_str(&format!(
-                                        "@{}, we are currently playing your game. ",
-                                        sender_name
+                                        "@{}, your game is {} in the queue. ",
+                                        sender_name,
+                                        pos + 1
                                     ))
-                                }
-                            }
-                            let mut queue = bot.games_state.queue();
-                            let mut empty = true;
-                            for i in 0..3 {
-                                if let Some(game) = queue.next() {
-                                    if empty {
-                                        reply.push_str("Queued games: ");
-                                        empty = false;
+                                } else if bot
+                                    .games_state
+                                    .skipped
+                                    .iter()
+                                    .any(|game| game.author == sender_name)
+                                {
+                                    reply.push_str(&format!("@{}, your game was skipped. You may return to the front of the queue using !return command. ", sender_name))
+                                } else if let Some(game) = &bot.games_state.current_game {
+                                    if game.author == sender_name {
+                                        reply.push_str(&format!(
+                                            "@{}, we are currently playing your game. ",
+                                            sender_name
+                                        ))
                                     }
-                                    reply.push_str(&format!(
-                                        "{}) {} from {}. ",
-                                        i + 1,
-                                        game.name,
-                                        game.author
-                                    ));
                                 }
-                            }
-                            if empty {
-                                reply.push_str("The queue is empty");
+                                let mut queue = bot.games_state.queue();
+                                let mut empty = true;
+                                for i in 0..3 {
+                                    if let Some(game) = queue.next() {
+                                        if empty {
+                                            reply.push_str("Queued games: ");
+                                            empty = false;
+                                        }
+                                        reply.push_str(&format!(
+                                            "{}) {} from {}. ",
+                                            i + 1,
+                                            game.name,
+                                            game.author
+                                        ));
+                                    }
+                                }
+                                if empty {
+                                    reply.push_str("The queue is empty");
+                                } else {
+                                    let left_count = queue.count();
+                                    if left_count != 0 {
+                                        reply.push_str(&format!("And {} more", left_count));
+                                    }
+                                }
+                                Some(reply)
                             } else {
-                                let left_count = queue.count();
-                                if left_count != 0 {
-                                    reply.push_str(&format!("And {} more", left_count));
-                                }
+                                None
                             }
-                            Some(reply)
                         }),
                     }],
                 },
@@ -449,14 +431,14 @@ impl GameJamBot {
                 CommandNode::LiteralNode {
                     literal: "!skip".to_owned(),
                     child_nodes: vec![CommandNode::FinalNode {
-                        authority_level: AuthorityLevel::Moderator,
+                        authority_level: AuthorityLevel::Broadcaster,
                         command: Arc::new(|bot, _, _| bot.skip()),
                     }],
                 },
                 CommandNode::LiteralNode {
                     literal: "!unskip".to_owned(),
                     child_nodes: vec![CommandNode::FinalNode {
-                        authority_level: AuthorityLevel::Moderator,
+                        authority_level: AuthorityLevel::Broadcaster,
                         command: Arc::new(|bot, _, _| {
                             if let Some(skipped) = bot.games_state.skipped.pop() {
                                 bot.time_limit = None;
