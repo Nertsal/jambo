@@ -186,7 +186,7 @@ impl GameJamBot {
         if let Some(time) = self.time_limit {
             if time.elapsed().as_secs() >= self.config.response_time_limit.unwrap() {
                 self.time_limit = None;
-                return self.skip();
+                return self.skip(true);
             }
         }
         None
