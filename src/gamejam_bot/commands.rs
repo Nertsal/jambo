@@ -381,7 +381,9 @@ impl GameJamBot {
                     child_nodes: vec![CommandNode::FinalNode {
                         authority_level: AuthorityLevel::Any,
                         command: Arc::new(|bot, sender_name, _| {
-                            if bot.config.enable_queue_command {
+                            if let Some(config) = &bot.config.google_sheet_config {
+                                Some(format!("Look at the current queue at: https://docs.google.com/spreadsheets/d/{}/edit#gid=0. Blue - current game. White - queue games. Red - skipped games. Green - played games.", config.sheet_id))
+                            } else if bot.config.queue_mode {
                                 let mut reply = String::new();
                                 if let Some((pos, _)) = bot
                                     .games_state

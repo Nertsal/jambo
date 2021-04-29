@@ -6,7 +6,7 @@ mod commands;
 
 #[derive(Serialize, Deserialize)]
 pub struct GameJamConfig {
-    enable_queue_command: bool,
+    queue_mode: bool,
     response_time_limit: Option<u64>,
     link_start: Option<String>,
     allow_direct_link_submit: bool,
