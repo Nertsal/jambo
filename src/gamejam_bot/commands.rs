@@ -172,7 +172,7 @@ impl GameJamBot {
         }
     }
     fn raffle_start(&mut self) -> Option<String> {
-        self.raffle = Raffle::Active {
+        self.games_state.raffle = Raffle::Active {
             joined: HashSet::new(),
         };
         Some(format!(
@@ -180,7 +180,7 @@ impl GameJamBot {
         ))
     }
     fn raffle_finish(&mut self) -> Option<String> {
-        let raffle = std::mem::replace(&mut self.raffle, Raffle::Inactive);
+        let raffle = std::mem::replace(&mut self.games_state.raffle, Raffle::Inactive);
         match raffle {
             Raffle::Active { joined } => match (joined.into_iter().collect::<Vec<String>>())
                 .choose(&mut rand::thread_rng())
@@ -195,7 +195,7 @@ impl GameJamBot {
         }
     }
     fn raffle_join(&mut self, sender_name: String) -> Option<String> {
-        match &mut self.raffle {
+        match &mut self.games_state.raffle {
             Raffle::Active { joined } => {
                 joined.insert(sender_name);
             }
@@ -204,7 +204,7 @@ impl GameJamBot {
         None
     }
     fn raffle_undo(&mut self) -> Option<String> {
-        self.raffle = Raffle::Inactive;
+        self.games_state.raffle = Raffle::Inactive;
         Some(format!("Raffle is now inactive"))
     }
     pub fn commands() -> BotCommands<Self> {
@@ -263,8 +263,7 @@ impl GameJamBot {
                                                 .to_owned(),
                                         );
                             }
-                            let mut reply = String::new();
-                            if let Some(game) = bot
+                            let reply = if let Some(game) = bot
                                 .games_state
                                 .skipped
                                 .iter()
@@ -275,17 +274,14 @@ impl GameJamBot {
                                     .skipped
                                     .retain(|game| game.author != sender_name);
                                 bot.save_games().unwrap();
-                                reply.push_str(&format!(
+                                Some(format!(
                                     "@{}, your game was returned to the front of the queue",
                                     sender_name
-                                ));
+                                ))
                             } else {
-                                reply.push_str(&format!(
-                                            "@{}, you have caused stack underflow exception, return failed.",
-                                            sender_name,
-                                        ));
-                            }
-                            Some(reply)
+                                None
+                            };
+                            reply
                         }),
                     }],
                 },
