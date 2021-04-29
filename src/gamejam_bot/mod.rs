@@ -233,19 +233,31 @@ impl GameJamBot {
         }
 
         let update_values = BatchUpdateSpreadsheetRequest {
-            requests: Some(vec![Request {
-                update_cells: Some(UpdateCellsRequest {
-                    rows: Some(rows),
-                    fields: Some("*".to_owned()),
-                    start: Some(GridCoordinate {
-                        row_index: Some(0),
-                        column_index: Some(0),
+            requests: Some(vec![
+                Request {
+                    repeat_cell: Some(RepeatCellRequest {
+                        fields: Some("*".to_owned()),
+                        range: Some(GridRange {
+                            ..Default::default()
+                        }),
                         ..Default::default()
                     }),
                     ..Default::default()
-                }),
-                ..Default::default()
-            }]),
+                },
+                Request {
+                    update_cells: Some(UpdateCellsRequest {
+                        rows: Some(rows),
+                        fields: Some("*".to_owned()),
+                        start: Some(GridCoordinate {
+                            row_index: Some(0),
+                            column_index: Some(0),
+                            ..Default::default()
+                        }),
+                        ..Default::default()
+                    }),
+                    ..Default::default()
+                },
+            ]),
             ..Default::default()
         };
         let result = self
