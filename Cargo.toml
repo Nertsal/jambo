@@ -9,8 +9,14 @@ edition = "2018"
 [dependencies]
 twitch-irc = "0.2.1"
 futures = "0.3.6"
-tokio = "0.2.22"
+tokio = { version = "1", features = ["full"] }
+tokio-compat-02 = "0.2.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 rand = "0.7.3"
 async-trait = "0.1.41"
+google-sheets4 = "*"
+hyper = "0.14"
+hyper-rustls = "0.22"
+yup-oauth2 = "5.0"
+async-std = "1.9.0"

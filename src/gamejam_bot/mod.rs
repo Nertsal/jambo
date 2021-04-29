@@ -1,4 +1,8 @@
 use super::*;
+use google_sheets4::{
+    api::{Scope, ValueRange},
+    Sheets,
+};
 use std::collections::VecDeque;
 
 mod commands;
@@ -10,6 +14,7 @@ pub struct GameJamConfig {
     link_start: Option<String>,
     allow_direct_link_submit: bool,
     raffle_default_weight: usize,
+    google_sheet_id: Option<String>,
 }
 
 pub struct GameJamBot {
@@ -21,6 +26,8 @@ pub struct GameJamBot {
     played_games: Vec<Game>,
     games_state: GamesState,
     time_limit: Option<Instant>,
+    hub: Option<Sheets>,
+    update_sheets: bool,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -95,11 +102,30 @@ impl GameJamBot {
             played_games: Vec::new(),
             games_state: GamesState::new(),
             time_limit: None,
+            hub: None,
+            update_sheets: false,
         };
+
+        if bot.config.google_sheet_id.is_some() {
+            let service_key: yup_oauth2::ServiceAccountKey =
+                serde_json::from_reader(std::io::BufReader::new(
+                    std::fs::File::open("config/gamejam/service_key.json").unwrap(),
+                ))
+                .unwrap();
+            let auth = async_std::task::block_on(
+                yup_oauth2::ServiceAccountAuthenticator::builder(service_key).build(),
+            )
+            .unwrap();
+
+            bot.hub = Some(Sheets::new(
+                hyper::Client::builder().build(hyper_rustls::HttpsConnector::with_native_roots()),
+                auth,
+            ));
+        }
+
         println!("Loading GameJamBot data from {}", &bot.save_file);
-        match load_from(&bot.save_file) {
-            Ok(games_state) => {
-                bot.games_state = games_state;
+        match bot.load_games() {
+            Ok(_) => {
                 println!("Successfully loaded GameJamBot data")
             }
             Err(error) => {
@@ -125,6 +151,7 @@ impl GameJamBot {
                 }
             }
         }
+
         bot
     }
     fn check_message(&mut self, message: &PrivmsgMessage) -> Option<String> {
@@ -147,22 +174,51 @@ impl GameJamBot {
         }
         None
     }
-    fn save_games(&self) -> Result<(), std::io::Error> {
+    pub fn save_games(&mut self) -> std::io::Result<()> {
+        self.update_sheets = true;
         save_into(&self.games_state, &self.save_file)
+    }
+    fn load_games(&mut self) -> std::io::Result<()> {
+        // if let Some(sheet_id) = &self.google_sheet_id {}
+        self.games_state = load_from(&self.save_file)?;
+        Ok(())
+    }
+    async fn save_sheets(&self) -> google_sheets4::Result<()> {
+        let mut value_range = ValueRange::default();
+        let mut rows = Vec::new();
+        rows.push(vec!["Game link".to_owned(), "Author".to_owned()]);
+        for game in self.games_state.queue() {
+            let row = vec![game.name.clone(), game.author.clone()];
+            rows.push(row);
+        }
+        value_range.values = Some(rows);
+
+        let result = self
+            .hub
+            .as_ref()
+            .unwrap()
+            .spreadsheets()
+            .values_update(
+                value_range,
+                self.config.google_sheet_id.as_ref().unwrap(),
+                "Sheet1",
+            )
+            .value_input_option("USER_ENTERED")
+            .add_scope(Scope::Spreadsheet)
+            .doit()
+            .await;
+        result.map(|_| ())
     }
 }
 
-fn save_into<T: Serialize>(
-    value: &T,
-    path: impl AsRef<std::path::Path>,
-) -> Result<(), std::io::Error> {
+fn save_into<T: Serialize>(value: &T, path: impl AsRef<std::path::Path>) -> std::io::Result<()> {
     let file = std::io::BufWriter::new(std::fs::File::create(path)?);
     serde_json::to_writer(file, value)?;
     Ok(())
 }
 fn load_from<T: serde::de::DeserializeOwned>(
     path: impl AsRef<std::path::Path>,
-) -> Result<T, std::io::Error> {
+) -> std::io::Result<T> {
     let file = std::io::BufReader::new(std::fs::File::open(path)?);
     Ok(serde_json::from_reader(file)?)
 }
@@ -189,5 +245,13 @@ impl Bot for GameJamBot {
             }
             _ => (),
         };
+
+        if self.update_sheets && self.config.google_sheet_id.is_some() {
+            match self.save_sheets().await {
+                Ok(_) => (),
+                Err(err) => println!("Error trying to save queue into google sheets: {}", err),
+            }
+            self.update_sheets = false;
+        }
     }
 }

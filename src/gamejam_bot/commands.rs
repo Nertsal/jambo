@@ -91,6 +91,7 @@ impl GameJamBot {
             }
             Err(reply) => Some(reply),
         };
+        self.save_games().unwrap();
         reply
     }
     pub fn skip(&mut self) -> Option<String> {
@@ -293,7 +294,7 @@ impl GameJamBot {
                             command: Arc::new(|bot, _, _| bot.next(None, true)),
                         },
                         CommandNode::ArgumentNode {
-                            argument_type: ArgumentType::Line,
+                            argument_type: ArgumentType::Word,
                             child_node: Box::new(CommandNode::FinalNode {
                                 authority_level: AuthorityLevel::Broadcaster,
                                 command: Arc::new(|bot, _, mut args| {

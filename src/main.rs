@@ -2,6 +2,7 @@ use async_trait::async_trait;
 use futures::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, time::Instant};
+use tokio_compat_02::FutureExt;
 use twitch_irc::login::StaticLoginCredentials;
 use twitch_irc::message::{PrivmsgMessage, ServerMessage};
 use twitch_irc::{ClientConfig, TCPTransport, TwitchIRCClient};
@@ -9,16 +10,16 @@ use twitch_irc::{ClientConfig, TCPTransport, TwitchIRCClient};
 mod channels_bot;
 mod commands;
 mod custom_bot;
-mod id;
 mod gamejam_bot;
+mod id;
 mod quote_bot;
 mod reply_bot;
 
 use channels_bot::{BotsConfig, ChannelsBot};
 use commands::*;
 use custom_bot::CustomBot;
-use id::*;
 use gamejam_bot::GameJamBot;
+use id::*;
 use quote_bot::QuoteBot;
 use reply_bot::ReplyBot;
 
@@ -37,8 +38,11 @@ async fn main() {
         nertsalbot_config.login_name.clone(),
         Some(nertsalbot_config.oauth_token.clone()),
     ));
+
     let (mut incoming_messages, client) =
-        TwitchIRCClient::<TCPTransport, StaticLoginCredentials>::new(client_config);
+        async { TwitchIRCClient::<TCPTransport, StaticLoginCredentials>::new(client_config) }
+            .compat()
+            .await;
 
     let mut channels_bot = ChannelsBot::new(&nertsalbot_config, &bots_config);
 
