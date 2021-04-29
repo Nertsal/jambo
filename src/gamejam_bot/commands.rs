@@ -137,7 +137,10 @@ impl GameJamBot {
                 .iter()
                 .find(|game| game.name == game_link)
             {
-                return Some(format!("@{}, your game was skipped. You may return to the front of the queue using !return command", sender_name));
+                return Some(format!(
+                    "@{}, your game was skipped. You may return to the queue using !return command",
+                    sender_name
+                ));
             }
 
             if let Some(_) = self.played_games.iter().find(|game| game.name == game_link) {
@@ -152,11 +155,7 @@ impl GameJamBot {
                 name: game_link,
             });
             self.save_games().unwrap();
-            Some(format!(
-                "@{}, your game has been submitted! There are {} games in the queue.",
-                sender_name,
-                self.games_state.games_queue.len()
-            ))
+            Some(format!("@{}, your game has been submitted!", sender_name,))
         } else {
             Some(format!("@{}, that link can not be submitted", sender_name))
         }
