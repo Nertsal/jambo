@@ -120,6 +120,7 @@ impl GameJamBot {
                 let reply = if auto_next {
                     self.next(None, true).unwrap_or(reply)
                 } else {
+                    self.save_games().unwrap();
                     reply
                 };
                 Some(reply)
