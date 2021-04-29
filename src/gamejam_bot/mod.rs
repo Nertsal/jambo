@@ -1,8 +1,5 @@
 use super::*;
-use google_sheets4::{
-    api::{Scope, ValueRange},
-    Sheets,
-};
+use google_sheets4::Sheets;
 use std::collections::VecDeque;
 
 mod commands;
@@ -14,7 +11,20 @@ pub struct GameJamConfig {
     link_start: Option<String>,
     allow_direct_link_submit: bool,
     raffle_default_weight: usize,
-    google_sheet_id: Option<String>,
+    google_sheet_config: Option<GoogleSheetConfig>,
+}
+
+#[derive(Serialize, Deserialize)]
+struct GoogleSheetConfig {
+    sheet_id: String,
+    cell_format: GoogleSheetCellFormat,
+}
+
+#[derive(Serialize, Deserialize)]
+struct GoogleSheetCellFormat {
+    color_queued: Option<google_sheets4::api::Color>,
+    color_skipped: Option<google_sheets4::api::Color>,
+    color_played: Option<google_sheets4::api::Color>,
 }
 
 pub struct GameJamBot {
@@ -34,6 +44,13 @@ pub struct GameJamBot {
 struct Game {
     author: String,
     name: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Copy)]
+enum GameType {
+    Queued,
+    Skipped,
+    Played,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -106,7 +123,7 @@ impl GameJamBot {
             update_sheets: false,
         };
 
-        if bot.config.google_sheet_id.is_some() {
+        if bot.config.google_sheet_config.is_some() {
             let service_key: yup_oauth2::ServiceAccountKey =
                 serde_json::from_reader(std::io::BufReader::new(
                     std::fs::File::open("config/gamejam/service_key.json").unwrap(),
@@ -179,35 +196,125 @@ impl GameJamBot {
         save_into(&self.games_state, &self.save_file)
     }
     fn load_games(&mut self) -> std::io::Result<()> {
-        // if let Some(sheet_id) = &self.google_sheet_id {}
         self.games_state = load_from(&self.save_file)?;
         Ok(())
     }
     async fn save_sheets(&self) -> google_sheets4::Result<()> {
-        let mut value_range = ValueRange::default();
-        let mut rows = Vec::new();
-        rows.push(vec!["Game link".to_owned(), "Author".to_owned()]);
-        for game in self.games_state.queue() {
-            let row = vec![game.name.clone(), game.author.clone()];
-            rows.push(row);
-        }
-        value_range.values = Some(rows);
+        use google_sheets4::api::*;
 
+        let mut rows = Vec::new();
+        rows.push(self.values_to_row_data(
+            vec!["Game link".to_owned(), "Author".to_owned()],
+            Some(CellFormat {
+                text_format: Some(TextFormat {
+                    bold: Some(true),
+                    ..Default::default()
+                }),
+                ..Default::default()
+            }),
+        ));
+        for game in self.games_state.queue() {
+            rows.push(self.values_to_row_data(
+                vec![game.name.clone(), game.author.clone()],
+                self.game_to_format(GameType::Queued),
+            ));
+        }
+        for game in &self.games_state.skipped {
+            rows.push(self.values_to_row_data(
+                vec![game.name.clone(), game.author.clone()],
+                self.game_to_format(GameType::Skipped),
+            ));
+        }
+        for game in &self.played_games {
+            rows.push(self.values_to_row_data(
+                vec![game.name.clone(), game.author.clone()],
+                self.game_to_format(GameType::Played),
+            ));
+        }
+
+        let update_values = BatchUpdateSpreadsheetRequest {
+            requests: Some(vec![Request {
+                update_cells: Some(UpdateCellsRequest {
+                    rows: Some(rows),
+                    fields: Some("*".to_owned()),
+                    start: Some(GridCoordinate {
+                        row_index: Some(0),
+                        column_index: Some(0),
+                        ..Default::default()
+                    }),
+                    ..Default::default()
+                }),
+                ..Default::default()
+            }]),
+            ..Default::default()
+        };
         let result = self
             .hub
             .as_ref()
             .unwrap()
             .spreadsheets()
-            .values_update(
-                value_range,
-                self.config.google_sheet_id.as_ref().unwrap(),
-                "Sheet1",
+            .batch_update(
+                update_values,
+                &self.config.google_sheet_config.as_ref().unwrap().sheet_id,
             )
-            .value_input_option("USER_ENTERED")
             .add_scope(Scope::Spreadsheet)
             .doit()
             .await;
         result.map(|_| ())
+    }
+    fn game_to_format(&self, game_type: GameType) -> Option<google_sheets4::api::CellFormat> {
+        use google_sheets4::api::*;
+        let color = match game_type {
+            GameType::Queued => self
+                .config
+                .google_sheet_config
+                .as_ref()
+                .unwrap()
+                .cell_format
+                .color_queued
+                .clone(),
+            GameType::Skipped => self
+                .config
+                .google_sheet_config
+                .as_ref()
+                .unwrap()
+                .cell_format
+                .color_skipped
+                .clone(),
+            GameType::Played => self
+                .config
+                .google_sheet_config
+                .as_ref()
+                .unwrap()
+                .cell_format
+                .color_played
+                .clone(),
+        };
+        Some(CellFormat {
+            background_color: color,
+            ..Default::default()
+        })
+    }
+    fn values_to_row_data(
+        &self,
+        values: Vec<String>,
+        user_entered_format: Option<google_sheets4::api::CellFormat>,
+    ) -> google_sheets4::api::RowData {
+        use google_sheets4::api::*;
+        let mut cells = Vec::with_capacity(values.len());
+        for value in values {
+            cells.push(CellData {
+                user_entered_value: Some(ExtendedValue {
+                    string_value: Some(value),
+                    ..Default::default()
+                }),
+                user_entered_format: user_entered_format.clone(),
+                ..Default::default()
+            });
+        }
+        RowData {
+            values: Some(cells),
+        }
     }
 }
 
@@ -246,7 +353,7 @@ impl Bot for GameJamBot {
             _ => (),
         };
 
-        if self.update_sheets && self.config.google_sheet_id.is_some() {
+        if self.update_sheets && self.config.google_sheet_config.is_some() {
             match self.save_sheets().await {
                 Ok(_) => (),
                 Err(err) => println!("Error trying to save queue into google sheets: {}", err),
