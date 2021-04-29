@@ -23,6 +23,7 @@ struct GoogleSheetConfig {
 #[derive(Serialize, Deserialize)]
 struct GoogleSheetCellFormat {
     color_queued: Option<google_sheets4::api::Color>,
+    color_current: Option<google_sheets4::api::Color>,
     color_skipped: Option<google_sheets4::api::Color>,
     color_played: Option<google_sheets4::api::Color>,
 }
@@ -49,6 +50,7 @@ struct Game {
 #[derive(Serialize, Deserialize, Clone, Copy)]
 enum GameType {
     Queued,
+    Current,
     Skipped,
     Played,
 }
@@ -213,6 +215,12 @@ impl GameJamBot {
                 ..Default::default()
             }),
         ));
+        if let Some(game) = &self.games_state.current_game {
+            rows.push(self.values_to_row_data(
+                vec![game.name.clone(), game.author.clone()],
+                self.game_to_format(GameType::Current),
+            ));
+        }
         for game in self.games_state.queue() {
             rows.push(self.values_to_row_data(
                 vec![game.name.clone(), game.author.clone()],
@@ -276,31 +284,17 @@ impl GameJamBot {
     }
     fn game_to_format(&self, game_type: GameType) -> Option<google_sheets4::api::CellFormat> {
         use google_sheets4::api::*;
+        let cell_format = &self
+            .config
+            .google_sheet_config
+            .as_ref()
+            .unwrap()
+            .cell_format;
         let color = match game_type {
-            GameType::Queued => self
-                .config
-                .google_sheet_config
-                .as_ref()
-                .unwrap()
-                .cell_format
-                .color_queued
-                .clone(),
-            GameType::Skipped => self
-                .config
-                .google_sheet_config
-                .as_ref()
-                .unwrap()
-                .cell_format
-                .color_skipped
-                .clone(),
-            GameType::Played => self
-                .config
-                .google_sheet_config
-                .as_ref()
-                .unwrap()
-                .cell_format
-                .color_played
-                .clone(),
+            GameType::Queued => cell_format.color_queued.clone(),
+            GameType::Current => cell_format.color_current.clone(),
+            GameType::Skipped => cell_format.color_skipped.clone(),
+            GameType::Played => cell_format.color_played.clone(),
         };
         Some(CellFormat {
             background_color: color,
