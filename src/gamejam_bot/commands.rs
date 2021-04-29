@@ -177,6 +177,14 @@ impl GameJamBot {
             std::mem::replace(&mut self.games_state.raffle.mode, RaffleMode::Inactive);
         let reply = match raffle_mode {
             RaffleMode::Active { joined } => {
+                for viewer in joined.keys() {
+                    *self
+                        .games_state
+                        .raffle
+                        .viewers_weight
+                        .get_mut(viewer)
+                        .unwrap() += 1;
+                }
                 match (joined.into_iter().collect::<Vec<(String, usize)>>())
                     .choose_weighted(&mut rand::thread_rng(), |&(_, weight)| weight)
                 {
@@ -196,14 +204,12 @@ impl GameJamBot {
         reply
     }
     fn raffle_join(&mut self, sender_name: String) -> Option<String> {
-        let viewer_weight = self
+        let weight = *self
             .games_state
             .raffle
             .viewers_weight
             .entry(sender_name.clone())
             .or_insert(self.config.raffle_default_weight);
-        let weight = *viewer_weight;
-        *viewer_weight += 1;
         match &mut self.games_state.raffle.mode {
             RaffleMode::Active { joined } => {
                 joined.insert(sender_name, weight);
