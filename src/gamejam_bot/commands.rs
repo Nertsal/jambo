@@ -10,16 +10,31 @@ impl CommandBot<Self> for GameJamBot {
 }
 
 impl GameJamBot {
-    fn set_current(&mut self, game: Game) -> Option<String> {
-        self.played_games.push(game.clone());
-        save_into(&self.played_games, &self.played_games_file).unwrap();
+    fn set_current(&mut self, game: Option<Game>) -> Option<String> {
+        match self.games_state.current_game.take() {
+            Some(game) => {
+                self.played_games.push(game.clone());
+                save_into(&self.played_games, &self.played_games_file).unwrap();
+            }
+            None => (),
+        }
 
-        let reply = format!("Now playing {} from @{}. ", game.name, game.author);
-        self.games_state.raffle.viewers_weight.remove(&game.author);
-        self.games_state.current_game = Some(game);
+        let reply = match game {
+            Some(game) => {
+                let reply = format!("Now playing {} from @{}. ", game.name, game.author);
+                self.games_state.raffle.viewers_weight.remove(&game.author);
+                self.games_state.current_game = Some(game);
+
+                Some(reply)
+            }
+            None => {
+                self.games_state.current_game = None;
+                None
+            }
+        };
 
         self.save_games().unwrap();
-        Some(reply)
+        reply
     }
     fn remove_game(&mut self, author_name: &str) -> Option<Game> {
         let pos = self
@@ -86,10 +101,13 @@ impl GameJamBot {
                         ))
                     }
                 }
-                let reply = reply.or(self.set_current(game));
+                let reply = reply.or(self.set_current(Some(game)));
                 reply
             }
-            Err(reply) => Some(reply),
+            Err(reply) => {
+                self.set_current(None);
+                Some(reply)
+            }
         };
         reply
     }
@@ -186,7 +204,7 @@ impl GameJamBot {
                     .choose_weighted(&mut rand::thread_rng(), |&(_, weight)| weight)
                 {
                     Ok((sender_name, _)) => match self.remove_game(sender_name) {
-                        Some(game) => self.set_current(game),
+                        Some(game) => self.set_current(Some(game)),
                         None => {
                             self.games_state.raffle.viewers_weight.remove(sender_name);
                             Some(format!("{} has won the raffle!", sender_name))
@@ -451,7 +469,7 @@ impl GameJamBot {
                                         "Current game has been put at the front of the queue. ",
                                     );
                                 }
-                                match bot.set_current(skipped) {
+                                match bot.set_current(Some(skipped)) {
                                     Some(set_reply) => reply.push_str(&set_reply),
                                     None => (),
                                 }
@@ -468,8 +486,7 @@ impl GameJamBot {
                         authority_level: AuthorityLevel::Moderator,
                         command: Arc::new(|bot, _, _| {
                             bot.time_limit = None;
-                            bot.games_state.current_game = None;
-                            bot.save_games().unwrap();
+                            bot.set_current(None);
                             Some("Current game set to None".to_owned())
                         }),
                     }],
