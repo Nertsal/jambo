@@ -96,7 +96,7 @@ impl GameJamBot {
                     if let Some(response_time) = self.config.response_time_limit {
                         self.time_limit = Some(Instant::now());
                         reply = Some(format!(
-                            "@{}, we are about to play your game. Please reply in {} seconds. ",
+                            "@{}, we are about to play your game. Please reply in {} seconds.",
                             game.author, response_time
                         ))
                     }
@@ -116,11 +116,12 @@ impl GameJamBot {
         match self.games_state.current_game.take() {
             Some(game) => {
                 self.games_state.skipped.push(game);
-                self.save_games().unwrap();
-                let reply = "Game has been skipped. ".to_owned();
+                let reply = self
+                    .next(None, true)
+                    .unwrap_or("Game has been skipped.".to_owned());
                 Some(reply)
             }
-            None => Some("Not playing any game at the moment. ".to_owned()),
+            None => Some("Not playing any game at the moment.".to_owned()),
         }
     }
     fn check_link(&self, game_link: &str) -> bool {
