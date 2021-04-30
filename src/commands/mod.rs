@@ -32,7 +32,7 @@ pub enum AuthorityLevel {
 }
 
 impl<T> BotCommands<T> {
-    pub fn find_commands(&self, message: &PrivmsgMessage) -> Vec<(Command<T>, Vec<Argument>)> {
+    fn find_commands(&self, message: &PrivmsgMessage) -> Vec<(Command<T>, Vec<Argument>)> {
         self.commands
             .iter()
             .filter_map(|com| com.check_node(&message.message_text, Vec::new()))
