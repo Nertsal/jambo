@@ -10,14 +10,14 @@ struct CustomConfig {
 impl CustomConfig {
     fn save(&self) -> std::io::Result<()> {
         serde_json::to_writer(
-            std::io::BufWriter::new(std::fs::File::create("config/custom/custom-config.json")?),
+            std::io::BufWriter::new(std::fs::File::create("config/custom/custom_config.json")?),
             self,
         )?;
         Ok(())
     }
     fn load() -> std::io::Result<CustomConfig> {
         Ok(serde_json::from_reader(std::io::BufReader::new(
-            std::fs::File::open("config/custom/custom-config.json")?,
+            std::fs::File::open("config/custom/custom_config.json")?,
         ))?)
     }
 }

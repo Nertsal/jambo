@@ -29,7 +29,7 @@ async fn main() {
     ))
     .unwrap();
     let bots_config: BotsConfig = serde_json::from_reader(std::io::BufReader::new(
-        std::fs::File::open("config/bots-config.json").unwrap(),
+        std::fs::File::open("config/bots_config.json").unwrap(),
     ))
     .unwrap();
 

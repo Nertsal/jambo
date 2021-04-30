@@ -82,7 +82,7 @@ impl GameJamBot {
     }
     pub fn new(channel: &String) -> Self {
         let config: GameJamConfig = serde_json::from_reader(std::io::BufReader::new(
-            std::fs::File::open("config/gamejam/gamejam-config.json").unwrap(),
+            std::fs::File::open("config/gamejam/gamejam_config.json").unwrap(),
         ))
         .unwrap();
 
@@ -90,8 +90,8 @@ impl GameJamBot {
             channel_login: channel.clone(),
             config,
             commands: Self::commands(),
-            save_file: "config/gamejam/gamejam-nertsalbot.json".to_owned(),
-            played_games_file: "config/gamejam/games-played.json".to_owned(),
+            save_file: "config/gamejam/gamejam_nertsalbot.json".to_owned(),
+            played_games_file: "config/gamejam/games_played.json".to_owned(),
             played_games: Vec::new(),
             games_state: GamesState::new(),
             time_limit: None,

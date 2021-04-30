@@ -22,14 +22,14 @@ impl Default for QuoteConfig {
 impl QuoteConfig {
     fn save(&self) -> std::io::Result<()> {
         serde_json::to_writer(
-            std::io::BufWriter::new(std::fs::File::create("config/quote/quote-config.json")?),
+            std::io::BufWriter::new(std::fs::File::create("config/quote/quote_config.json")?),
             self,
         )?;
         Ok(())
     }
     fn load() -> std::io::Result<Self> {
         Ok(serde_json::from_reader(std::io::BufReader::new(
-            std::fs::File::open("config/quote/quote-config.json")?,
+            std::fs::File::open("config/quote/quote_config.json")?,
         ))?)
     }
 }
