@@ -4,7 +4,7 @@ mod commands;
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct BotsConfig {
-    ludumdare: bool,
+    gamejam: bool,
     reply: bool,
     quote: bool,
     custom: bool,
@@ -23,7 +23,7 @@ impl ChannelsBot {
             commands: Self::commands(),
             bots: HashMap::new(),
         };
-        if bots_config.ludumdare {
+        if bots_config.gamejam {
             bot.spawn_bot(GameJamBot::name());
         }
         if bots_config.reply {

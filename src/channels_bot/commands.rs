@@ -73,14 +73,14 @@ impl ChannelsBot {
     }
     fn bots_config(&self) -> Result<BotsConfig, ()> {
         let mut bots_config = BotsConfig {
-            ludumdare: false,
+            gamejam: false,
             reply: false,
             quote: false,
             custom: false,
         };
         for bot_name in self.bots.keys() {
             if bot_name == GameJamBot::name() {
-                bots_config.ludumdare = true;
+                bots_config.gamejam = true;
             } else if bot_name == ReplyBot::name() {
                 bots_config.reply = true;
             } else if bot_name == QuoteBot::name() {
