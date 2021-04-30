@@ -25,8 +25,8 @@ use reply_bot::ReplyBot;
 
 #[tokio::main]
 async fn main() {
-    let nertsalbot_config: Config = serde_json::from_reader(std::io::BufReader::new(
-        std::fs::File::open("config/nertsalbot.json").unwrap(),
+    let login_config: LoginConfig = serde_json::from_reader(std::io::BufReader::new(
+        std::fs::File::open("secrets/login.json").unwrap(),
     ))
     .unwrap();
     let bots_config: BotsConfig = serde_json::from_reader(std::io::BufReader::new(
@@ -35,8 +35,8 @@ async fn main() {
     .unwrap();
 
     let client_config = ClientConfig::new_simple(StaticLoginCredentials::new(
-        nertsalbot_config.login_name.clone(),
-        Some(nertsalbot_config.oauth_token.clone()),
+        login_config.login_name.clone(),
+        Some(login_config.oauth_token.clone()),
     ));
 
     let (mut incoming_messages, client) =
@@ -44,7 +44,7 @@ async fn main() {
             .compat()
             .await;
 
-    let mut channels_bot = ChannelsBot::new(&nertsalbot_config, &bots_config);
+    let mut channels_bot = ChannelsBot::new(&login_config, &bots_config);
 
     let client_clone = client.clone();
     let join_handle = tokio::spawn(async move {
@@ -53,13 +53,13 @@ async fn main() {
         }
     });
 
-    client.join(nertsalbot_config.channel_login);
+    client.join(login_config.channel_login);
 
     join_handle.await.unwrap();
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct Config {
+pub struct LoginConfig {
     login_name: String,
     oauth_token: String,
     channel_login: String,

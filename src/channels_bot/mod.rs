@@ -17,7 +17,7 @@ pub struct ChannelsBot {
 }
 
 impl ChannelsBot {
-    pub fn new(config: &Config, bots_config: &BotsConfig) -> Self {
+    pub fn new(config: &LoginConfig, bots_config: &BotsConfig) -> Self {
         let mut bot = Self {
             channel_login: config.channel_login.clone(),
             commands: Self::commands(),
