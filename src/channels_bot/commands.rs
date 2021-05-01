@@ -17,7 +17,7 @@ impl ChannelsBot {
                     child_nodes: vec![CommandNode::ArgumentNode {
                         argument_type: ArgumentType::Word,
                         child_node: Box::new(CommandNode::FinalNode {
-                            authority_level: AuthorityLevel::Broadcaster,
+                            authority_level: AuthorityLevel::Moderator,
                             command: Arc::new(|bot, _, mut args| {
                                 let bot_name = args.remove(0);
                                 let response = bot.spawn_bot(bot_name.as_str());
@@ -32,7 +32,7 @@ impl ChannelsBot {
                     child_nodes: vec![CommandNode::ArgumentNode {
                         argument_type: ArgumentType::Word,
                         child_node: Box::new(CommandNode::FinalNode {
-                            authority_level: AuthorityLevel::Broadcaster,
+                            authority_level: AuthorityLevel::Moderator,
                             command: Arc::new(|bot, _, mut args| {
                                 let bot_name = args.remove(0);
                                 let response = bot.disable_bot(bot_name.as_str());

@@ -411,29 +411,14 @@ impl GameJamBot {
                                         ))
                                     }
                                 }
-                                let mut queue = bot.games_state.queue();
-                                let mut empty = true;
-                                for i in 0..3 {
-                                    if let Some(game) = queue.next() {
-                                        if empty {
-                                            reply.push_str("Queued games: ");
-                                            empty = false;
-                                        }
-                                        reply.push_str(&format!(
-                                            "{}) {} from {}. ",
-                                            i + 1,
-                                            game.name,
-                                            game.author
-                                        ));
-                                    }
-                                }
-                                if empty {
+                                let games_count = bot.games_state.queue().count();
+                                if games_count == 0 {
                                     reply.push_str("The queue is empty");
                                 } else {
-                                    let left_count = queue.count();
-                                    if left_count != 0 {
-                                        reply.push_str(&format!("And {} more", left_count));
-                                    }
+                                    reply.push_str(&format!(
+                                        "There are {} games in the queue",
+                                        games_count
+                                    ));
                                 }
                                 Some(reply)
                             } else {
@@ -569,7 +554,7 @@ impl GameJamBot {
                             }],
                         },
                         CommandNode::LiteralNode {
-                            literal: "undo".to_owned(),
+                            literal: "cancel".to_owned(),
                             child_nodes: vec![CommandNode::FinalNode {
                                 authority_level: AuthorityLevel::Broadcaster,
                                 command: Arc::new(|bot, _, _| bot.raffle_undo()),
