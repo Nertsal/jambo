@@ -53,6 +53,7 @@ The main bot, that controls other bots.
 ```
 {
     "queue_mode": true,
+    "auto_return": false,
     "response_time_limit": null,
     "link_start": "https://ldjam.com/events/ludum-dare/",
     "allow_direct_link_submit": true,
@@ -82,6 +83,8 @@ The main bot, that controls other bots.
 ```
 
 - `queue_mode`: bool. Defines, whether !queue command shows one's place in the queue, and its length.
+
+- `auto_return`: bool. Defines, whether !return will be called automatically for every message.
 
 - `response_time_limit`: Option\<u64\>. If not null, then !next will require confirmation from author, that he is in chat, to play his game. If there is no response in given time (in seconds), then the game will skipped, and !next will be called.
 

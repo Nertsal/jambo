@@ -271,10 +271,34 @@ impl GameJamBot {
         }
         None
     }
-    fn raffle_undo(&mut self) -> Option<String> {
+    fn raffle_cancel(&mut self) -> Option<String> {
         self.games_state.raffle.mode = RaffleMode::Inactive;
         self.save_games().unwrap();
         Some(format!("Raffle is now inactive"))
+    }
+    pub fn return_game(&mut self, author_name: &str) -> Option<String> {
+        if !self.games_state.is_open {
+            return None;
+        }
+        let reply = if let Some(game) = self
+            .games_state
+            .skipped
+            .iter()
+            .find(|game| game.author == author_name)
+        {
+            self.games_state.returned_queue.push_back(game.clone());
+            self.games_state
+                .skipped
+                .retain(|game| game.author != author_name);
+            self.save_games().unwrap();
+            Some(format!(
+                "@{}, your game was returned to the front of the queue",
+                author_name
+            ))
+        } else {
+            None
+        };
+        reply
     }
     pub fn commands() -> BotCommands<Self> {
         BotCommands {
@@ -312,33 +336,7 @@ impl GameJamBot {
                     literal: "!return".to_owned(),
                     child_nodes: vec![CommandNode::FinalNode {
                         authority_level: AuthorityLevel::Any,
-                        command: Arc::new(|bot, sender_name, _| {
-                            if !bot.games_state.is_open {
-                                return Some(
-                                            "The queue is closed. You can not submit your game at the moment."
-                                                .to_owned(),
-                                        );
-                            }
-                            let reply = if let Some(game) = bot
-                                .games_state
-                                .skipped
-                                .iter()
-                                .find(|game| game.author == sender_name)
-                            {
-                                bot.games_state.returned_queue.push_back(game.clone());
-                                bot.games_state
-                                    .skipped
-                                    .retain(|game| game.author != sender_name);
-                                bot.save_games().unwrap();
-                                Some(format!(
-                                    "@{}, your game was returned to the front of the queue",
-                                    sender_name
-                                ))
-                            } else {
-                                None
-                            };
-                            reply
-                        }),
+                        command: Arc::new(|bot, sender_name, _| bot.return_game(&sender_name)),
                     }],
                 },
                 CommandNode::LiteralNode {
@@ -556,7 +554,7 @@ impl GameJamBot {
                             literal: "cancel".to_owned(),
                             child_nodes: vec![CommandNode::FinalNode {
                                 authority_level: AuthorityLevel::Broadcaster,
-                                command: Arc::new(|bot, _, _| bot.raffle_undo()),
+                                command: Arc::new(|bot, _, _| bot.raffle_cancel()),
                             }],
                         },
                     ],

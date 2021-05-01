@@ -7,6 +7,7 @@ mod commands;
 #[derive(Serialize, Deserialize)]
 pub struct GameJamConfig {
     queue_mode: bool,
+    auto_return: bool,
     response_time_limit: Option<u64>,
     link_start: Option<String>,
     allow_direct_link_submit: bool,
@@ -177,9 +178,11 @@ impl GameJamBot {
             let game = self.games_state.current_game.as_ref().unwrap();
             if message.sender.name == game.author {
                 self.time_limit = None;
-                let reply = format!("Now playing {} from @{}. ", game.name, game.author);
-                return Some(reply);
+                return Some(format!("Now playing {} from @{}. ", game.name, game.author));
             }
+        }
+        if self.config.auto_return {
+            return self.return_game(&message.sender.name);
         }
         None
     }
