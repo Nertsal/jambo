@@ -149,6 +149,8 @@ No config required.
 
 #### Commands
 
+- `!quote`. Displays a random quote.
+
 - `!quote add <quote>`. Moderator only. Add quote <quote>.
 
 - `!quote delete <quote_id>`. Moderator only. Deletes quote <quote_id>.
