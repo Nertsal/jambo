@@ -186,7 +186,6 @@ impl GameJamBot {
     fn update(&mut self) -> Option<String> {
         if let Some(time) = self.time_limit {
             if time.elapsed().as_secs() >= self.config.response_time_limit.unwrap() {
-                self.time_limit = None;
                 return self.skip(true);
             }
         }

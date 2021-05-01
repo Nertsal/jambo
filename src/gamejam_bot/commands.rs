@@ -11,6 +11,8 @@ impl CommandBot<Self> for GameJamBot {
 
 impl GameJamBot {
     fn set_current(&mut self, game: Option<Game>) -> Option<String> {
+        self.time_limit = None;
+
         match self.games_state.current_game.take() {
             Some(game) => {
                 self.played_games.push(game.clone());
@@ -99,20 +101,19 @@ impl GameJamBot {
             },
         };
 
-        self.time_limit = None;
         let reply = match game {
             Ok(game) => {
-                let mut reply = None;
+                let game_author = game.author.clone();
+                let mut reply = self.set_current(Some(game));
                 if confirmation_required {
                     if let Some(response_time) = self.config.response_time_limit {
                         self.time_limit = Some(Instant::now());
                         reply = Some(format!(
                             "@{}, we are about to play your game. Please reply in {} seconds.",
-                            game.author, response_time
+                            game_author, response_time
                         ))
                     }
                 }
-                let reply = reply.or(self.set_current(Some(game)));
                 reply
             }
             Err(reply) => {
@@ -124,6 +125,7 @@ impl GameJamBot {
         reply
     }
     pub fn skip(&mut self, auto_next: bool) -> Option<String> {
+        self.time_limit = None;
         match self.games_state.current_game.take() {
             Some(game) => {
                 self.games_state.skipped.push(game);
@@ -472,7 +474,6 @@ impl GameJamBot {
                         authority_level: AuthorityLevel::Broadcaster,
                         command: Arc::new(|bot, _, _| {
                             if let Some(skipped) = bot.games_state.skipped.pop() {
-                                bot.time_limit = None;
                                 let mut reply = String::new();
                                 if let Some(current) = bot.games_state.current_game.take() {
                                     bot.games_state.returned_queue.push_front(current);
@@ -496,7 +497,6 @@ impl GameJamBot {
                     child_nodes: vec![CommandNode::FinalNode {
                         authority_level: AuthorityLevel::Broadcaster,
                         command: Arc::new(|bot, _, _| {
-                            bot.time_limit = None;
                             bot.set_current(None);
                             Some("Current game set to None".to_owned())
                         }),
