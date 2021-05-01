@@ -86,7 +86,7 @@ impl ChannelsBot {
     }
     fn save_bots(&self) -> std::io::Result<()> {
         let bots_config = self.bots_config().unwrap();
-        let file = std::io::BufWriter::new(std::fs::File::create("config/bots-config.json")?);
+        let file = std::io::BufWriter::new(std::fs::File::create("config/bots_config.json")?);
         serde_json::to_writer(file, &bots_config)?;
         Ok(())
     }
