@@ -21,7 +21,6 @@ impl ChannelsBot {
                             command: Arc::new(|bot, _, mut args| {
                                 let bot_name = args.remove(0);
                                 let response = bot.spawn_bot(bot_name.as_str());
-                                bot.save_bots().unwrap();
                                 response
                             }),
                         }),
@@ -36,7 +35,20 @@ impl ChannelsBot {
                             command: Arc::new(|bot, _, mut args| {
                                 let bot_name = args.remove(0);
                                 let response = bot.disable_bot(bot_name.as_str());
-                                bot.save_bots().unwrap();
+                                response
+                            }),
+                        }),
+                    }],
+                },
+                CommandNode::LiteralNode {
+                    literal: "!reset".to_owned(),
+                    child_nodes: vec![CommandNode::ArgumentNode {
+                        argument_type: ArgumentType::Word,
+                        child_node: Box::new(CommandNode::FinalNode {
+                            authority_level: AuthorityLevel::Moderator,
+                            command: Arc::new(|bot, _, mut args| {
+                                let bot_name = args.remove(0);
+                                let response = bot.reset_bot(&bot_name);
                                 response
                             }),
                         }),
@@ -58,12 +70,19 @@ impl ChannelsBot {
             println!("Spawned bot {}", bot_name);
             self.bots.insert(bot_name.to_owned(), new_bot);
         }
+        self.save_bots().unwrap();
         response
     }
     fn disable_bot(&mut self, bot_name: &str) -> Option<String> {
         let bot = self.bots.remove(bot_name);
         let response = bot.map(|bot| format!("{} is no longer active", bot.name()));
+        self.save_bots().unwrap();
         response
+    }
+    fn reset_bot(&mut self, bot_name: &str) -> Option<String> {
+        self.disable_bot(bot_name);
+        self.spawn_bot(bot_name);
+        Some(format!("{} is reset", bot_name))
     }
     fn save_bots(&self) -> std::io::Result<()> {
         let bots_config = self.bots_config().unwrap();

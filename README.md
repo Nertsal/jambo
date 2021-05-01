@@ -43,6 +43,8 @@ The main bot, that controls other bots.
 
 - `!disable <bot_name>`. Moderator only. Turns <bot_name> off.
 
+- `!reset <bot_name>`. Moderator only. Resets <bot_name> (turns it off and then back on).
+
 ### **GameJamBot**
 
 #### Config
