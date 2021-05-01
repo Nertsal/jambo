@@ -111,11 +111,13 @@ The main bot, that controls other bots.
 
 - `!skip next`. Broadcaster only. Calls **!skip** and then **!next**.
 
+- `!skip all`. Broadcaster only. Moves all games from the queue to the skipped list.
+
 - `!unskip`. Broadcaster only. Undoes **!skip**.
 
 - `!stop`. Moderator only. Moves current game to played list.
 
-- `!clear`. Moderator only. Clears current queue.
+- `!clear`. Broadcaster only. Clears current queue.
 
 - `!force`. Moderator only. If currently waiting for response from author, cancels waiting.
 

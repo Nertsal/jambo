@@ -127,6 +127,18 @@ impl GameJamBot {
             None => Some("Not playing any game at the moment.".to_owned()),
         }
     }
+    fn skip_all(&mut self) -> Option<String> {
+        self.skip(false);
+        for game in self.games_state.returned_queue.drain(..) {
+            self.games_state.skipped.push(game);
+        }
+        for game in self.games_state.games_queue.drain(..) {
+            self.games_state.skipped.push(game);
+        }
+        Some(format!(
+            "All games from the queue are moved to the skipped list."
+        ))
+    }
     fn check_link(&self, game_link: &str) -> bool {
         if let Some(link_start) = &self.config.link_start {
             game_link.starts_with(link_start)
@@ -450,6 +462,13 @@ impl GameJamBot {
                                 command: Arc::new(|bot, _, _| bot.skip(true)),
                             }],
                         },
+                        CommandNode::LiteralNode {
+                            literal: "all".to_owned(),
+                            child_nodes: vec![CommandNode::FinalNode {
+                                authority_level: AuthorityLevel::Broadcaster,
+                                command: Arc::new(|bot, _, _| bot.skip_all()),
+                            }],
+                        },
                         CommandNode::FinalNode {
                             authority_level: AuthorityLevel::Broadcaster,
                             command: Arc::new(|bot, _, _| bot.skip(false)),
@@ -484,7 +503,7 @@ impl GameJamBot {
                 CommandNode::LiteralNode {
                     literal: "!stop".to_owned(),
                     child_nodes: vec![CommandNode::FinalNode {
-                        authority_level: AuthorityLevel::Moderator,
+                        authority_level: AuthorityLevel::Broadcaster,
                         command: Arc::new(|bot, _, _| {
                             bot.time_limit = None;
                             bot.set_current(None);
@@ -495,7 +514,7 @@ impl GameJamBot {
                 CommandNode::LiteralNode {
                     literal: "!clear".to_owned(),
                     child_nodes: vec![CommandNode::FinalNode {
-                        authority_level: AuthorityLevel::Moderator,
+                        authority_level: AuthorityLevel::Broadcaster,
                         command: Arc::new(|bot, _, _| {
                             bot.games_state.games_queue.clear();
                             bot.save_games().unwrap();
