@@ -66,6 +66,18 @@ impl GameJamBot {
                 pos.map(|pos| self.games_state.skipped.remove(pos))
             })
     }
+    fn remove_game_response(&mut self, author_name: &str) -> Option<String> {
+        match self.remove_game(author_name) {
+            Some(_) => {
+                let reply = format!("{}'s game has been removed from the queue", author_name);
+                Some(reply)
+            }
+            None => {
+                let reply = format!("Couldn't find a game from {}", author_name);
+                Some(reply)
+            }
+        }
+    }
     pub fn next(
         &mut self,
         author_name: Option<String>,
@@ -352,20 +364,7 @@ impl GameJamBot {
                         CommandNode::FinalNode {
                             authority_level: AuthorityLevel::Any,
                             command: Arc::new(|bot, sender_name, _| {
-                                match bot.remove_game(&sender_name) {
-                                    Some(_) => {
-                                        let reply = format!(
-                                            "{}'s game has been remove from the queue",
-                                            sender_name
-                                        );
-                                        Some(reply)
-                                    }
-                                    None => {
-                                        let reply =
-                                            format!("Couldn't find a game from {}", sender_name);
-                                        Some(reply)
-                                    }
-                                }
+                                bot.remove_game_response(&sender_name)
                             }),
                         },
                         CommandNode::ArgumentNode {
@@ -374,22 +373,7 @@ impl GameJamBot {
                                 authority_level: AuthorityLevel::Moderator,
                                 command: Arc::new(|bot, _, mut args| {
                                     let author_name = args.remove(0);
-                                    match bot.remove_game(&author_name) {
-                                        Some(_) => {
-                                            let reply = format!(
-                                                "{}'s game has been remove from the queue",
-                                                author_name
-                                            );
-                                            Some(reply)
-                                        }
-                                        None => {
-                                            let reply = format!(
-                                                "Couldn't find a game from {}",
-                                                author_name
-                                            );
-                                            Some(reply)
-                                        }
-                                    }
+                                    bot.remove_game_response(&author_name)
                                 }),
                             }),
                         },

@@ -139,9 +139,9 @@ No config required.
 
 #### Commands
 
-- `!command new <command_name> <command_response>`. Moderator only. Add new command <command_name> (example: **!game**) with a response <command_response>.
+- `!command new <command_name> <command_response>`. Moderator only. Adds a new command <command_name> (example: **!game**) with a response <command_response>.
 
-- `!command delete <command_name>`. Moderator only. Deletes command with name <command_name>.
+- `!command delete <command_name>`. Moderator only. Deletes a command with the name <command_name>.
 
 - `!command edit <command_name> <command_response>`. Moderator only. Changes <command_name> response to <command_response>.
 
