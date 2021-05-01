@@ -24,7 +24,6 @@ impl GameJamBot {
                 let reply = format!("Now playing {} from @{}. ", game.name, game.author);
                 self.games_state.raffle.viewers_weight.remove(&game.author);
                 self.games_state.current_game = Some(game);
-
                 Some(reply)
             }
             None => {
@@ -109,6 +108,7 @@ impl GameJamBot {
                 Some(reply)
             }
         };
+        self.save_games().unwrap();
         reply
     }
     pub fn skip(&mut self, auto_next: bool) -> Option<String> {
@@ -316,7 +316,7 @@ impl GameJamBot {
                             command: Arc::new(|bot, _, _| bot.next(None, true)),
                         },
                         CommandNode::ArgumentNode {
-                            argument_type: ArgumentType::Line,
+                            argument_type: ArgumentType::Word,
                             child_node: Box::new(CommandNode::FinalNode {
                                 authority_level: AuthorityLevel::Broadcaster,
                                 command: Arc::new(|bot, _, mut args| {
@@ -381,7 +381,9 @@ impl GameJamBot {
                     child_nodes: vec![CommandNode::FinalNode {
                         authority_level: AuthorityLevel::Any,
                         command: Arc::new(|bot, sender_name, _| {
-                            if bot.config.enable_queue_command {
+                            if let Some(config) = &bot.config.google_sheet_config {
+                                Some(format!("Look at the current queue at: https://docs.google.com/spreadsheets/d/{}/edit#gid=0. Blue - current game. White - queue games. Red - skipped games. Green - played games.", config.sheet_id))
+                            } else if bot.config.queue_mode {
                                 let mut reply = String::new();
                                 if let Some((pos, _)) = bot
                                     .games_state

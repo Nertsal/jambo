@@ -2,6 +2,7 @@ use async_trait::async_trait;
 use futures::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, time::Instant};
+use tokio_compat_02::FutureExt;
 use twitch_irc::login::StaticLoginCredentials;
 use twitch_irc::message::{PrivmsgMessage, ServerMessage};
 use twitch_irc::{ClientConfig, TCPTransport, TwitchIRCClient};
@@ -37,8 +38,11 @@ async fn main() {
         login_config.login_name.clone(),
         Some(login_config.oauth_token.clone()),
     ));
+
     let (mut incoming_messages, client) =
-        TwitchIRCClient::<TCPTransport, StaticLoginCredentials>::new(client_config);
+        async { TwitchIRCClient::<TCPTransport, StaticLoginCredentials>::new(client_config) }
+            .compat()
+            .await;
 
     let mut channels_bot = ChannelsBot::new(&login_config, &bots_config);
 
