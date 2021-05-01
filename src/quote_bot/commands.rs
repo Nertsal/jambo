@@ -1,3 +1,4 @@
+use rand::seq::SliceRandom;
 use std::sync::Arc;
 
 use super::*;
@@ -14,6 +15,28 @@ impl QuoteBot {
             commands: vec![CommandNode::LiteralNode {
                 literal: "!quote".to_owned(),
                 child_nodes: vec![
+                    CommandNode::FinalNode {
+                        authority_level: AuthorityLevel::Any,
+                        command: Arc::new(|bot, _, _| {
+                            if let Some(random_id) = bot
+                                .config
+                                .quotes
+                                .keys()
+                                .collect::<Vec<&Id>>()
+                                .choose(&mut rand::thread_rng())
+                            {
+                                Some(format!(
+                                    "#{}: {}",
+                                    random_id.raw(),
+                                    bot.config.quotes[random_id]
+                                ))
+                            } else {
+                                Some(format!(
+                                    "No quotes yet. Add new ones with !quote add <quote>"
+                                ))
+                            }
+                        }),
+                    },
                     CommandNode::LiteralNode {
                         literal: "add".to_owned(),
                         child_nodes: vec![CommandNode::ArgumentNode {
