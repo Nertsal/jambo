@@ -135,6 +135,7 @@ impl GameJamBot {
         for game in self.games_state.games_queue.drain(..) {
             self.games_state.skipped.push(game);
         }
+        self.save_games().unwrap();
         Some(format!(
             "All games from the queue are moved to the skipped list."
         ))
