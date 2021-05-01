@@ -117,8 +117,6 @@ The main bot, that controls other bots.
 
 - `!stop`. Moderator only. Moves current game to played list.
 
-- `!clear`. Broadcaster only. Clears current queue.
-
 - `!force`. Moderator only. If currently waiting for response from author, cancels waiting.
 
 - `!close`. Moderator only. Closes queue, disabling new submits.

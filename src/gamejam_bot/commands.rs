@@ -503,17 +503,6 @@ impl GameJamBot {
                     }],
                 },
                 CommandNode::LiteralNode {
-                    literal: "!clear".to_owned(),
-                    child_nodes: vec![CommandNode::FinalNode {
-                        authority_level: AuthorityLevel::Broadcaster,
-                        command: Arc::new(|bot, _, _| {
-                            bot.games_state.games_queue.clear();
-                            bot.save_games().unwrap();
-                            Some("The queue has been cleared".to_owned())
-                        }),
-                    }],
-                },
-                CommandNode::LiteralNode {
                     literal: "!force".to_owned(),
                     child_nodes: vec![CommandNode::FinalNode {
                         authority_level: AuthorityLevel::Moderator,
