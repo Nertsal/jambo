@@ -241,6 +241,19 @@ impl GameJamBot {
         let update_values = BatchUpdateSpreadsheetRequest {
             requests: Some(vec![
                 Request {
+                    update_sheet_properties: Some(UpdateSheetPropertiesRequest {
+                        properties: Some(SheetProperties {
+                            grid_properties: Some(GridProperties {
+                                frozen_row_count: Some(1),
+                                ..Default::default()
+                            }),
+                            ..Default::default()
+                        }),
+                        fields: Some("gridProperties.frozenRowCount".to_owned()),
+                    }),
+                    ..Default::default()
+                },
+                Request {
                     repeat_cell: Some(RepeatCellRequest {
                         fields: Some("*".to_owned()),
                         range: Some(GridRange {
