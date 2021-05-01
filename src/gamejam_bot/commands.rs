@@ -200,7 +200,7 @@ impl GameJamBot {
         self.games_state.raffle.mode = RaffleMode::Active {
             joined: HashMap::new(),
         };
-        self.save_games().unwrap();
+        self.set_current(None);
         Some(format!(
             "The raffle has started! Type !join to join the raffle."
         ))
@@ -245,7 +245,13 @@ impl GameJamBot {
             .or_insert(self.config.raffle_default_weight);
         match &mut self.games_state.raffle.mode {
             RaffleMode::Active { joined } => {
-                joined.insert(sender_name, weight);
+                if !self
+                    .played_games
+                    .iter()
+                    .any(|game| game.author == sender_name)
+                {
+                    joined.insert(sender_name, weight);
+                }
             }
             _ => (),
         }
