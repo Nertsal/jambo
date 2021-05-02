@@ -242,7 +242,7 @@ impl GameJamBot {
                             Some(format!("{} has won the raffle!", sender_name))
                         }
                     },
-                    Err(_) => Some(format!("Error trying to finish the raffle")),
+                    Err(_) => Some(format!("Noone entered the raffle :(")),
                 }
             }
             _ => Some(format!("The raffle should be started first: !raffle")),
