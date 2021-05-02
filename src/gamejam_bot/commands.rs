@@ -286,13 +286,16 @@ impl GameJamBot {
             .iter()
             .find(|game| game.author == author_name)
         {
-            self.games_state.returned_queue.push_back(game.clone());
+            match self.config.return_mode {
+                ReturnMode::Front => self.games_state.returned_queue.push_back(game.clone()),
+                ReturnMode::Back => self.games_state.games_queue.push_back(game.clone()),
+            }
             self.games_state
                 .skipped
                 .retain(|game| game.author != author_name);
             self.save_games().unwrap();
             Some(format!(
-                "@{}, your game was returned to the front of the queue",
+                "@{}, your game was returned to the queue",
                 author_name
             ))
         } else {
@@ -384,36 +387,38 @@ impl GameJamBot {
                     child_nodes: vec![CommandNode::FinalNode {
                         authority_level: AuthorityLevel::Any,
                         command: Arc::new(|bot, sender_name, _| {
+                            let mut reply = String::new();
+                            if let Some((pos, _)) = bot
+                                .games_state
+                                .queue()
+                                .enumerate()
+                                .find(|(_, game)| game.author == sender_name)
+                            {
+                                reply.push_str(&format!(
+                                    "@{}, your game is {} in the queue. ",
+                                    sender_name,
+                                    pos + 1
+                                ))
+                            } else if bot
+                                .games_state
+                                .skipped
+                                .iter()
+                                .any(|game| game.author == sender_name)
+                            {
+                                reply.push_str(&format!("@{}, your game was skipped. You may return to the queue using !return command. ", sender_name))
+                            } else if let Some(game) = &bot.games_state.current_game {
+                                if game.author == sender_name {
+                                    reply.push_str(&format!(
+                                        "@{}, we are currently playing your game. ",
+                                        sender_name
+                                    ))
+                                }
+                            }
+
                             if let Some(config) = &bot.config.google_sheet_config {
-                                Some(format!("Look at the current queue at: https://docs.google.com/spreadsheets/d/{}/edit#gid=0", config.sheet_id))
+                                reply.push_str(&format!("Look at the current queue at: https://docs.google.com/spreadsheets/d/{}/edit#gid=0", config.sheet_id))
                             } else if bot.config.queue_mode {
                                 let mut reply = String::new();
-                                if let Some((pos, _)) = bot
-                                    .games_state
-                                    .queue()
-                                    .enumerate()
-                                    .find(|(_, game)| game.author == sender_name)
-                                {
-                                    reply.push_str(&format!(
-                                        "@{}, your game is {} in the queue. ",
-                                        sender_name,
-                                        pos + 1
-                                    ))
-                                } else if bot
-                                    .games_state
-                                    .skipped
-                                    .iter()
-                                    .any(|game| game.author == sender_name)
-                                {
-                                    reply.push_str(&format!("@{}, your game was skipped. You may return to the front of the queue using !return command. ", sender_name))
-                                } else if let Some(game) = &bot.games_state.current_game {
-                                    if game.author == sender_name {
-                                        reply.push_str(&format!(
-                                            "@{}, we are currently playing your game. ",
-                                            sender_name
-                                        ))
-                                    }
-                                }
                                 let games_count = bot.games_state.queue().count();
                                 if games_count == 0 {
                                     reply.push_str("The queue is empty");
@@ -423,6 +428,9 @@ impl GameJamBot {
                                         games_count
                                     ));
                                 }
+                            }
+
+                            if !reply.is_empty() {
                                 Some(reply)
                             } else {
                                 None

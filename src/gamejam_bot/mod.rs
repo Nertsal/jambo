@@ -7,6 +7,7 @@ mod commands;
 #[derive(Serialize, Deserialize)]
 pub struct GameJamConfig {
     queue_mode: bool,
+    return_mode: ReturnMode,
     auto_return: bool,
     response_time_limit: Option<u64>,
     link_start: Option<String>,
@@ -80,6 +81,12 @@ impl GamesState {
     fn queue(&self) -> impl Iterator<Item = &Game> {
         self.returned_queue.iter().chain(self.games_queue.iter())
     }
+}
+
+#[derive(Serialize, Deserialize, Clone, Copy)]
+enum ReturnMode {
+    Back,
+    Front,
 }
 
 #[derive(Serialize, Deserialize, Clone)]

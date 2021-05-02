@@ -53,6 +53,7 @@ The main bot, that controls other bots.
 ```
 {
     "queue_mode": true,
+    "return_mode": "Back",
     "auto_return": false,
     "response_time_limit": null,
     "link_start": "https://ldjam.com/events/ludum-dare/",
@@ -83,6 +84,8 @@ The main bot, that controls other bots.
 ```
 
 - `queue_mode`: bool. Defines, whether !queue command shows one's place in the queue, and its length.
+
+- `return_mode`: ReturnMode. Defines, where the game will end up after !return: `Back` or `Front` of the queue.
 
 - `auto_return`: bool. Defines, whether !return will be called automatically for every message.
 
