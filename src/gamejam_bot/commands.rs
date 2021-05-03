@@ -280,19 +280,19 @@ impl GameJamBot {
         if !self.games_state.is_open {
             return None;
         }
-        let reply = if let Some(game) = self
+        let reply = if let Some(index) = self
             .games_state
             .skipped
             .iter()
-            .find(|game| game.author == author_name)
+            .enumerate()
+            .find(|(_, game)| game.author == author_name)
+            .map(|(index, _)| index)
         {
+            let game = self.games_state.skipped.remove(index);
             match self.config.return_mode {
-                ReturnMode::Front => self.games_state.returned_queue.push_back(game.clone()),
-                ReturnMode::Back => self.games_state.games_queue.push_back(game.clone()),
+                ReturnMode::Front => self.games_state.returned_queue.push_back(game),
+                ReturnMode::Back => self.games_state.games_queue.push_back(game),
             }
-            self.games_state
-                .skipped
-                .retain(|game| game.author != author_name);
             self.save_games().unwrap();
             Some(format!(
                 "@{}, your game was returned to the queue",
@@ -479,21 +479,27 @@ impl GameJamBot {
                     child_nodes: vec![CommandNode::FinalNode {
                         authority_level: AuthorityLevel::Broadcaster,
                         command: Arc::new(|bot, _, _| {
-                            if let Some(skipped) = bot.games_state.skipped.pop() {
-                                let mut reply = String::new();
-                                if let Some(current) = bot.games_state.current_game.take() {
-                                    bot.games_state.returned_queue.push_front(current);
-                                    reply.push_str(
-                                        "Current game has been put at the front of the queue. ",
-                                    );
-                                }
+                            let mut reply = String::new();
+                            if let Some(current) = bot.games_state.current_game.take() {
+                                bot.games_state.returned_queue.push_front(current);
+                                reply.push_str(
+                                    "Current game has been put at the front of the queue. ",
+                                );
+                            }
+                            if bot.games_state.skipped.len() > 0 {
+                                let skipped = bot.games_state.skipped.remove(0);
                                 match bot.set_current(Some(skipped)) {
                                     Some(set_reply) => reply.push_str(&set_reply),
                                     None => (),
                                 }
+                            } else {
+                                reply.push_str("No game has been skipped yet")
+                            }
+                            if !reply.is_empty() {
+                                bot.save_games().unwrap();
                                 Some(reply)
                             } else {
-                                Some("No game has been skipped yet".to_owned())
+                                None
                             }
                         }),
                     }],
