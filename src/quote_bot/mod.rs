@@ -4,16 +4,12 @@ mod commands;
 
 #[derive(Serialize, Deserialize)]
 struct QuoteConfig {
-    id_generator: IdGenerator,
-    quotes: HashMap<Id, String>,
+    quotes: HashMap<String, String>,
 }
 
 impl Default for QuoteConfig {
     fn default() -> Self {
-        let mut id_generator = IdGenerator::new();
-        id_generator.gen();
         Self {
-            id_generator,
             quotes: HashMap::new(),
         }
     }

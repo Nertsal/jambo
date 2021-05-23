@@ -18,17 +18,16 @@ impl QuoteBot {
                     CommandNode::FinalNode {
                         authority_level: AuthorityLevel::Any,
                         command: Arc::new(|bot, _, _| {
-                            if let Some(random_id) = bot
+                            if let Some(random_quote_name) = bot
                                 .config
                                 .quotes
                                 .keys()
-                                .collect::<Vec<&Id>>()
+                                .collect::<Vec<&String>>()
                                 .choose(&mut rand::thread_rng())
                             {
                                 Some(format!(
-                                    "#{}: {}",
-                                    random_id.raw(),
-                                    bot.config.quotes[random_id]
+                                    "Quote {}: {}",
+                                    random_quote_name, bot.config.quotes[random_quote_name as &str]
                                 ))
                             } else {
                                 Some(format!(
@@ -40,20 +39,35 @@ impl QuoteBot {
                     CommandNode::LiteralNode {
                         literal: "add".to_owned(),
                         child_nodes: vec![CommandNode::ArgumentNode {
-                            argument_type: ArgumentType::Line,
-                            child_node: Box::new(CommandNode::FinalNode {
-                                authority_level: AuthorityLevel::Moderator,
-                                command: Arc::new(|bot, _, mut args| {
-                                    let quote = args.remove(0);
-                                    let quote_id = bot.config.id_generator.gen();
-                                    let response = Some(format!(
-                                        "Added new quote {}: {}",
-                                        quote_id.raw(),
-                                        quote
-                                    ));
-                                    bot.config.quotes.insert(quote_id, quote);
-                                    bot.config.save().unwrap();
-                                    response
+                            argument_type: ArgumentType::Word,
+                            child_node: Box::new(CommandNode::ArgumentNode {
+                                argument_type: ArgumentType::Line,
+                                child_node: Box::new(CommandNode::FinalNode {
+                                    authority_level: AuthorityLevel::Moderator,
+                                    command: Arc::new(|bot, _, args| {
+                                        if let [quote_name, quote] = args.as_slice() {
+                                            let response =
+                                                if bot.config.quotes.contains_key(quote_name) {
+                                                    Some(format!(
+                                                        "A quote with the name {} already exists",
+                                                        quote_name
+                                                    ))
+                                                } else {
+                                                    let response = Some(format!(
+                                                        "Added new quote {}: {}",
+                                                        quote_name, quote
+                                                    ));
+                                                    bot.config.quotes.insert(
+                                                        quote_name.to_owned(),
+                                                        quote.to_owned(),
+                                                    );
+                                                    bot.config.save().unwrap();
+                                                    response
+                                                };
+                                            return response;
+                                        }
+                                        None
+                                    }),
                                 }),
                             }),
                         }],
@@ -65,17 +79,14 @@ impl QuoteBot {
                             child_node: Box::new(CommandNode::FinalNode {
                                 authority_level: AuthorityLevel::Moderator,
                                 command: Arc::new(|bot, _, mut args| {
-                                    let quote_id = args.remove(0);
-                                    if let Ok(quote_id) = serde_json::from_str(quote_id.as_str()) {
-                                        if let Some(quote) = bot.config.quotes.remove(&quote_id) {
-                                            let response = Some(format!(
-                                                "Deleted quote {:?}: {}",
-                                                quote_id.raw(),
-                                                quote
-                                            ));
-                                            bot.config.save().unwrap();
-                                            return response;
-                                        }
+                                    let quote_name = args.remove(0);
+                                    if let Some(quote) = bot.config.quotes.remove(&quote_name) {
+                                        let response = Some(format!(
+                                            "Deleted quote {:?}: {}",
+                                            quote_name, quote
+                                        ));
+                                        bot.config.save().unwrap();
+                                        return response;
                                     }
                                     None
                                 }),
@@ -91,35 +102,72 @@ impl QuoteBot {
                                 child_node: Box::new(CommandNode::FinalNode {
                                     authority_level: AuthorityLevel::Moderator,
                                     command: Arc::new(|bot, _, args| {
-                                        if let [quote_id, quote] = args.as_slice() {
-                                            if let Ok(quote_id) = serde_json::from_str(quote_id) {
-                                                let response = if let Some(old_quote) =
-                                                    bot.config.quotes.get_mut(&quote_id)
+                                        if let [quote_name, quote] = args.as_slice() {
+                                            let response = if let Some(old_quote) =
+                                                bot.config.quotes.get_mut(quote_name)
+                                            {
+                                                let response = Some(format!(
+                                                    "Edited quote {}: {}. New quote: {}",
+                                                    quote_name, old_quote, quote
+                                                ));
+                                                *old_quote = quote.to_owned();
+                                                response
+                                            } else {
+                                                let response = Some(format!(
+                                                    "Added new quote {}: {}",
+                                                    quote_name, quote
+                                                ));
+                                                bot.config.quotes.insert(
+                                                    quote_name.to_owned(),
+                                                    quote.to_owned(),
+                                                );
+                                                response
+                                            };
+                                            bot.config.save().unwrap();
+                                            return response;
+                                        }
+                                        None
+                                    }),
+                                }),
+                            }),
+                        }],
+                    },
+                    CommandNode::LiteralNode {
+                        literal: "rename".to_owned(),
+                        child_nodes: vec![CommandNode::ArgumentNode {
+                            argument_type: ArgumentType::Word,
+                            child_node: Box::new(CommandNode::ArgumentNode {
+                                argument_type: ArgumentType::Word,
+                                child_node: Box::new(CommandNode::FinalNode {
+                                    authority_level: AuthorityLevel::Moderator,
+                                    command: Arc::new(|bot, _, args| {
+                                        if let [quote_name, quote_new_name] = args.as_slice() {
+                                            let response =
+                                                if bot.config.quotes.contains_key(quote_new_name) {
+                                                    Some(format!(
+                                                        "A quote with name {} already exists",
+                                                        quote_new_name
+                                                    ))
+                                                } else if let Some(quote) =
+                                                    bot.config.quotes.remove(quote_name)
                                                 {
                                                     let response = Some(format!(
-                                                        "Edited quote {}: {}. New quote: {}",
-                                                        quote_id.raw(),
-                                                        old_quote,
-                                                        quote
-                                                    ));
-                                                    *old_quote = quote.to_owned();
-                                                    response
-                                                } else {
-                                                    let response = Some(format!(
-                                                        "Added new quote {}: {}",
-                                                        quote_id.raw(),
-                                                        quote
+                                                        "Changed quote's name from {} to {}",
+                                                        quote_name, quote_new_name
                                                     ));
                                                     bot.config
                                                         .quotes
-                                                        .insert(quote_id, quote.to_owned());
+                                                        .insert(quote_new_name.to_owned(), quote);
                                                     response
+                                                } else {
+                                                    Some(format!(
+                                                        "No quote with name {} found",
+                                                        quote_name
+                                                    ))
                                                 };
-                                                bot.config.save().unwrap();
-                                                return response;
-                                            }
+                                            bot.config.save().unwrap();
+                                            return response;
                                         }
-
                                         None
                                     }),
                                 }),
@@ -131,12 +179,10 @@ impl QuoteBot {
                         child_node: Box::new(CommandNode::FinalNode {
                             authority_level: AuthorityLevel::Any,
                             command: Arc::new(|bot, _, mut args| {
-                                let quote_id = args.remove(0);
-                                if let Ok(quote_id) = serde_json::from_str(quote_id.as_str()) {
-                                    if let Some(quote) = bot.config.quotes.get(&quote_id) {
-                                        let response = Some(quote.clone());
-                                        return response;
-                                    }
+                                let quote_name = args.remove(0);
+                                if let Some(quote) = bot.config.quotes.get(&quote_name) {
+                                    let response = Some(quote.clone());
+                                    return response;
                                 }
                                 None
                             }),

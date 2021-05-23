@@ -11,7 +11,6 @@ mod channels_bot;
 mod commands;
 mod custom_bot;
 mod gamejam_bot;
-mod id;
 mod quote_bot;
 mod reply_bot;
 
@@ -19,7 +18,6 @@ use channels_bot::{BotsConfig, ChannelsBot};
 use commands::*;
 use custom_bot::CustomBot;
 use gamejam_bot::GameJamBot;
-use id::*;
 use quote_bot::QuoteBot;
 use reply_bot::ReplyBot;
 
