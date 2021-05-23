@@ -43,7 +43,7 @@ impl CustomBot {
                     config.save().unwrap();
                     config
                 }
-                _ => panic!(error),
+                _ => panic!("{}", error),
             },
         };
         let mut bot = Self {

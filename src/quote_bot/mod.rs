@@ -53,7 +53,7 @@ impl QuoteBot {
                     config.save().unwrap();
                     config
                 }
-                _ => panic!(error),
+                _ => panic!("{}", error),
             },
         };
         Self {
