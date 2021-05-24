@@ -159,13 +159,15 @@ No config required.
 
 - `!quote`. Displays a random quote.
 
-- `!quote add <quote>`. Moderator only. Add quote <quote>.
+- `!quote add <quote_name> <quote>`. Moderator only. Add quote <quote_name>: <quote>.
 
-- `!quote delete <quote_id>`. Moderator only. Deletes quote <quote_id>.
+- `!quote delete <quote_name>`. Moderator only. Deletes quote <quote_name>.
 
-- `!quote edit <quote_id> <quote>`. Moderator only. Edits quote <quote_id> to <quote>.
+- `!quote edit <quote_name> <quote>`. Moderator only. Edits quote <quote_name> to <quote>.
 
-- `!quote <quote_id>`. Displays quote <quote_id>.
+- `!quote rename <quote_name> <new_name>`. Moderator only. Renames quote <quote_name> to <quote>
+
+- `!quote <quote_name>`. Displays quote <quote_name>.
 
 ### **ReplyBot**
 
