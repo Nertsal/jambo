@@ -27,7 +27,7 @@ Create a **config** folder at the root of the project with a folder inside for e
 }
 ```
 
-Check how to setup bots' configs at their own section.
+See how to setup bots' configs in the respective section.
 
 Run using `cargo run` or `cargo run --release`.
 
@@ -83,39 +83,39 @@ The main bot, that controls other bots.
 }
 ```
 
-- `queue_mode`: bool. Defines, whether !queue command shows one's place in the queue, and its length.
+- `queue_mode`: bool. Defines, whether **!queue** shows one's place in the queue and queue's length.
 
 - `return_mode`: ReturnMode. Defines, where the game will end up after !return: `Back` or `Front` of the queue.
 
-- `auto_return`: bool. Defines, whether !return will be called automatically for every message.
+- `auto_return`: bool. Defines, whether **!return** will be called automatically for every message.
 
-- `response_time_limit`: Option\<u64\>. If not null, then !next will require confirmation from author, that he is in chat, to play his game. If there is no response in given time (in seconds), then the game will skipped, and !next will be called.
+- `response_time_limit`: Option\<u64\>. If not null, then **!next** will require confirmation from the author, that they are in chat, to play his game. If there is no response in the given time (in seconds), then the game will be skipped, and !next will be called.
 
-- `link_start`: Option\<String\>. If not null, then !submit will only allow link, which start with the given string.
+- `link_start`: Option\<String\>. If not null, then **!submit** will only allow links, which start with the given string.
 
 - `allow_direct_link_submit`: bool. If true, then posted links, which start with **link_start**, will be submitted.
 
 - `raffle_default_weight`: usize. Determines default weight when participating in raffles for the first time.
 
-- `google_sheet_config`: Option\<GoogleSheetConfig\>. If not null, then current queue state will displayed in the given google sheet. (Requires **service_key.json** file)
+- `google_sheet_config`: Option\<GoogleSheetConfig\>. If not null, then current queue state will be displayed in the given google sheet. (Requires **service_key.json** file)
 
 #### Commands
 
-- `!submit <game_link>`. If **link_start** is given, then checks, that **game_link** starts with **link_start**. If **allow_direct_link_submit** is true, then <game_link> will also be interpreted as !submit <game_link>, if **link_start** is also given.
+- `!submit <game_link>`. If **link_start** is given, then **!submit** checks, that **game_link** starts with **link_start**. If **allow_direct_link_submit** is true, then <game_link> will also be interpreted as !submit <game_link>, if **link_start** is also given.
 
-- `!next`. Broadcaster only. Moves current game to played list, gets the next game from the queue and puts as current. If **response_time_limit** is given, then waits for a reply from author. If there is not response in given time, `!skip next` is called.
+- `!next`. Broadcaster only. Moves current game to the played list, gets the next game from the queue and sets it as current. If **response_time_limit** is given, then waits for a reply from the author. If there is no response in the given time, **!skip next** is called.
 
-- `!next <author_name>`. Broadcaster only. Moves current game to played list, looks for the game from <author_name>, if found, sets it as current. No response ever required.
+- `!next <author_name>`. Broadcaster only. Moves current game to the played list, looks for the game from <author_name>, if found, sets it as current. No response required, even if **response_time_limit** is not null.
 
 - `!cancel`. Removes one's game from the queue.
 
 - `!cancel <author_name>`. Moderator only. Works just like **!cancel**, but looks for <author_name>.
 
-- `!queue`. If **google_sheet_config** is given, then posts a link to the google sheet, else if **queue_mode** is true, then displays queue length, one's place in the queue, if present.
+- `!queue`. If **google_sheet_config** is given, then posts a link to the google sheet, else if **queue_mode** is true, then displays queue length and one's place in the queue, if present.
 
 - `!current`. Displays current game.
 
-- `!skip`. Broadcaster only. Moves current game to skipped list.
+- `!skip`. Broadcaster only. Moves current game to the skipped list.
 
 - `!skip next`. Broadcaster only. Calls **!skip** and then **!next**.
 
@@ -123,19 +123,19 @@ The main bot, that controls other bots.
 
 - `!unskip`. Broadcaster only. Undoes **!skip**.
 
-- `!stop`. Moderator only. Moves current game to played list.
+- `!stop`. Moderator only. Moves current game to the played list.
 
-- `!force`. Moderator only. If currently waiting for response from author, cancels waiting.
+- `!force`. Moderator only. If currently waiting for response from the author, cancels waiting (the game will be kept as current).
 
-- `!close`. Moderator only. Closes queue, disabling new submits.
+- `!close`. Moderator only. Closes the queue, disallowing new submits.
 
-- `!open`. Moderator only. Opens queue, enabling new submits.
+- `!open`. Moderator only. Opens the queue, allowing new submits.
 
-- `!raffle`. Broadcaster only. Starts the raffle.
+- `!raffle`. Broadcaster only. Starts the raffle. Viewers can join the raffle using !join.
 
 - `!raffle cancel`. Broadcaster only. Cancels the raffle.
 
-- `!raffle finish`. Broadcaster only. Finishes the raffle, chooses weighted random joined viewer, increases every joined viewer's weight by 1.
+- `!raffle finish`. Broadcaster only. Finishes the raffle, chooses weighted random joined viewer and if they have submitted a game, then sets it as current, increases every joined viewer's weight by 1.
 
 - `!join`. Join the raffle.
 
