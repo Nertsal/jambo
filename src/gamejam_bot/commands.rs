@@ -388,18 +388,22 @@ impl GameJamBot {
                         authority_level: AuthorityLevel::Any,
                         command: Arc::new(|bot, sender_name, _| {
                             let mut reply = String::new();
-                            if let Some((pos, _)) = bot
-                                .games_state
-                                .queue()
-                                .enumerate()
-                                .find(|(_, game)| game.author == sender_name)
-                            {
-                                reply.push_str(&format!(
-                                    "@{}, your game is {} in the queue. ",
-                                    sender_name,
-                                    pos + 1
-                                ))
-                            } else if bot
+                            if bot.config.queue_mode {
+                                if let Some((pos, _)) = bot
+                                    .games_state
+                                    .queue()
+                                    .enumerate()
+                                    .find(|(_, game)| game.author == sender_name)
+                                {
+                                    reply.push_str(&format!(
+                                        "@{}, your game is {} in the queue. ",
+                                        sender_name,
+                                        pos + 1
+                                    ));
+                                }
+                            }
+                            
+                            if bot
                                 .games_state
                                 .skipped
                                 .iter()
