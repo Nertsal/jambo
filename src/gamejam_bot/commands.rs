@@ -211,13 +211,20 @@ impl GameJamBot {
         }
     }
     fn raffle_start(&mut self) -> Option<String> {
-        self.games_state.raffle.mode = RaffleMode::Active {
-            joined: HashMap::new(),
-        };
-        self.set_current(None);
-        Some(format!(
-            "The raffle has started! Type !join to join the raffle."
-        ))
+        match &self.games_state.raffle.mode {
+            RaffleMode::Active { .. } => Some(format!(
+                "The raffle is in progress. Type !join to join the raffle."
+            )),
+            RaffleMode::Inactive => {
+                self.games_state.raffle.mode = RaffleMode::Active {
+                    joined: HashMap::new(),
+                };
+                self.set_current(None);
+                Some(format!(
+                    "The raffle has started! Type !join to join the raffle."
+                ))
+            }
+        }
     }
     fn raffle_finish(&mut self) -> Option<String> {
         let raffle_mode =
@@ -402,7 +409,7 @@ impl GameJamBot {
                                     ));
                                 }
                             }
-                            
+
                             if bot
                                 .games_state
                                 .skipped
