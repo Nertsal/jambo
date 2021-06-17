@@ -154,6 +154,52 @@ impl GameJamBot {
             "All games from the queue are moved to the skipped list."
         ))
     }
+    fn unskip(&mut self, author_name: Option<String>) -> Option<String> {
+        let mut reply = String::new();
+        if let Some(current) = self.games_state.current_game.take() {
+            self.games_state.returned_queue.push_front(current);
+            reply.push_str("Current game has been put at the front of the queue. ");
+        }
+
+        match author_name {
+            Some(author_name) => {
+                let skipped = self
+                    .games_state
+                    .skipped
+                    .iter()
+                    .enumerate()
+                    .find_map(|(index, game)| {
+                        if game.author == author_name {
+                            Some(index)
+                        } else {
+                            None
+                        }
+                    })
+                    .map(|index| self.games_state.skipped.remove(index));
+                match self.set_current(skipped) {
+                    Some(set_reply) => reply.push_str(&set_reply),
+                    None => reply.push_str(&format!("No game from {} found", author_name)),
+                }
+            }
+            None => {
+                if self.games_state.skipped.len() > 0 {
+                    let skipped = self
+                        .games_state
+                        .skipped
+                        .remove(self.games_state.skipped.len() - 1);
+                    match self.set_current(Some(skipped)) {
+                        Some(set_reply) => reply.push_str(&set_reply),
+                        None => (),
+                    }
+                } else {
+                    reply.push_str("No game has been skipped yet")
+                }
+            }
+        }
+
+        self.save_games().unwrap();
+        Some(reply)
+    }
     fn check_link(&self, game_link: &str) -> bool {
         if let Some(link_start) = &self.config.link_start {
             game_link.starts_with(link_start)
@@ -494,36 +540,22 @@ impl GameJamBot {
                 },
                 CommandNode::LiteralNode {
                     literal: "!unskip".to_owned(),
-                    child_nodes: vec![CommandNode::FinalNode {
-                        authority_level: AuthorityLevel::Broadcaster,
-                        command: Arc::new(|bot, _, _| {
-                            let mut reply = String::new();
-                            if let Some(current) = bot.games_state.current_game.take() {
-                                bot.games_state.returned_queue.push_front(current);
-                                reply.push_str(
-                                    "Current game has been put at the front of the queue. ",
-                                );
-                            }
-                            if bot.games_state.skipped.len() > 0 {
-                                let skipped = bot
-                                    .games_state
-                                    .skipped
-                                    .remove(bot.games_state.skipped.len() - 1);
-                                match bot.set_current(Some(skipped)) {
-                                    Some(set_reply) => reply.push_str(&set_reply),
-                                    None => (),
-                                }
-                            } else {
-                                reply.push_str("No game has been skipped yet")
-                            }
-                            if !reply.is_empty() {
-                                bot.save_games().unwrap();
-                                Some(reply)
-                            } else {
-                                None
-                            }
-                        }),
-                    }],
+                    child_nodes: vec![
+                        CommandNode::FinalNode {
+                            authority_level: AuthorityLevel::Broadcaster,
+                            command: Arc::new(|bot, _, _| bot.unskip(None)),
+                        },
+                        CommandNode::ArgumentNode {
+                            argument_type: ArgumentType::Word,
+                            child_node: Box::new(CommandNode::FinalNode {
+                                authority_level: AuthorityLevel::Broadcaster,
+                                command: Arc::new(|bot, _, mut args| {
+                                    let author_name = args.remove(0);
+                                    bot.unskip(Some(author_name))
+                                }),
+                            }),
+                        },
+                    ],
                 },
                 CommandNode::LiteralNode {
                     literal: "!stop".to_owned(),
