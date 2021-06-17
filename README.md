@@ -52,6 +52,7 @@ The main bot, that controls other bots.
 `config/gamejam/gamejam_config.json`:
 ```
 {
+    "multiple_submissions": false,
     "queue_mode": true,
     "return_mode": "Back",
     "auto_return": false,
@@ -82,6 +83,8 @@ The main bot, that controls other bots.
     }
 }
 ```
+
+- `multiple_submissions`: bool. Defines, whether viewers are allowed to submit multiple games.
 
 - `queue_mode`: bool. Defines, whether **!queue** shows one's place in the queue and queue's length.
 

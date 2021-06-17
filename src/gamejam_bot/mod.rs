@@ -6,6 +6,7 @@ mod commands;
 
 #[derive(Serialize, Deserialize)]
 pub struct GameJamConfig {
+    multiple_submissions: bool,
     queue_mode: bool,
     return_mode: ReturnMode,
     auto_return: bool,

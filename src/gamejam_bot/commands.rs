@@ -210,6 +210,18 @@ impl GameJamBot {
     fn submit(&mut self, game_link: String, sender_name: String) -> Option<String> {
         if !self.games_state.is_open {
             Some("The queue is closed. You can not submit your game at the moment.".to_owned())
+        } else if !self.config.multiple_submissions
+            && (self
+                .games_state
+                .queue()
+                .any(|game| game.author == sender_name)
+                || self
+                    .games_state
+                    .skipped
+                    .iter()
+                    .any(|game| game.author == sender_name))
+        {
+            Some(format!("You can not submit more than one game"))
         } else if self.check_link(&game_link) {
             if let Some(current_game) = &self.games_state.current_game {
                 if current_game.name == game_link {
