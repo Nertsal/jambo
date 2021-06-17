@@ -132,7 +132,7 @@ impl GameJamBot {
             games_state: GamesState::new(),
             time_limit: None,
             hub: None,
-            update_sheets: false,
+            update_sheets: true,
         };
 
         if bot.config.google_sheet_config.is_some() {
@@ -409,10 +409,12 @@ impl Bot for GameJamBot {
             _ => (),
         };
 
-        if self.update_sheets && self.config.google_sheet_config.is_some() {
-            match self.save_sheets().await {
-                Ok(_) => (),
-                Err(err) => println!("Error trying to save queue into google sheets: {}", err),
+        if self.update_sheets {
+            if self.config.google_sheet_config.is_some() {
+                match self.save_sheets().await {
+                    Ok(_) => (),
+                    Err(err) => println!("Error trying to save queue into google sheets: {}", err),
+                }
             }
             self.update_sheets = false;
         }
