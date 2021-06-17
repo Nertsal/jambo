@@ -103,6 +103,8 @@ The main bot, that controls other bots.
 
 - `!submit <game_link>`. If **link_start** is given, then **!submit** checks, that **game_link** starts with **link_start**. If **allow_direct_link_submit** is true, then <game_link> will also be interpreted as !submit <game_link>, if **link_start** is also given.
 
+- `!return`. Returns one's game from the skipped list to the queue.
+
 - `!next`. Broadcaster only. Moves current game to the played list, gets the next game from the queue and sets it as current. If **response_time_limit** is given, then waits for a reply from the author. If there is no response in the given time, **!skip next** is called.
 
 - `!next <author_name>`. Broadcaster only. Moves current game to the played list, looks for the game from <author_name>, if found, sets it as current. No response required, even if **response_time_limit** is not null.
@@ -123,6 +125,8 @@ The main bot, that controls other bots.
 
 - `!unskip`. Broadcaster only. Undoes **!skip**.
 
+- `!unskip <author_name>`. Broadcaster only. Similar to **!unskip**, but removes game from **author_name** from the skipped list, instead of the last skipped game.
+
 - `!stop`. Moderator only. Moves current game to the played list.
 
 - `!force`. Moderator only. If currently waiting for response from the author, cancels waiting (the game will be kept as current).
@@ -138,6 +142,8 @@ The main bot, that controls other bots.
 - `!raffle finish`. Broadcaster only. Finishes the raffle, chooses weighted random joined viewer and if they have submitted a game, then sets it as current, increases every joined viewer's weight by 1.
 
 - `!join`. Join the raffle.
+
+- `!luck`. Shows one's current luck level (in raffles).
 
 ### **CustomBot**
 
