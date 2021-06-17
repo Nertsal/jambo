@@ -117,7 +117,7 @@ The main bot, that controls other bots.
 
 - `!cancel <author_name>`. Moderator only. Works just like **!cancel**, but looks for <author_name>.
 
-- `!queue`. If **google_sheet_config** is given, then posts a link to the google sheet, else if **queue_mode** is true, then displays queue length and one's place in the queue, if present.
+- `!queue` / `!list`. If **google_sheet_config** is given, then posts a link to the google sheet, else if **queue_mode** is true, then displays queue length and one's place in the queue, if present.
 
 - `!current`. Displays current game.
 
