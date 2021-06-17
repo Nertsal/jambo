@@ -505,7 +505,10 @@ impl GameJamBot {
                                 );
                             }
                             if bot.games_state.skipped.len() > 0 {
-                                let skipped = bot.games_state.skipped.remove(0);
+                                let skipped = bot
+                                    .games_state
+                                    .skipped
+                                    .remove(bot.games_state.skipped.len() - 1);
                                 match bot.set_current(Some(skipped)) {
                                     Some(set_reply) => reply.push_str(&set_reply),
                                     None => (),
