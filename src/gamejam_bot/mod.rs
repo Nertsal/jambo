@@ -215,12 +215,18 @@ impl GameJamBot {
         use google_sheets4::api::*;
 
         let mut rows = Vec::new();
+        let mut values = vec!["Game link".to_owned(), "Author".to_owned()];
+        if self
+            .config
+            .google_sheet_config
+            .as_ref()
+            .unwrap()
+            .display_luck
+        {
+            values.push("Luck".to_owned());
+        }
         rows.push(self.values_to_row_data(
-            vec![
-                "Game link".to_owned(),
-                "Author".to_owned(),
-                "Luck".to_owned(),
-            ],
+            values,
             Some(CellFormat {
                 text_format: Some(TextFormat {
                     bold: Some(true),
