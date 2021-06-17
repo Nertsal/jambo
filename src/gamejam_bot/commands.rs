@@ -310,6 +310,13 @@ impl GameJamBot {
         };
         reply
     }
+    fn luck(&self, author_name: &str) -> Option<String> {
+        self.games_state
+            .raffle
+            .viewers_weight
+            .get(author_name)
+            .map(|luck| format!("@{}, your current luck level is {}", author_name, luck))
+    }
     pub fn commands() -> BotCommands<Self> {
         BotCommands {
             commands: vec![
@@ -589,6 +596,13 @@ impl GameJamBot {
                     child_nodes: vec![CommandNode::FinalNode {
                         authority_level: AuthorityLevel::Any,
                         command: Arc::new(|bot, sender_name, _| bot.raffle_join(sender_name)),
+                    }],
+                },
+                CommandNode::LiteralNode {
+                    literal: "!luck".to_owned(),
+                    child_nodes: vec![CommandNode::FinalNode {
+                        authority_level: AuthorityLevel::Any,
+                        command: Arc::new(|bot, sender_name, _| bot.luck(&sender_name)),
                     }],
                 },
             ],
