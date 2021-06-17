@@ -395,7 +395,7 @@ impl GameJamBot {
                     }),
                 },
                 CommandNode::LiteralNode {
-                    literal: "!submit".to_owned(),
+                    literals: vec!["!submit".to_owned()],
                     child_nodes: vec![CommandNode::ArgumentNode {
                         argument_type: ArgumentType::Word,
                         child_node: Box::new(CommandNode::FinalNode {
@@ -408,14 +408,14 @@ impl GameJamBot {
                     }],
                 },
                 CommandNode::LiteralNode {
-                    literal: "!return".to_owned(),
+                    literals: vec!["!return".to_owned()],
                     child_nodes: vec![CommandNode::FinalNode {
                         authority_level: AuthorityLevel::Any,
                         command: Arc::new(|bot, sender_name, _| bot.return_game(&sender_name)),
                     }],
                 },
                 CommandNode::LiteralNode {
-                    literal: "!next".to_owned(),
+                    literals: vec!["!next".to_owned()],
                     child_nodes: vec![
                         CommandNode::FinalNode {
                             authority_level: AuthorityLevel::Broadcaster,
@@ -434,7 +434,7 @@ impl GameJamBot {
                     ],
                 },
                 CommandNode::LiteralNode {
-                    literal: "!cancel".to_owned(),
+                    literals: vec!["!cancel".to_owned()],
                     child_nodes: vec![
                         CommandNode::FinalNode {
                             authority_level: AuthorityLevel::Any,
@@ -455,7 +455,7 @@ impl GameJamBot {
                     ],
                 },
                 CommandNode::LiteralNode {
-                    literal: "!queue".to_owned(),
+                    literals: vec!["!queue".to_owned(), "!list".to_owned()],
                     child_nodes: vec![CommandNode::FinalNode {
                         authority_level: AuthorityLevel::Any,
                         command: Arc::new(|bot, sender_name, _| {
@@ -515,7 +515,7 @@ impl GameJamBot {
                     }],
                 },
                 CommandNode::LiteralNode {
-                    literal: "!current".to_owned(),
+                    literals: vec!["!current".to_owned()],
                     child_nodes: vec![CommandNode::FinalNode {
                         authority_level: AuthorityLevel::Any,
                         command: Arc::new(|bot, _, _| match &bot.games_state.current_game {
@@ -528,17 +528,17 @@ impl GameJamBot {
                     }],
                 },
                 CommandNode::LiteralNode {
-                    literal: "!skip".to_owned(),
+                    literals: vec!["!skip".to_owned()],
                     child_nodes: vec![
                         CommandNode::LiteralNode {
-                            literal: "next".to_owned(),
+                            literals: vec!["next".to_owned()],
                             child_nodes: vec![CommandNode::FinalNode {
                                 authority_level: AuthorityLevel::Broadcaster,
                                 command: Arc::new(|bot, _, _| bot.skip(true)),
                             }],
                         },
                         CommandNode::LiteralNode {
-                            literal: "all".to_owned(),
+                            literals: vec!["all".to_owned()],
                             child_nodes: vec![CommandNode::FinalNode {
                                 authority_level: AuthorityLevel::Broadcaster,
                                 command: Arc::new(|bot, _, _| bot.skip_all()),
@@ -551,7 +551,7 @@ impl GameJamBot {
                     ],
                 },
                 CommandNode::LiteralNode {
-                    literal: "!unskip".to_owned(),
+                    literals: vec!["!unskip".to_owned()],
                     child_nodes: vec![
                         CommandNode::FinalNode {
                             authority_level: AuthorityLevel::Broadcaster,
@@ -570,7 +570,7 @@ impl GameJamBot {
                     ],
                 },
                 CommandNode::LiteralNode {
-                    literal: "!stop".to_owned(),
+                    literals: vec!["!stop".to_owned()],
                     child_nodes: vec![CommandNode::FinalNode {
                         authority_level: AuthorityLevel::Broadcaster,
                         command: Arc::new(|bot, _, _| {
@@ -580,7 +580,7 @@ impl GameJamBot {
                     }],
                 },
                 CommandNode::LiteralNode {
-                    literal: "!force".to_owned(),
+                    literals: vec!["!force".to_owned()],
                     child_nodes: vec![CommandNode::FinalNode {
                         authority_level: AuthorityLevel::Moderator,
                         command: Arc::new(|bot, _, _| {
@@ -594,7 +594,7 @@ impl GameJamBot {
                     }],
                 },
                 CommandNode::LiteralNode {
-                    literal: "!close".to_owned(),
+                    literals: vec!["!close".to_owned()],
                     child_nodes: vec![CommandNode::FinalNode {
                         authority_level: AuthorityLevel::Moderator,
                         command: Arc::new(|bot, _, _| {
@@ -605,7 +605,7 @@ impl GameJamBot {
                     }],
                 },
                 CommandNode::LiteralNode {
-                    literal: "!open".to_owned(),
+                    literals: vec!["!open".to_owned()],
                     child_nodes: vec![CommandNode::FinalNode {
                         authority_level: AuthorityLevel::Moderator,
                         command: Arc::new(|bot, _, _| {
@@ -616,21 +616,21 @@ impl GameJamBot {
                     }],
                 },
                 CommandNode::LiteralNode {
-                    literal: "!raffle".to_owned(),
+                    literals: vec!["!raffle".to_owned()],
                     child_nodes: vec![
                         CommandNode::FinalNode {
                             authority_level: AuthorityLevel::Broadcaster,
                             command: Arc::new(|bot, _, _| bot.raffle_start()),
                         },
                         CommandNode::LiteralNode {
-                            literal: "finish".to_owned(),
+                            literals: vec!["finish".to_owned()],
                             child_nodes: vec![CommandNode::FinalNode {
                                 authority_level: AuthorityLevel::Broadcaster,
                                 command: Arc::new(|bot, _, _| bot.raffle_finish()),
                             }],
                         },
                         CommandNode::LiteralNode {
-                            literal: "cancel".to_owned(),
+                            literals: vec!["cancel".to_owned()],
                             child_nodes: vec![CommandNode::FinalNode {
                                 authority_level: AuthorityLevel::Broadcaster,
                                 command: Arc::new(|bot, _, _| bot.raffle_cancel()),
@@ -639,14 +639,14 @@ impl GameJamBot {
                     ],
                 },
                 CommandNode::LiteralNode {
-                    literal: "!join".to_owned(),
+                    literals: vec!["!join".to_owned()],
                     child_nodes: vec![CommandNode::FinalNode {
                         authority_level: AuthorityLevel::Any,
                         command: Arc::new(|bot, sender_name, _| bot.raffle_join(sender_name)),
                     }],
                 },
                 CommandNode::LiteralNode {
-                    literal: "!luck".to_owned(),
+                    literals: vec!["!luck".to_owned()],
                     child_nodes: vec![CommandNode::FinalNode {
                         authority_level: AuthorityLevel::Any,
                         command: Arc::new(|bot, sender_name, _| bot.luck(&sender_name)),

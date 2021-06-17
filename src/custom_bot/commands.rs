@@ -12,10 +12,10 @@ impl CustomBot {
     pub fn commands() -> BotCommands<Self> {
         BotCommands {
             commands: vec![CommandNode::LiteralNode {
-                literal: "!command".to_owned(),
+                literals: vec!["!command".to_owned()],
                 child_nodes: vec![
                     CommandNode::LiteralNode {
-                        literal: "new".to_owned(),
+                        literals: vec!["new".to_owned()],
                         child_nodes: vec![CommandNode::ArgumentNode {
                             argument_type: ArgumentType::Word,
                             child_node: Box::new(CommandNode::ArgumentNode {
@@ -42,7 +42,7 @@ impl CustomBot {
                         }],
                     },
                     CommandNode::LiteralNode {
-                        literal: "delete".to_owned(),
+                        literals: vec!["delete".to_owned()],
                         child_nodes: vec![CommandNode::ArgumentNode {
                             argument_type: ArgumentType::Word,
                             child_node: Box::new(CommandNode::FinalNode {
@@ -61,8 +61,8 @@ impl CustomBot {
                                             .commands
                                             .iter()
                                             .position(|command| match command {
-                                                CommandNode::LiteralNode { literal, .. } => {
-                                                    *literal == command_name
+                                                CommandNode::LiteralNode { literals, .. } => {
+                                                    literals.contains(&command_name)
                                                 }
                                                 _ => false,
                                             })
@@ -77,7 +77,7 @@ impl CustomBot {
                         }],
                     },
                     CommandNode::LiteralNode {
-                        literal: "edit".to_owned(),
+                        literals: vec!["edit".to_owned()],
                         child_nodes: vec![CommandNode::ArgumentNode {
                             argument_type: ArgumentType::Word,
                             child_node: Box::new(CommandNode::ArgumentNode {
@@ -127,7 +127,7 @@ impl CustomBot {
     }
     pub fn push_command(&mut self, command_name: String) {
         self.commands.commands.push(CommandNode::LiteralNode {
-            literal: command_name.clone(),
+            literals: vec![command_name.clone()],
             child_nodes: vec![CommandNode::FinalNode {
                 authority_level: AuthorityLevel::Any,
                 command: Arc::new(move |bot, _, _| {

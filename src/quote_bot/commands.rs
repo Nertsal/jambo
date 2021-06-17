@@ -13,7 +13,7 @@ impl QuoteBot {
     pub fn commands() -> BotCommands<Self> {
         BotCommands {
             commands: vec![CommandNode::LiteralNode {
-                literal: "!quote".to_owned(),
+                literals: vec!["!quote".to_owned()],
                 child_nodes: vec![
                     CommandNode::FinalNode {
                         authority_level: AuthorityLevel::Any,
@@ -37,7 +37,7 @@ impl QuoteBot {
                         }),
                     },
                     CommandNode::LiteralNode {
-                        literal: "add".to_owned(),
+                        literals: vec!["add".to_owned()],
                         child_nodes: vec![CommandNode::ArgumentNode {
                             argument_type: ArgumentType::Word,
                             child_node: Box::new(CommandNode::ArgumentNode {
@@ -73,7 +73,7 @@ impl QuoteBot {
                         }],
                     },
                     CommandNode::LiteralNode {
-                        literal: "delete".to_owned(),
+                        literals: vec!["delete".to_owned()],
                         child_nodes: vec![CommandNode::ArgumentNode {
                             argument_type: ArgumentType::Word,
                             child_node: Box::new(CommandNode::FinalNode {
@@ -94,7 +94,7 @@ impl QuoteBot {
                         }],
                     },
                     CommandNode::LiteralNode {
-                        literal: "edit".to_owned(),
+                        literals: vec!["edit".to_owned()],
                         child_nodes: vec![CommandNode::ArgumentNode {
                             argument_type: ArgumentType::Word,
                             child_node: Box::new(CommandNode::ArgumentNode {
@@ -133,7 +133,7 @@ impl QuoteBot {
                         }],
                     },
                     CommandNode::LiteralNode {
-                        literal: "rename".to_owned(),
+                        literals: vec!["rename".to_owned()],
                         child_nodes: vec![CommandNode::ArgumentNode {
                             argument_type: ArgumentType::Word,
                             child_node: Box::new(CommandNode::ArgumentNode {

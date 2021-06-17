@@ -8,7 +8,7 @@ pub enum CommandNode<T> {
         child_node: Box<CommandNode<T>>,
     },
     LiteralNode {
-        literal: String,
+        literals: Vec<String>,
         child_nodes: Vec<CommandNode<T>>,
     },
     FinalNode {
@@ -52,10 +52,13 @@ impl<T> CommandNode<T> {
                 }
             }
             CommandNode::LiteralNode {
-                literal,
+                literals,
                 child_nodes,
             } => {
-                if message.starts_with(literal) {
+                if let Some(literal) = literals
+                    .iter()
+                    .find(|&literal| message.starts_with(literal))
+                {
                     let message = message[literal.len()..].trim();
                     for child_node in child_nodes {
                         if let Some((final_node, arguments)) =

@@ -13,7 +13,7 @@ impl ChannelsBot {
         BotCommands {
             commands: vec![
                 CommandNode::LiteralNode {
-                    literal: "!enable".to_owned(),
+                    literals: vec!["!enable".to_owned()],
                     child_nodes: vec![CommandNode::ArgumentNode {
                         argument_type: ArgumentType::Word,
                         child_node: Box::new(CommandNode::FinalNode {
@@ -27,7 +27,7 @@ impl ChannelsBot {
                     }],
                 },
                 CommandNode::LiteralNode {
-                    literal: "!disable".to_owned(),
+                    literals: vec!["!disable".to_owned()],
                     child_nodes: vec![CommandNode::ArgumentNode {
                         argument_type: ArgumentType::Word,
                         child_node: Box::new(CommandNode::FinalNode {
@@ -41,7 +41,7 @@ impl ChannelsBot {
                     }],
                 },
                 CommandNode::LiteralNode {
-                    literal: "!reset".to_owned(),
+                    literals: vec!["!reset".to_owned()],
                     child_nodes: vec![CommandNode::ArgumentNode {
                         argument_type: ArgumentType::Word,
                         child_node: Box::new(CommandNode::FinalNode {
