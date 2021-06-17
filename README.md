@@ -62,6 +62,7 @@ The main bot, that controls other bots.
     "raffle_default_weight": 1,
     "google_sheet_config": {
         "sheet_id": "1zmwEZo-mKHHebHbSd_yHEp8WWqZFVZxvmRZHTvAN7ek",
+        "display_luck": true,
         "cell_format": {
             "color_queued": null,
             "color_current": {
@@ -100,7 +101,7 @@ The main bot, that controls other bots.
 
 - `raffle_default_weight`: usize. Determines default weight when participating in raffles for the first time.
 
-- `google_sheet_config`: Option\<GoogleSheetConfig\>. If not null, then current queue state will be displayed in the given google sheet. (Requires **service_key.json** file)
+- `google_sheet_config`: Option\<GoogleSheetConfig\>. If not null, then current queue state will be displayed in the given google sheet. **display_luck** defines, whether viewers' luck (in raffles) will be displayed for queued games. (Requires **service_key.json** file)
 
 #### Commands
 

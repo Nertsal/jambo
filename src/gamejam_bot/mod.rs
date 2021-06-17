@@ -20,6 +20,7 @@ pub struct GameJamConfig {
 #[derive(Serialize, Deserialize)]
 struct GoogleSheetConfig {
     sheet_id: String,
+    display_luck: bool,
     cell_format: GoogleSheetCellFormat,
 }
 
@@ -215,7 +216,11 @@ impl GameJamBot {
 
         let mut rows = Vec::new();
         rows.push(self.values_to_row_data(
-            vec!["Game link".to_owned(), "Author".to_owned()],
+            vec![
+                "Game link".to_owned(),
+                "Author".to_owned(),
+                "Luck".to_owned(),
+            ],
             Some(CellFormat {
                 text_format: Some(TextFormat {
                     bold: Some(true),
@@ -232,7 +237,7 @@ impl GameJamBot {
         }
         for game in self.games_state.queue() {
             rows.push(self.values_to_row_data(
-                vec![game.name.clone(), game.author.clone()],
+                self.game_to_values(game),
                 self.game_to_format(GameType::Queued),
             ));
         }
@@ -303,6 +308,23 @@ impl GameJamBot {
             .doit()
             .await;
         result.map(|_| ())
+    }
+    fn game_to_values(&self, game: &Game) -> Vec<String> {
+        let mut values = vec![game.name.clone(), game.author.clone()];
+        if let Some(sheet_config) = &self.config.google_sheet_config {
+            if sheet_config.display_luck {
+                values.push(
+                    self.games_state
+                        .raffle
+                        .viewers_weight
+                        .get(&game.author)
+                        .copied()
+                        .unwrap_or(self.config.raffle_default_weight)
+                        .to_string(),
+                )
+            }
+        }
+        values
     }
     fn game_to_format(&self, game_type: GameType) -> Option<google_sheets4::api::CellFormat> {
         use google_sheets4::api::*;
