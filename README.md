@@ -29,7 +29,7 @@ Create a **config** folder at the root of the project with a folder inside for e
 
 See how to setup bots' configs in the respective section.
 
-Run using `cargo run` or `cargo run --release`.
+Install cargo [here](https://doc.rust-lang.org/cargo/getting-started/installation.html). Run using `cargo run` or `cargo run --release`.
 
 ## Bots
 
