@@ -1,6 +1,6 @@
 # Nertsal's Twitch Bot
 
-Connects to a twitch account using a provided OAuth token, joins a twitch channel and interacts with viewers. Main functionality is handling queues of games submitted for review during game jams. 
+Connects to a twitch account using a provided OAuth token, joins a twitch channel and interacts with viewers. Main functionality is handling a queue of games submitted for review during game jams. 
 
 ## Usage
 
