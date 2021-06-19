@@ -113,7 +113,7 @@ The main bot, that controls other bots.
 
 - `!next <author_name>`. Broadcaster only. Moves current game to the played list, looks for the game from <author_name>, if found, sets it as current. No response required, even if **response_time_limit** is not null.
 
-- `!cancel`. Removes one's game from the queue.
+- `!cancel`. Removes one's game from the queue or the skipped list.
 
 - `!cancel <author_name>`. Moderator only. Works just like **!cancel**, but looks for <author_name>.
 
