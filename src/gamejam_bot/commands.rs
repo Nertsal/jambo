@@ -142,7 +142,7 @@ impl GameJamBot {
         }
     }
     fn skip_all(&mut self) -> Option<String> {
-        self.skip(false);
+        // self.skip(false);
         for game in self.games_state.returned_queue.drain(..) {
             self.games_state.skipped.push(game);
         }
