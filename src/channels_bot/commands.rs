@@ -81,8 +81,8 @@ impl ChannelsBot {
     }
     fn reset_bot(&mut self, bot_name: &str) -> Option<String> {
         self.disable_bot(bot_name);
-        self.spawn_bot(bot_name);
-        Some(format!("{} is reset", bot_name))
+        self.spawn_bot(bot_name)
+            .map(|_| format!("{} is reset", bot_name))
     }
     fn save_bots(&self) -> std::io::Result<()> {
         let bots_config = self.bots_config().unwrap();
@@ -96,6 +96,7 @@ impl ChannelsBot {
             reply: false,
             quote: false,
             custom: false,
+            vote: false,
         };
         for bot_name in self.bots.keys() {
             if bot_name == GameJamBot::name() {
@@ -106,6 +107,8 @@ impl ChannelsBot {
                 bots_config.quote = true;
             } else if bot_name == CustomBot::name() {
                 bots_config.custom = true;
+            } else if bot_name == VoteBot::name() {
+                bots_config.vote = true;
             } else {
                 return Err(());
             }
@@ -121,6 +124,8 @@ impl ChannelsBot {
             Some(Box::new(QuoteBot::new(&self.channel_login)))
         } else if bot_name == CustomBot::name() {
             Some(Box::new(CustomBot::new(&self.channel_login)))
+        } else if bot_name == VoteBot::name() {
+            Some(Box::new(VoteBot::new(&self.channel_login)))
         } else {
             None
         }

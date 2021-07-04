@@ -8,6 +8,7 @@ pub struct BotsConfig {
     reply: bool,
     quote: bool,
     custom: bool,
+    vote: bool,
 }
 
 pub struct ChannelsBot {
@@ -34,6 +35,9 @@ impl ChannelsBot {
         }
         if bots_config.custom {
             bot.spawn_bot(CustomBot::name());
+        }
+        if bots_config.vote {
+            bot.spawn_bot(VoteBot::name());
         }
         bot
     }

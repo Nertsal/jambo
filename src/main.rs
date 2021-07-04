@@ -13,6 +13,7 @@ mod custom_bot;
 mod gamejam_bot;
 mod quote_bot;
 mod reply_bot;
+mod vote_bot;
 
 use channels_bot::{BotsConfig, ChannelsBot};
 use commands::*;
@@ -20,6 +21,7 @@ use custom_bot::CustomBot;
 use gamejam_bot::GameJamBot;
 use quote_bot::QuoteBot;
 use reply_bot::ReplyBot;
+use vote_bot::VoteBot;
 
 #[tokio::main]
 async fn main() {

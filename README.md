@@ -6,7 +6,7 @@ Connects to a twitch account using a provided OAuth token, joins a twitch channe
 
 Clone this repository `git clone https://github.com/Nertsal/nertsal-bot.git`
 
-Create an empty **status** folder at the root of the project. Bots' statuses will be displayed in the respective file in the readable format (currently only GameJamBot).
+Create an empty **status** folder at the root of the project. Bots' statuses will be displayed in the respective file in the readable format (currently used by GameJamBot and VoteBot).
 
 Create a **secrets** folder at the root of the project, containing 2 files:
 1. `secrets/login.json`:
@@ -25,7 +25,8 @@ Create a **config** folder at the root of the project with a folder inside for e
     "gamejam": true,
     "custom": true,
     "quote": true,
-    "reply": true
+    "vote": true,
+    "reply": false
 }
 ```
 
@@ -180,6 +181,20 @@ No config required.
 - `!quote rename <quote_name> <new_name>`. Moderator only. Renames quote <quote_name> to <quote>
 
 - `!quote <quote_name>`. Displays quote <quote_name>.
+
+### **VoteBot**
+
+Allows to do votings with no predetermined options.
+
+No config required
+
+#### Commands
+
+- `!vote start`. Broadcaster only. Starts the voting.
+
+- `!vote finish`. Broadcaster only. Finishes the voting.
+
+- `!vote <vote>`. Sets or updates one's vote to <vote>.
 
 ### **ReplyBot**
 
