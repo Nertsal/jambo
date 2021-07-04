@@ -6,6 +6,8 @@ Connects to a twitch account using a provided OAuth token, joins a twitch channe
 
 Clone this repository `git clone https://github.com/Nertsal/nertsal-bot.git`
 
+Create an empty **status** folder at the root of the project. Bots' statuses will be displayed in the respective file in the readable format (currently only GameJamBot).
+
 Create a **secrets** folder at the root of the project, containing 2 files:
 1. `secrets/login.json`:
 ```
