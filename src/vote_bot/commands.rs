@@ -50,7 +50,7 @@ impl VoteBot {
     pub fn vote(&mut self, voter: String, vote: String) -> Option<String> {
         match &mut self.vote_mode {
             VoteMode::Active { votes } => {
-                votes.insert(voter, vote.to_ascii_lowercase());
+                votes.insert(voter, vote.to_lowercase());
             }
             _ => (),
         }
