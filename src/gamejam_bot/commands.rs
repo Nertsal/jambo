@@ -23,12 +23,14 @@ impl GameJamBot {
 
         let reply = match game {
             Some(game) => {
+                self.update_status(&format!("Playing {} from {}", game.name, game.author));
                 let reply = format!("Now playing {} from @{}. ", game.name, game.author);
                 self.games_state.raffle.viewers_weight.remove(&game.author);
                 self.games_state.current_game = Some(game);
                 Some(reply)
             }
             None => {
+                self.update_status("Not playing a game");
                 self.games_state.current_game = None;
                 None
             }
@@ -108,6 +110,7 @@ impl GameJamBot {
                 if confirmation_required {
                     if let Some(response_time) = self.config.response_time_limit {
                         self.time_limit = Some(Instant::now());
+                        self.update_status(&format!("Waiting for response from {}", game_author));
                         reply = Some(format!(
                             "@{}, we are about to play your game. Please reply in {} seconds.",
                             game_author, response_time
@@ -278,6 +281,7 @@ impl GameJamBot {
                     joined: HashMap::new(),
                 };
                 self.set_current(None);
+                self.update_status("The raffle is in progress. Type !join to join the raffle!");
                 Some(format!(
                     "The raffle has started! Type !join to join the raffle."
                 ))

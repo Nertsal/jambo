@@ -71,6 +71,11 @@ pub trait Bot: Send + Sync {
         client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
         message: &ServerMessage,
     );
+
+    fn update_status(&self, status_text: &str) {
+        let path = format!("status/{}.txt", self.name());
+        std::fs::write(path, status_text).expect("Could not update bot status");
+    }
 }
 
 async fn send_message(
