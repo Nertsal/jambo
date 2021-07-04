@@ -26,10 +26,21 @@ impl VoteBot {
         let vote_mode = std::mem::replace(&mut self.vote_mode, VoteMode::Inactive);
         match vote_mode {
             VoteMode::Active { votes } => {
-                self.update_status(&serde_json::to_string(&votes).unwrap());
+                let voters = votes.len();
+                let votes_count = {
+                    let mut votes_count = HashMap::new();
+                    for (_, vote) in votes {
+                        *votes_count.entry(vote).or_insert(0) += 1;
+                    }
+                    let mut votes_count: Vec<(String, usize)> = votes_count.into_iter().collect();
+                    votes_count.sort_by(|(vote_a, _), (vote_b, _)| vote_a.cmp(vote_b));
+                    votes_count
+                };
+                self.update_status(&serde_json::to_string(&votes_count).unwrap());
                 Some(format!(
-                    "The voting has finished with the total of {} votes.",
-                    votes.len()
+                    "The voting has finished with the total of {} votes and {} unique ones.",
+                    voters,
+                    votes_count.len(),
                 ))
             }
             VoteMode::Inactive => Some(format!("The voting should be started first: !vote start")),
@@ -39,7 +50,7 @@ impl VoteBot {
     pub fn vote(&mut self, voter: String, vote: String) -> Option<String> {
         match &mut self.vote_mode {
             VoteMode::Active { votes } => {
-                votes.insert(voter, vote);
+                votes.insert(voter, vote.to_ascii_lowercase());
             }
             _ => (),
         }
