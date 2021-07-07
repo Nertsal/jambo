@@ -16,16 +16,28 @@ enum TimerMode {
 }
 
 impl Timer {
-    fn new_str(time: std::time::Duration, mode: &str) -> Option<Self> {
+    fn from_status() -> Result<Self, Box<dyn std::error::Error>> {
+        let time = humantime::parse_duration(&std::fs::read_to_string(format!(
+            "status/{}.txt",
+            TimerBot::name()
+        ))?)?;
+        Ok(Self {
+            time,
+            paused: true,
+            timer_mode: TimerMode::Idle,
+        })
+    }
+
+    fn new_str(time: std::time::Duration, mode: &str) -> Result<Self, ()> {
         let (paused, timer_mode) = match mode {
             "set" => (true, TimerMode::Idle),
             "countdown" => (false, TimerMode::Countdown),
             "countup" => (false, TimerMode::Countup),
             _ => {
-                return None;
+                return Err(());
             }
         };
-        Some(Self {
+        Ok(Self {
             time,
             paused,
             timer_mode,
@@ -52,6 +64,16 @@ impl Timer {
     }
 }
 
+impl Default for Timer {
+    fn default() -> Self {
+        Self {
+            paused: true,
+            time: std::time::Duration::from_secs(0),
+            timer_mode: TimerMode::Idle,
+        }
+    }
+}
+
 pub struct TimerBot {
     channel_login: String,
     commands: BotCommands<Self>,
@@ -67,11 +89,7 @@ impl TimerBot {
         Self {
             channel_login: channel_login.clone(),
             commands: Self::commands(),
-            timer: Timer {
-                time: std::time::Duration::from_secs(0),
-                paused: true,
-                timer_mode: TimerMode::Countdown,
-            },
+            timer: Timer::from_status().unwrap_or_default(),
         }
     }
 

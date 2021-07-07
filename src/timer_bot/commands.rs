@@ -46,17 +46,15 @@ impl TimerBot {
                                 authority_level: AuthorityLevel::Broadcaster,
                                 command: Arc::new(|bot, _, mut args| {
                                     let mode = args.remove(0);
-                                    Timer::new_str(bot.timer.time, &mode)
-                                        .map(|timer| {
-                                            if !timer.paused {
-                                                let reply = format!("Timer's mode has been updated");
-                                                bot.set_timer(timer);
-                                                Some(reply)
-                                            } else {
-                                                None
-                                            }
-                                        })
-                                        .flatten()
+                                    Timer::new_str(bot.timer.time, &mode).map_or(None, |timer| {
+                                        if !timer.paused {
+                                            let reply = format!("Timer's mode has been updated");
+                                            bot.set_timer(timer);
+                                            Some(reply)
+                                        } else {
+                                            None
+                                        }
+                                    })
                                 }),
                             },
                             CommandNode::ArgumentNode {
@@ -66,11 +64,13 @@ impl TimerBot {
                                     command: Arc::new(|bot, _, mut args| {
                                         let mode = args.remove(0);
                                         match humantime::parse_duration(args.remove(0).as_ref()) {
-                                            Ok(time) => Timer::new_str(time, &mode).map(|timer| {
-                                                let reply = format!("Timer has been set");
-                                                bot.set_timer(timer);
-                                                reply
-                                            }),
+                                            Ok(time) => {
+                                                Timer::new_str(time, &mode).map_or(None, |timer| {
+                                                    let reply = format!("Timer has been set");
+                                                    bot.set_timer(timer);
+                                                    Some(reply)
+                                                })
+                                            }
                                             Err(_) => {
                                                 Some(format!("Could not parse time argument: "))
                                             }
