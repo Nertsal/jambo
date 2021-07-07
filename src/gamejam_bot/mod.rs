@@ -40,7 +40,7 @@ pub struct GameJamBot {
     played_games_file: String,
     played_games: Vec<Game>,
     games_state: GamesState,
-    time_limit: Option<Instant>,
+    time_limit: Option<f32>,
     hub: Option<Sheets>,
     update_sheets: bool,
 }
@@ -195,9 +195,10 @@ impl GameJamBot {
         }
         None
     }
-    fn update(&mut self) -> Option<String> {
-        if let Some(time) = self.time_limit {
-            if time.elapsed().as_secs() >= self.config.response_time_limit.unwrap() {
+    fn update(&mut self, delta_time: f32) -> Option<String> {
+        if let Some(time) = &mut self.time_limit {
+            *time -= delta_time;
+            if *time <= 0.0 {
                 return self.skip(true);
             }
         }
@@ -301,7 +302,6 @@ impl GameJamBot {
             ]),
             ..Default::default()
         };
-        println!("Saving to google sheets...");
         let result = self
             .hub
             .as_ref()
@@ -314,7 +314,6 @@ impl GameJamBot {
             .add_scope(Scope::Spreadsheet)
             .doit()
             .await;
-        println!("Saved to google sheets");
         result.map(|_| ())
     }
     fn game_to_values(&self, game: &Game) -> Vec<String> {
@@ -413,10 +412,9 @@ impl Bot for GameJamBot {
     async fn update(
         &mut self,
         client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
-        _delta_time: f32,
+        delta_time: f32,
     ) {
-        // TODO: self.update(delta_time)
-        if let Some(reply) = self.update() {
+        if let Some(reply) = self.update(delta_time) {
             send_message(client, self.channel_login.clone(), reply).await;
         }
 

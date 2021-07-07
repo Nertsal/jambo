@@ -109,7 +109,7 @@ impl GameJamBot {
                 let mut reply = self.set_current(Some(game));
                 if confirmation_required {
                     if let Some(response_time) = self.config.response_time_limit {
-                        self.time_limit = Some(Instant::now());
+                        self.time_limit = Some(response_time as f32);
                         self.update_status(&format!("Waiting for response from {}", game_author));
                         reply = Some(format!(
                             "@{}, we are about to play your game. Please reply in {} seconds.",

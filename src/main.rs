@@ -1,8 +1,8 @@
 use async_trait::async_trait;
 use futures::{lock::Mutex, prelude::*};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::sync::Arc;
-use std::{collections::HashMap, time::Instant};
 use tokio_compat_02::FutureExt;
 use twitch_irc::login::StaticLoginCredentials;
 use twitch_irc::message::{PrivmsgMessage, ServerMessage};
