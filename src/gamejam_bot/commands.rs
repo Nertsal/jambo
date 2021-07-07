@@ -216,8 +216,14 @@ impl GameJamBot {
         } else if !self.config.multiple_submissions
             && (self
                 .games_state
-                .queue()
-                .any(|game| game.author == sender_name)
+                .current_game
+                .as_ref()
+                .filter(|game| game.author == sender_name)
+                .is_some()
+                || self
+                    .games_state
+                    .queue()
+                    .any(|game| game.author == sender_name)
                 || self
                     .games_state
                     .skipped
