@@ -5,7 +5,7 @@ use super::*;
 pub enum CommandNode<T> {
     ArgumentNode {
         argument_type: ArgumentType,
-        child_node: Box<CommandNode<T>>,
+        child_nodes: Vec<CommandNode<T>>,
     },
     LiteralNode {
         literals: Vec<String>,
@@ -38,15 +38,28 @@ impl<T> CommandNode<T> {
         match self {
             CommandNode::ArgumentNode {
                 argument_type,
-                child_node,
+                child_nodes,
             } => {
                 if let Some(argument) = match argument_type {
                     ArgumentType::Word => message.split_whitespace().next(),
-                    ArgumentType::Line => Some(message),
+                    ArgumentType::Line => {
+                        if message.trim().is_empty() {
+                            None
+                        } else {
+                            Some(message)
+                        }
+                    }
                 } {
                     let message = message[argument.len()..].trim();
                     arguments.push(argument.to_owned());
-                    child_node.check_node(message, arguments)
+                    for child_node in child_nodes {
+                        if let Some((final_node, arguments)) =
+                            child_node.check_node(message, arguments.clone())
+                        {
+                            return Some((final_node, arguments));
+                        }
+                    }
+                    None
                 } else {
                     None
                 }

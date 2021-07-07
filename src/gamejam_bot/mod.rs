@@ -301,6 +301,7 @@ impl GameJamBot {
             ]),
             ..Default::default()
         };
+        println!("Saving to google sheets...");
         let result = self
             .hub
             .as_ref()
@@ -313,6 +314,7 @@ impl GameJamBot {
             .add_scope(Scope::Spreadsheet)
             .doit()
             .await;
+        println!("Saved to google sheets");
         result.map(|_| ())
     }
     fn game_to_values(&self, game: &Game) -> Vec<String> {
@@ -391,14 +393,12 @@ impl Bot for GameJamBot {
     fn name(&self) -> &str {
         Self::name()
     }
+
     async fn handle_message(
         &mut self,
         client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
         message: &ServerMessage,
     ) {
-        if let Some(reply) = self.update() {
-            send_message(client, self.channel_login.clone(), reply).await;
-        }
         match message {
             ServerMessage::Privmsg(message) => {
                 if let Some(reply) = self.check_message(message) {
@@ -408,6 +408,17 @@ impl Bot for GameJamBot {
             }
             _ => (),
         };
+    }
+
+    async fn update(
+        &mut self,
+        client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
+        _delta_time: f32,
+    ) {
+        // TODO: self.update(delta_time)
+        if let Some(reply) = self.update() {
+            send_message(client, self.channel_login.clone(), reply).await;
+        }
 
         if self.update_sheets {
             if self.config.google_sheet_config.is_some() {

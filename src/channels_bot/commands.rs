@@ -16,42 +16,42 @@ impl ChannelsBot {
                     literals: vec!["!enable".to_owned()],
                     child_nodes: vec![CommandNode::ArgumentNode {
                         argument_type: ArgumentType::Word,
-                        child_node: Box::new(CommandNode::FinalNode {
+                        child_nodes: vec![CommandNode::FinalNode {
                             authority_level: AuthorityLevel::Moderator,
                             command: Arc::new(|bot, _, mut args| {
                                 let bot_name = args.remove(0);
                                 let response = bot.spawn_bot(bot_name.as_str());
                                 response
                             }),
-                        }),
+                        }],
                     }],
                 },
                 CommandNode::LiteralNode {
                     literals: vec!["!disable".to_owned()],
                     child_nodes: vec![CommandNode::ArgumentNode {
                         argument_type: ArgumentType::Word,
-                        child_node: Box::new(CommandNode::FinalNode {
+                        child_nodes: vec![CommandNode::FinalNode {
                             authority_level: AuthorityLevel::Moderator,
                             command: Arc::new(|bot, _, mut args| {
                                 let bot_name = args.remove(0);
                                 let response = bot.disable_bot(bot_name.as_str());
                                 response
                             }),
-                        }),
+                        }],
                     }],
                 },
                 CommandNode::LiteralNode {
                     literals: vec!["!reset".to_owned()],
                     child_nodes: vec![CommandNode::ArgumentNode {
                         argument_type: ArgumentType::Word,
-                        child_node: Box::new(CommandNode::FinalNode {
+                        child_nodes: vec![CommandNode::FinalNode {
                             authority_level: AuthorityLevel::Moderator,
                             command: Arc::new(|bot, _, mut args| {
                                 let bot_name = args.remove(0);
                                 let response = bot.reset_bot(&bot_name);
                                 response
                             }),
-                        }),
+                        }],
                     }],
                 },
             ],
@@ -97,6 +97,7 @@ impl ChannelsBot {
             quote: false,
             custom: false,
             vote: false,
+            timer: false,
         };
         for bot_name in self.bots.keys() {
             if bot_name == GameJamBot::name() {
@@ -109,6 +110,8 @@ impl ChannelsBot {
                 bots_config.custom = true;
             } else if bot_name == VoteBot::name() {
                 bots_config.vote = true;
+            } else if bot_name == TimerBot::name() {
+                bots_config.timer = true;
             } else {
                 return Err(());
             }
@@ -126,6 +129,8 @@ impl ChannelsBot {
             Some(Box::new(CustomBot::new(&self.channel_login)))
         } else if bot_name == VoteBot::name() {
             Some(Box::new(VoteBot::new(&self.channel_login)))
+        } else if bot_name == TimerBot::name() {
+            Some(Box::new(TimerBot::new(&self.channel_login)))
         } else {
             None
         }

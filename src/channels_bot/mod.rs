@@ -9,6 +9,7 @@ pub struct BotsConfig {
     quote: bool,
     custom: bool,
     vote: bool,
+    timer: bool,
 }
 
 pub struct ChannelsBot {
@@ -39,6 +40,9 @@ impl ChannelsBot {
         if bots_config.vote {
             bot.spawn_bot(VoteBot::name());
         }
+        if bots_config.timer {
+            bot.spawn_bot(TimerBot::name());
+        }
         bot
     }
     pub async fn handle_message(
@@ -67,6 +71,15 @@ impl ChannelsBot {
         }
         for bot in self.bots.values_mut() {
             bot.handle_message(client, &message).await;
+        }
+    }
+    pub async fn update(
+        &mut self,
+        client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
+        delta_time: f32,
+    ) {
+        for bot in self.bots.values_mut() {
+            bot.update(client, delta_time).await;
         }
     }
 }

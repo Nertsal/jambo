@@ -18,9 +18,9 @@ impl CustomBot {
                         literals: vec!["new".to_owned()],
                         child_nodes: vec![CommandNode::ArgumentNode {
                             argument_type: ArgumentType::Word,
-                            child_node: Box::new(CommandNode::ArgumentNode {
+                            child_nodes: vec![CommandNode::ArgumentNode {
                                 argument_type: ArgumentType::Line,
-                                child_node: Box::new(CommandNode::FinalNode {
+                                child_nodes: vec![CommandNode::FinalNode {
                                     authority_level: AuthorityLevel::Moderator,
                                     command: Arc::new(|bot, _, args| {
                                         if let [command_name, command_response] = args.as_slice() {
@@ -37,15 +37,15 @@ impl CustomBot {
                                         }
                                         None
                                     }),
-                                }),
-                            }),
+                                }],
+                            }],
                         }],
                     },
                     CommandNode::LiteralNode {
                         literals: vec!["delete".to_owned()],
                         child_nodes: vec![CommandNode::ArgumentNode {
                             argument_type: ArgumentType::Word,
-                            child_node: Box::new(CommandNode::FinalNode {
+                            child_nodes: vec![CommandNode::FinalNode {
                                 authority_level: AuthorityLevel::Moderator,
                                 command: Arc::new(|bot, _, mut args| {
                                     let command_name = args.remove(0);
@@ -73,16 +73,16 @@ impl CustomBot {
                                     }
                                     None
                                 }),
-                            }),
+                            }],
                         }],
                     },
                     CommandNode::LiteralNode {
                         literals: vec!["edit".to_owned()],
                         child_nodes: vec![CommandNode::ArgumentNode {
                             argument_type: ArgumentType::Word,
-                            child_node: Box::new(CommandNode::ArgumentNode {
+                            child_nodes: vec![CommandNode::ArgumentNode {
                                 argument_type: ArgumentType::Line,
-                                child_node: Box::new(CommandNode::FinalNode {
+                                child_nodes: vec![CommandNode::FinalNode {
                                     authority_level: AuthorityLevel::Moderator,
                                     command: Arc::new(|bot, _, args| {
                                         if let [command_name, command_response] = args.as_slice() {
@@ -102,8 +102,8 @@ impl CustomBot {
                                         }
                                         None
                                     }),
-                                }),
-                            }),
+                                }],
+                            }],
                         }],
                     },
                 ],

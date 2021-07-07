@@ -1,6 +1,7 @@
 use async_trait::async_trait;
-use futures::prelude::*;
+use futures::{lock::Mutex, prelude::*};
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 use std::{collections::HashMap, time::Instant};
 use tokio_compat_02::FutureExt;
 use twitch_irc::login::StaticLoginCredentials;
@@ -13,6 +14,7 @@ mod custom_bot;
 mod gamejam_bot;
 mod quote_bot;
 mod reply_bot;
+mod timer_bot;
 mod vote_bot;
 
 use channels_bot::{BotsConfig, ChannelsBot};
@@ -21,6 +23,7 @@ use custom_bot::CustomBot;
 use gamejam_bot::GameJamBot;
 use quote_bot::QuoteBot;
 use reply_bot::ReplyBot;
+use timer_bot::TimerBot;
 use vote_bot::VoteBot;
 
 #[tokio::main]
@@ -44,18 +47,38 @@ async fn main() {
             .compat()
             .await;
 
-    let mut channels_bot = ChannelsBot::new(&login_config, &bots_config);
+    let channels_bot = Arc::new(Mutex::new(ChannelsBot::new(&login_config, &bots_config)));
 
+    let bot = Arc::clone(&channels_bot);
     let client_clone = client.clone();
-    let join_handle = tokio::spawn(async move {
+    let message_handle = tokio::spawn(async move {
         while let Some(message) = incoming_messages.next().await {
-            channels_bot.handle_message(&client_clone, message).await;
+            bot.lock()
+                .await
+                .handle_message(&client_clone, message)
+                .await;
+        }
+    });
+
+    let bot = Arc::clone(&channels_bot);
+    let client_clone = client.clone();
+    let update_handle = tokio::spawn(async move {
+        const FIXED_DELTA_TIME: f32 = 1.0;
+        let mut interval =
+            tokio::time::interval(std::time::Duration::from_secs_f32(FIXED_DELTA_TIME));
+        loop {
+            interval.tick().await;
+            bot.lock()
+                .await
+                .update(&client_clone, FIXED_DELTA_TIME)
+                .await;
         }
     });
 
     client.join(login_config.channel_login);
 
-    join_handle.await.unwrap();
+    message_handle.await.unwrap();
+    update_handle.await.unwrap();
 }
 
 #[derive(Serialize, Deserialize)]
@@ -68,11 +91,19 @@ pub struct LoginConfig {
 #[async_trait]
 pub trait Bot: Send + Sync {
     fn name(&self) -> &str;
+
     async fn handle_message(
         &mut self,
         client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
         message: &ServerMessage,
     );
+
+    async fn update(
+        &mut self,
+        _client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
+        _delta_time: f32,
+    ) {
+    }
 
     fn update_status(&self, status_text: &str) {
         let path = format!("status/{}.txt", self.name());

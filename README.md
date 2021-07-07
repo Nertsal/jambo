@@ -196,6 +196,24 @@ No config required
 
 - `!vote <vote>`. Sets or updates one's vote to <vote>.
 
+### **TimerBot**
+
+No config required
+
+Time format example: 1h 2m 3s
+
+#### Commands
+
+- `!timer set [time]`. Broadcaster only. Sets the timer paused with time given or 0.
+
+- `!timer countdown [time]`. Broadcaster only. Starts the countdown and updates time if given.
+
+- `!timer countup [time]`. Broadcaster only. Starts the countup and updates time if given.
+
+- `!timer pause`. Broadcaster only. Pauses the timer.
+
+- `!timer continue`. Broadcaster only. Unpauses the timer.
+
 ### **ReplyBot**
 
 Not recommended, doesn't work as intended.

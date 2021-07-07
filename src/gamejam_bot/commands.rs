@@ -384,7 +384,7 @@ impl GameJamBot {
             commands: vec![
                 CommandNode::ArgumentNode {
                     argument_type: ArgumentType::Word,
-                    child_node: Box::new(CommandNode::FinalNode {
+                    child_nodes: vec![CommandNode::FinalNode {
                         authority_level: AuthorityLevel::Any,
                         command: Arc::new(|bot, sender_name, mut args| {
                             let game_link = args.remove(0);
@@ -396,19 +396,19 @@ impl GameJamBot {
                             }
                             None
                         }),
-                    }),
+                    }],
                 },
                 CommandNode::LiteralNode {
                     literals: vec!["!submit".to_owned()],
                     child_nodes: vec![CommandNode::ArgumentNode {
                         argument_type: ArgumentType::Word,
-                        child_node: Box::new(CommandNode::FinalNode {
+                        child_nodes: vec![CommandNode::FinalNode {
                             authority_level: AuthorityLevel::Any,
                             command: Arc::new(|bot, sender_name, mut args| {
                                 let game_link = args.remove(0);
                                 bot.submit(game_link, sender_name)
                             }),
-                        }),
+                        }],
                     }],
                 },
                 CommandNode::LiteralNode {
@@ -427,13 +427,13 @@ impl GameJamBot {
                         },
                         CommandNode::ArgumentNode {
                             argument_type: ArgumentType::Word,
-                            child_node: Box::new(CommandNode::FinalNode {
+                            child_nodes: vec![CommandNode::FinalNode {
                                 authority_level: AuthorityLevel::Broadcaster,
                                 command: Arc::new(|bot, _, mut args| {
                                     let author_name = args.remove(0);
                                     bot.next(Some(author_name), false)
                                 }),
-                            }),
+                            }],
                         },
                     ],
                 },
@@ -448,13 +448,13 @@ impl GameJamBot {
                         },
                         CommandNode::ArgumentNode {
                             argument_type: ArgumentType::Word,
-                            child_node: Box::new(CommandNode::FinalNode {
+                            child_nodes: vec![CommandNode::FinalNode {
                                 authority_level: AuthorityLevel::Moderator,
                                 command: Arc::new(|bot, _, mut args| {
                                     let author_name = args.remove(0);
                                     bot.remove_game_response(&author_name)
                                 }),
-                            }),
+                            }],
                         },
                     ],
                 },
@@ -563,13 +563,13 @@ impl GameJamBot {
                         },
                         CommandNode::ArgumentNode {
                             argument_type: ArgumentType::Word,
-                            child_node: Box::new(CommandNode::FinalNode {
+                            child_nodes: vec![CommandNode::FinalNode {
                                 authority_level: AuthorityLevel::Broadcaster,
                                 command: Arc::new(|bot, _, mut args| {
                                     let author_name = args.remove(0);
                                     bot.unskip(Some(author_name))
                                 }),
-                            }),
+                            }],
                         },
                     ],
                 },

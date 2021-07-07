@@ -40,9 +40,9 @@ impl QuoteBot {
                         literals: vec!["add".to_owned()],
                         child_nodes: vec![CommandNode::ArgumentNode {
                             argument_type: ArgumentType::Word,
-                            child_node: Box::new(CommandNode::ArgumentNode {
+                            child_nodes: vec!(CommandNode::ArgumentNode {
                                 argument_type: ArgumentType::Line,
-                                child_node: Box::new(CommandNode::FinalNode {
+                                child_nodes: vec!(CommandNode::FinalNode {
                                     authority_level: AuthorityLevel::Moderator,
                                     command: Arc::new(|bot, _, args| {
                                         if let [quote_name, quote] = args.as_slice() {
@@ -76,7 +76,7 @@ impl QuoteBot {
                         literals: vec!["delete".to_owned()],
                         child_nodes: vec![CommandNode::ArgumentNode {
                             argument_type: ArgumentType::Word,
-                            child_node: Box::new(CommandNode::FinalNode {
+                            child_nodes: vec!(CommandNode::FinalNode {
                                 authority_level: AuthorityLevel::Moderator,
                                 command: Arc::new(|bot, _, mut args| {
                                     let quote_name = args.remove(0);
@@ -97,9 +97,9 @@ impl QuoteBot {
                         literals: vec!["edit".to_owned()],
                         child_nodes: vec![CommandNode::ArgumentNode {
                             argument_type: ArgumentType::Word,
-                            child_node: Box::new(CommandNode::ArgumentNode {
+                            child_nodes: vec!(CommandNode::ArgumentNode {
                                 argument_type: ArgumentType::Line,
-                                child_node: Box::new(CommandNode::FinalNode {
+                                child_nodes: vec!(CommandNode::FinalNode {
                                     authority_level: AuthorityLevel::Moderator,
                                     command: Arc::new(|bot, _, args| {
                                         if let [quote_name, quote] = args.as_slice() {
@@ -136,9 +136,9 @@ impl QuoteBot {
                         literals: vec!["rename".to_owned()],
                         child_nodes: vec![CommandNode::ArgumentNode {
                             argument_type: ArgumentType::Word,
-                            child_node: Box::new(CommandNode::ArgumentNode {
+                            child_nodes: vec!(CommandNode::ArgumentNode {
                                 argument_type: ArgumentType::Word,
-                                child_node: Box::new(CommandNode::FinalNode {
+                                child_nodes: vec!(CommandNode::FinalNode {
                                     authority_level: AuthorityLevel::Moderator,
                                     command: Arc::new(|bot, _, args| {
                                         if let [quote_name, quote_new_name] = args.as_slice() {
@@ -176,7 +176,7 @@ impl QuoteBot {
                     },
                     CommandNode::ArgumentNode {
                         argument_type: ArgumentType::Word,
-                        child_node: Box::new(CommandNode::FinalNode {
+                        child_nodes: vec!(CommandNode::FinalNode {
                             authority_level: AuthorityLevel::Any,
                             command: Arc::new(|bot, _, mut args| {
                                 let quote_name = args.remove(0);

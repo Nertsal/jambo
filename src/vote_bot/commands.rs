@@ -78,13 +78,13 @@ impl VoteBot {
                     },
                     CommandNode::ArgumentNode {
                         argument_type: ArgumentType::Line,
-                        child_node: Box::new(CommandNode::FinalNode {
+                        child_nodes: vec![CommandNode::FinalNode {
                             authority_level: AuthorityLevel::Any,
                             command: Arc::new(|bot, sender_name, mut args| {
                                 let vote = args.remove(0);
                                 bot.vote(sender_name, vote)
                             }),
-                        }),
+                        }],
                     },
                 ],
             }],
