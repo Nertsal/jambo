@@ -5,7 +5,6 @@ mod commands;
 #[derive(Clone, Serialize, Deserialize)]
 pub struct BotsConfig {
     gamejam: bool,
-    reply: bool,
     quote: bool,
     custom: bool,
     vote: bool,
@@ -27,9 +26,6 @@ impl ChannelsBot {
         };
         if bots_config.gamejam {
             bot.spawn_bot(GameJamBot::name());
-        }
-        if bots_config.reply {
-            bot.spawn_bot(ReplyBot::name());
         }
         if bots_config.quote {
             bot.spawn_bot(QuoteBot::name());

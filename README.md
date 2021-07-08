@@ -26,7 +26,6 @@ Create a **config** folder at the root of the project with a folder inside for e
     "custom": true,
     "quote": true,
     "vote": true,
-    "reply": false
 }
 ```
 
@@ -213,38 +212,3 @@ Time format example: 1h 2m 3s
 - `!timer pause`. Broadcaster only. Pauses the timer.
 
 - `!timer continue`. Broadcaster only. Unpauses the timer.
-
-### **ReplyBot**
-
-Not recommended, doesn't work as intended.
-
-#### Config
-
-`config/reply/reply_config.json`:
-```
-{
-    "responses": [
-        {
-            "keywords": [
-                [
-                    "what",
-                    "how"
-                ],
-                [
-                    "is",
-                    "old"
-                ],
-                [
-                    "your",
-                    "are"
-                ],
-                [
-                    "age",
-                    "you"
-                ]
-            ],
-            "response": "The streamer is 20 years old"
-        }
-    ]
-}
-```

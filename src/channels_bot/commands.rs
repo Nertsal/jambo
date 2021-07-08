@@ -93,7 +93,6 @@ impl ChannelsBot {
     fn bots_config(&self) -> Result<BotsConfig, ()> {
         let mut bots_config = BotsConfig {
             gamejam: false,
-            reply: false,
             quote: false,
             custom: false,
             vote: false,
@@ -102,8 +101,6 @@ impl ChannelsBot {
         for bot_name in self.bots.keys() {
             if bot_name == GameJamBot::name() {
                 bots_config.gamejam = true;
-            } else if bot_name == ReplyBot::name() {
-                bots_config.reply = true;
             } else if bot_name == QuoteBot::name() {
                 bots_config.quote = true;
             } else if bot_name == CustomBot::name() {
@@ -121,8 +118,6 @@ impl ChannelsBot {
     fn new_bot(&self, bot_name: &str) -> Option<Box<dyn Bot>> {
         if bot_name == GameJamBot::name() {
             Some(Box::new(GameJamBot::new(&self.channel_login)))
-        } else if bot_name == ReplyBot::name() {
-            Some(Box::new(ReplyBot::new(&self.channel_login)))
         } else if bot_name == QuoteBot::name() {
             Some(Box::new(QuoteBot::new(&self.channel_login)))
         } else if bot_name == CustomBot::name() {

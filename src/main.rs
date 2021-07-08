@@ -13,7 +13,6 @@ mod commands;
 mod custom_bot;
 mod gamejam_bot;
 mod quote_bot;
-mod reply_bot;
 mod timer_bot;
 mod vote_bot;
 
@@ -22,7 +21,6 @@ use commands::*;
 use custom_bot::CustomBot;
 use gamejam_bot::GameJamBot;
 use quote_bot::QuoteBot;
-use reply_bot::ReplyBot;
 use timer_bot::TimerBot;
 use vote_bot::VoteBot;
 
