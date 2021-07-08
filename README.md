@@ -4,7 +4,7 @@ Connects to a twitch account using a provided OAuth token, joins a twitch channe
 
 ## Usage
 
-Clone this repository `git clone https://github.com/Nertsal/nertsal-bot.git`
+Clone this repository `git clone https://github.com/Nertsal/nertsal-bot.git` or download a release folder (all is set up in the release, apart from **login.json** and **service_key.json** ).
 
 Create an empty **status** folder at the root of the project. Bots' statuses will be displayed in the respective file in the readable format (currently used by GameJamBot, VoteBot, TimerBot).
 
@@ -31,7 +31,7 @@ Create a **config** folder at the root of the project with a folder inside for e
 
 See how to setup bots' configs in the respective section.
 
-Install cargo [here](https://doc.rust-lang.org/cargo/getting-started/installation.html). Run using `cargo run` or `cargo run --release`.
+Run the executable file from the release or compile and run manually. Install cargo [here](https://doc.rust-lang.org/cargo/getting-started/installation.html). Run using `cargo run` or `cargo run --release`.
 
 ## Bots
 
