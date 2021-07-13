@@ -13,12 +13,12 @@ impl VoteBot {
         "VoteBot"
     }
 
-    pub fn new(channel_login: &String) -> Self {
-        Self {
-            channel_login: channel_login.clone(),
+    pub fn new(channel_login: &str) -> Box<dyn Bot> {
+        Box::new(Self {
+            channel_login: channel_login.to_owned(),
             commands: Self::commands(),
             vote_mode: VoteMode::Inactive,
-        }
+        })
     }
 }
 

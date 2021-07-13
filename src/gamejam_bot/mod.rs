@@ -116,14 +116,14 @@ impl GameJamBot {
     pub fn name() -> &'static str {
         "GameJamBot"
     }
-    pub fn new(channel: &String) -> Self {
+    pub fn new(channel: &str) -> Box<dyn Bot> {
         let config: GameJamConfig = serde_json::from_reader(std::io::BufReader::new(
             std::fs::File::open("config/gamejam/gamejam_config.json").unwrap(),
         ))
         .unwrap();
 
         let mut bot = Self {
-            channel_login: channel.clone(),
+            channel_login: channel.to_owned(),
             config,
             commands: Self::commands(),
             save_file: "config/gamejam/gamejam_nertsalbot.json".to_owned(),
@@ -179,8 +179,7 @@ impl GameJamBot {
                 }
             }
         }
-
-        bot
+        Box::new(bot)
     }
     fn check_message(&mut self, message: &PrivmsgMessage) -> Option<String> {
         if let Some(_) = self.time_limit {

@@ -1,46 +1,35 @@
+use std::collections::HashSet;
+
 use super::*;
 
 mod commands;
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct BotsConfig {
-    gamejam: bool,
-    quote: bool,
-    custom: bool,
-    vote: bool,
-    timer: bool,
+    active_bots: HashSet<String>,
 }
 
 pub struct ChannelsBot {
     channel_login: String,
     commands: BotCommands<Self>,
-    bots: HashMap<String, Box<dyn Bot>>,
+    available_bots: HashMap<String, Box<fn(&str) -> Box<dyn Bot>>>,
+    active_bots: HashMap<String, Box<dyn Bot>>,
 }
 
 impl ChannelsBot {
-    pub fn new(config: &LoginConfig, bots_config: &BotsConfig) -> Self {
+    pub fn new(config: &LoginConfig, bots_config: &BotsConfig) -> Box<Self> {
         let mut bot = Self {
             channel_login: config.channel_login.clone(),
             commands: Self::commands(),
-            bots: HashMap::new(),
+            available_bots: Self::available_bots(),
+            active_bots: HashMap::with_capacity(bots_config.active_bots.len()),
         };
-        if bots_config.gamejam {
-            bot.spawn_bot(GameJamBot::name());
+        for active_bot in &bots_config.active_bots {
+            bot.spawn_bot(active_bot);
         }
-        if bots_config.quote {
-            bot.spawn_bot(QuoteBot::name());
-        }
-        if bots_config.custom {
-            bot.spawn_bot(CustomBot::name());
-        }
-        if bots_config.vote {
-            bot.spawn_bot(VoteBot::name());
-        }
-        if bots_config.timer {
-            bot.spawn_bot(TimerBot::name());
-        }
-        bot
+        Box::new(bot)
     }
+
     pub async fn handle_message(
         &mut self,
         client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
@@ -65,16 +54,17 @@ impl ChannelsBot {
             }
             _ => (),
         }
-        for bot in self.bots.values_mut() {
+        for bot in self.active_bots.values_mut() {
             bot.handle_message(client, &message).await;
         }
     }
+
     pub async fn update(
         &mut self,
         client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
         delta_time: f32,
     ) {
-        for bot in self.bots.values_mut() {
+        for bot in self.active_bots.values_mut() {
             bot.update(client, delta_time).await;
         }
     }

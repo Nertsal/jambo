@@ -22,10 +22,13 @@ Create a **secrets** folder at the root of the project, containing 2 files:
 Create a **config** folder at the root of the project with a folder inside for every bot and **bots_config.json**:
 ```
 {
-    "gamejam": true,
-    "custom": true,
-    "quote": true,
-    "vote": true,
+    "active_bots": [
+        "QuoteBot",
+        "TimerBot",
+        "GameJamBot",
+        "CustomBot",
+        "VoteBot"
+    ]
 }
 ```
 

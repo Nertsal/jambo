@@ -32,7 +32,7 @@ impl CustomBot {
     pub fn name() -> &'static str {
         "CustomBot"
     }
-    pub fn new(channel_login: &String) -> Self {
+    pub fn new(channel_login: &str) -> Box<dyn Bot> {
         let config = match CustomConfig::load() {
             Ok(config) => config,
             Err(error) => match error.kind() {
@@ -47,14 +47,14 @@ impl CustomBot {
             },
         };
         let mut bot = Self {
-            channel_login: channel_login.clone(),
+            channel_login: channel_login.to_owned(),
             commands: Self::commands(),
             config: config.clone(),
         };
         for (command_name, _) in config.commands {
             bot.push_command(command_name);
         }
-        bot
+        Box::new(bot)
     }
 }
 

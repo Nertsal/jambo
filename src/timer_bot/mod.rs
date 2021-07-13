@@ -16,12 +16,12 @@ impl TimerBot {
         "TimerBot"
     }
 
-    pub fn new(channel_login: &String) -> Self {
-        Self {
-            channel_login: channel_login.clone(),
+    pub fn new(channel_login: &str) -> Box<dyn Bot> {
+        Box::new(Self {
+            channel_login: channel_login.to_owned(),
             commands: Self::commands(),
             timer: Timer::from_status().unwrap_or_default(),
-        }
+        })
     }
 
     fn update_timer(&mut self, delta_time: f32) {

@@ -40,7 +40,7 @@ impl QuoteBot {
     pub fn name() -> &'static str {
         "QuoteBot"
     }
-    pub fn new(channel_login: &String) -> Self {
+    pub fn new(channel_login: &str) -> Box<dyn Bot> {
         let config = match QuoteConfig::load() {
             Ok(config) => config,
             Err(error) => match error.kind() {
@@ -52,11 +52,11 @@ impl QuoteBot {
                 _ => panic!("{}", error),
             },
         };
-        Self {
-            channel_login: channel_login.clone(),
+        Box::new(Self {
+            channel_login: channel_login.to_owned(),
             config,
             commands: Self::commands(),
-        }
+        })
     }
 }
 
