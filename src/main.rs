@@ -16,7 +16,7 @@ mod quote_bot;
 mod timer_bot;
 mod vote_bot;
 
-use channels_bot::{BotsConfig, ChannelsBot};
+use channels_bot::{ActiveBots, ChannelsBot};
 use commands::*;
 use custom_bot::CustomBot;
 use gamejam_bot::GameJamBot;
@@ -30,8 +30,8 @@ async fn main() {
         std::fs::File::open("secrets/login.json").unwrap(),
     ))
     .unwrap();
-    let bots_config: BotsConfig = serde_json::from_reader(std::io::BufReader::new(
-        std::fs::File::open("config/bots_config.json").unwrap(),
+    let active_bots: ActiveBots = serde_json::from_reader(std::io::BufReader::new(
+        std::fs::File::open("config/active_bots.json").unwrap(),
     ))
     .unwrap();
 
@@ -45,7 +45,7 @@ async fn main() {
             .compat()
             .await;
 
-    let channels_bot = Arc::new(Mutex::new(ChannelsBot::new(&login_config, &bots_config)));
+    let channels_bot = Arc::new(Mutex::new(ChannelsBot::new(&login_config, &active_bots)));
 
     let bot = Arc::clone(&channels_bot);
     let client_clone = client.clone();

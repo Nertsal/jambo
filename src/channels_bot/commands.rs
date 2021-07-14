@@ -56,20 +56,18 @@ impl ChannelsBot {
     }
 
     fn save_bots(&self) -> std::io::Result<()> {
-        let bots_config = self.bots_config().unwrap();
-        let file = std::io::BufWriter::new(std::fs::File::create("config/bots_config.json")?);
-        serde_json::to_writer(file, &bots_config)?;
+        let active_bots = self.active_bots().unwrap();
+        let file = std::io::BufWriter::new(std::fs::File::create("config/active_bots.json")?);
+        serde_json::to_writer(file, &active_bots)?;
         Ok(())
     }
 
-    fn bots_config(&self) -> Result<BotsConfig, ()> {
-        let mut bots_config = BotsConfig {
-            active_bots: HashSet::with_capacity(self.active_bots.len()),
-        };
+    fn active_bots(&self) -> Result<ActiveBots, ()> {
+        let mut active_bots = HashSet::with_capacity(self.active_bots.len());
         for bot_name in self.active_bots.keys() {
-            bots_config.active_bots.insert(bot_name.to_owned());
+            active_bots.insert(bot_name.to_owned());
         }
-        Ok(bots_config)
+        Ok(active_bots)
     }
 
     fn new_bot(&self, bot_name: &str) -> Option<Box<dyn Bot>> {

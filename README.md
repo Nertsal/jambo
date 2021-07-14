@@ -19,17 +19,15 @@ Create a **secrets** folder at the root of the project, containing 2 files:
 ```
 2. `secrets/service_key.json` (Optional, used to access Google Sheets)
 
-Create a **config** folder at the root of the project with a folder inside for every bot and **bots_config.json**:
+Create a **config** folder at the root of the project with a folder inside for every bot and **active_bots.json**:
 ```
-{
-    "active_bots": [
-        "QuoteBot",
-        "TimerBot",
-        "GameJamBot",
-        "CustomBot",
-        "VoteBot"
-    ]
-}
+[
+    "TimerBot",
+    "QuoteBot",
+    "GameJamBot",
+    "CustomBot",
+    "VoteBot"
+]
 ```
 
 See how to setup bots' configs in the respective section.

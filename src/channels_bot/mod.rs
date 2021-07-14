@@ -4,10 +4,7 @@ use super::*;
 
 mod commands;
 
-#[derive(Clone, Serialize, Deserialize)]
-pub struct BotsConfig {
-    active_bots: HashSet<String>,
-}
+pub type ActiveBots = HashSet<String>;
 
 pub struct ChannelsBot {
     channel_login: String,
@@ -17,14 +14,14 @@ pub struct ChannelsBot {
 }
 
 impl ChannelsBot {
-    pub fn new(config: &LoginConfig, bots_config: &BotsConfig) -> Box<Self> {
+    pub fn new(config: &LoginConfig, active_bots: &ActiveBots) -> Box<Self> {
         let mut bot = Self {
             channel_login: config.channel_login.clone(),
             commands: Self::commands(),
             available_bots: Self::available_bots(),
-            active_bots: HashMap::with_capacity(bots_config.active_bots.len()),
+            active_bots: HashMap::with_capacity(active_bots.len()),
         };
-        for active_bot in &bots_config.active_bots {
+        for active_bot in active_bots {
             bot.spawn_bot(active_bot);
         }
         Box::new(bot)
