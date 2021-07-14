@@ -202,7 +202,9 @@ No config required
 
 No config required
 
-Time format example: 1h 2m 3s
+Time format: [hh]:[mm]:[ss]
+
+Time display format example: 05:02
 
 #### Commands
 

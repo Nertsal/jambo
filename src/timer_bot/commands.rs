@@ -63,7 +63,7 @@ impl TimerBot {
                                     authority_level: AuthorityLevel::Broadcaster,
                                     command: Arc::new(|bot, _, mut args| {
                                         let mode = args.remove(0);
-                                        match humantime::parse_duration(args.remove(0).as_ref()) {
+                                        match Timer::parse_duration(args.remove(0).as_ref()) {
                                             Ok(time) => {
                                                 Timer::new_str(time, &mode).map_or(None, |timer| {
                                                     let reply = format!("Timer has been set");

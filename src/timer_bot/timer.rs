@@ -15,7 +15,7 @@ pub enum TimerMode {
 
 impl Timer {
     pub fn from_status() -> Result<Self, Box<dyn std::error::Error>> {
-        let time = humantime::parse_duration(&std::fs::read_to_string(format!(
+        let time = Timer::parse_duration(&std::fs::read_to_string(format!(
             "status/{}.txt",
             TimerBot::name()
         ))?)?;
@@ -58,7 +58,33 @@ impl Timer {
     }
 
     pub fn time_status(&self) -> String {
-        humantime::format_duration(self.time).to_string()
+        Timer::format_duration(self.time).to_string()
+    }
+
+    pub fn parse_duration(s: &str) -> Result<std::time::Duration, Box<dyn std::error::Error>> {
+        let mut secs = 0;
+        let mut multiplier = 1;
+        for t in s.split(':').rev() {
+            secs += t.parse::<u64>()? * multiplier;
+            multiplier *= 60;
+        }
+        Ok(std::time::Duration::from_secs(secs))
+    }
+
+    pub fn format_duration(duration: std::time::Duration) -> String {
+        let secs = duration.as_secs();
+        let seconds = secs % 60;
+        let minutes = (secs / 60) % 60;
+        let hours = (secs / 60 / 60) % 60;
+        let mut result = String::new();
+        if hours > 0 {
+            result.push_str(&format!("{:02}:", hours));
+        }
+        if hours > 0 || minutes > 0 {
+            result.push_str(&format!("{:02}:", minutes));
+        }
+        result.push_str(&format!("{:02}", seconds));
+        result
     }
 }
 
