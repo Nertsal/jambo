@@ -73,10 +73,31 @@ async fn main() {
         }
     });
 
+    let bot = Arc::clone(&channels_bot);
+    let client_clone = client.clone();
+    let console_handle = tokio::spawn(async move {
+        let mut input = String::new();
+        while let Ok(_) = std::io::stdin().read_line(&mut input) {
+            bot.lock()
+                .await
+                .handle_command_message(
+                    &client_clone,
+                    CommandMessage {
+                        sender_name: "Admin".to_owned(),
+                        message_text: input.clone(),
+                        authority_level: AuthorityLevel::Broadcaster,
+                    },
+                )
+                .await;
+            input = String::new();
+        }
+    });
+
     client.join(login_config.channel_login);
 
     message_handle.await.unwrap();
     update_handle.await.unwrap();
+    console_handle.await.unwrap();
 }
 
 #[derive(Serialize, Deserialize)]
@@ -90,10 +111,16 @@ pub struct LoginConfig {
 pub trait Bot: Send + Sync {
     fn name(&self) -> &str;
 
-    async fn handle_message(
+    async fn handle_server_message(
         &mut self,
         client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
         message: &ServerMessage,
+    );
+
+    async fn handle_command_message(
+        &mut self,
+        client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
+        message: &CommandMessage,
     );
 
     async fn update(

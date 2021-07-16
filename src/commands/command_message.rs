@@ -1,9 +1,11 @@
-use twitch_irc::message::{Badge, PrivmsgMessage};
+use twitch_irc::message::PrivmsgMessage;
+
+use super::AuthorityLevel;
 
 pub struct CommandMessage {
     pub sender_name: String,
     pub message_text: String,
-    pub badges: Vec<Badge>,
+    pub authority_level: AuthorityLevel,
 }
 
 impl From<&PrivmsgMessage> for CommandMessage {
@@ -11,7 +13,7 @@ impl From<&PrivmsgMessage> for CommandMessage {
         Self {
             sender_name: message.sender.name.clone(),
             message_text: message.message_text.clone(),
-            badges: message.badges.clone(),
+            authority_level: AuthorityLevel::from_badges(&message.badges),
         }
     }
 }

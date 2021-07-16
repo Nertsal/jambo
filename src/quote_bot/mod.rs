@@ -65,7 +65,7 @@ impl Bot for QuoteBot {
     fn name(&self) -> &str {
         Self::name()
     }
-    async fn handle_message(
+    async fn handle_server_message(
         &mut self,
         client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
         message: &ServerMessage,
@@ -82,5 +82,13 @@ impl Bot for QuoteBot {
             }
             _ => (),
         };
+    }
+
+    async fn handle_command_message(
+        &mut self,
+        client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
+        message: &CommandMessage,
+    ) {
+        check_command(self, client, self.channel_login.clone(), &message).await;
     }
 }

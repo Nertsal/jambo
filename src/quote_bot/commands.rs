@@ -16,7 +16,7 @@ impl QuoteBot {
                 literals: vec!["!quote".to_owned()],
                 child_nodes: vec![
                     CommandNode::FinalNode {
-                        authority_level: AuthorityLevel::Any,
+                        authority_level: AuthorityLevel::Viewer,
                         command: Arc::new(|bot, _, _| {
                             if let Some(random_quote_name) = bot
                                 .config
@@ -177,7 +177,7 @@ impl QuoteBot {
                     CommandNode::ArgumentNode {
                         argument_type: ArgumentType::Word,
                         child_nodes: vec!(CommandNode::FinalNode {
-                            authority_level: AuthorityLevel::Any,
+                            authority_level: AuthorityLevel::Viewer,
                             command: Arc::new(|bot, _, mut args| {
                                 let quote_name = args.remove(0);
                                 if let Some(quote) = bot.config.quotes.get(&quote_name) {

@@ -129,7 +129,7 @@ impl CustomBot {
         self.commands.commands.push(CommandNode::LiteralNode {
             literals: vec![command_name.clone()],
             child_nodes: vec![CommandNode::FinalNode {
-                authority_level: AuthorityLevel::Any,
+                authority_level: AuthorityLevel::Viewer,
                 command: Arc::new(move |bot, _, _| {
                     Some(bot.config.commands[&command_name].clone())
                 }),

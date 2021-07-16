@@ -27,12 +27,6 @@ pub struct BotCommands<T> {
     pub commands: Vec<CommandNode<T>>,
 }
 
-pub enum AuthorityLevel {
-    Broadcaster,
-    Moderator,
-    Any,
-}
-
 impl<T> BotCommands<T> {
     fn find_commands(&self, message: &CommandMessage) -> Vec<(Command<T>, Vec<Argument>)> {
         self.commands
@@ -55,17 +49,31 @@ impl<T> BotCommands<T> {
     }
 }
 
-fn check_authority(authority_level: &AuthorityLevel, message: &CommandMessage) -> bool {
-    match authority_level {
-        AuthorityLevel::Any => true,
-        AuthorityLevel::Broadcaster => check_badges(vec!["broadcaster"], message),
-        AuthorityLevel::Moderator => check_badges(vec!["broadcaster", "moderator"], message),
+#[derive(PartialEq, PartialOrd, Eq, Ord)]
+pub enum AuthorityLevel {
+    Viewer = 0,
+    Moderator = 1,
+    Broadcaster = 2,
+}
+
+impl AuthorityLevel {
+    pub fn from_badges(badges: &Vec<twitch_irc::message::Badge>) -> Self {
+        badges
+            .iter()
+            .fold(AuthorityLevel::Viewer, |authority_level, badge| {
+                authority_level.max(AuthorityLevel::from_badge(badge))
+            })
+    }
+
+    pub fn from_badge(badge: &twitch_irc::message::Badge) -> Self {
+        match badge.name.as_str() {
+            "broadcaster" => AuthorityLevel::Broadcaster,
+            "moderator" => AuthorityLevel::Moderator,
+            _ => AuthorityLevel::Viewer,
+        }
     }
 }
 
-fn check_badges(badges: Vec<&str>, message: &CommandMessage) -> bool {
-    message
-        .badges
-        .iter()
-        .any(|badge| badges.contains(&badge.name.as_str()))
+fn check_authority(authority_level: &AuthorityLevel, message: &CommandMessage) -> bool {
+    message.authority_level >= *authority_level
 }

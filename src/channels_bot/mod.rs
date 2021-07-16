@@ -52,7 +52,20 @@ impl ChannelsBot {
             _ => (),
         }
         for bot in self.active_bots.values_mut() {
-            bot.handle_message(client, &message).await;
+            bot.handle_server_message(client, &message).await;
+        }
+    }
+
+    pub async fn handle_command_message(
+        &mut self,
+        client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
+        message: CommandMessage,
+    ) {
+        let channel_login = self.channel_login.clone();
+        check_command(self, client, channel_login, &message).await;
+
+        for bot in self.active_bots.values_mut() {
+            bot.handle_command_message(client, &message).await;
         }
     }
 
