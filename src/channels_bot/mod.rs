@@ -47,7 +47,7 @@ impl ChannelsBot {
                     message.channel_login, message.sender.name, message.message_text
                 );
                 let channel_login = self.channel_login.clone();
-                check_command(self, client, channel_login, message).await;
+                check_command(self, client, channel_login, &CommandMessage::from(message)).await;
             }
             _ => (),
         }

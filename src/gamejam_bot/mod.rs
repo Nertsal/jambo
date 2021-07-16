@@ -402,7 +402,13 @@ impl Bot for GameJamBot {
                 if let Some(reply) = self.check_message(message) {
                     send_message(client, self.channel_login.clone(), reply).await;
                 }
-                check_command(self, client, self.channel_login.clone(), message).await;
+                check_command(
+                    self,
+                    client,
+                    self.channel_login.clone(),
+                    &CommandMessage::from(message),
+                )
+                .await;
             }
             _ => (),
         };

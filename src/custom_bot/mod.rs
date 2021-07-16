@@ -70,7 +70,13 @@ impl Bot for CustomBot {
     ) {
         match message {
             ServerMessage::Privmsg(message) => {
-                check_command(self, client, self.channel_login.clone(), message).await;
+                check_command(
+                    self,
+                    client,
+                    self.channel_login.clone(),
+                    &CommandMessage::from(message),
+                )
+                .await;
             }
             _ => (),
         };
