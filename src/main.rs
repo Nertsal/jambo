@@ -47,7 +47,12 @@ async fn main() {
             .compat()
             .await;
 
-    let channels_bot = Arc::new(Mutex::new(ChannelsBot::new(&login_config, &active_bots)));
+    let cli = Arc::new(linefeed::Interface::new("nertsal-bot").unwrap());
+    let channels_bot = Arc::new(Mutex::new(ChannelsBot::new(
+        &cli,
+        &login_config,
+        &active_bots,
+    )));
 
     let bot = Arc::clone(&channels_bot);
     let client_clone = client.clone();
@@ -78,8 +83,8 @@ async fn main() {
     let bot = Arc::clone(&channels_bot);
     let client_clone = client.clone();
     let console_handle = tokio::spawn(async move {
-        let mut input = String::new();
-        while let Ok(_) = std::io::stdin().read_line(&mut input) {
+        cli.set_prompt("> ").unwrap();
+        while let linefeed::ReadResult::Input(input) = cli.read_line().unwrap() {
             bot.lock()
                 .await
                 .handle_command_message(
@@ -92,7 +97,6 @@ async fn main() {
                     },
                 )
                 .await;
-            input = String::new();
         }
     });
 

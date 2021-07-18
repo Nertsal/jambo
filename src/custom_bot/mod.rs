@@ -24,6 +24,7 @@ impl CustomConfig {
 
 pub struct CustomBot {
     channel_login: String,
+    cli: CLI,
     config: CustomConfig,
     commands: BotCommands<Self>,
 }
@@ -32,7 +33,7 @@ impl CustomBot {
     pub fn name() -> &'static str {
         "CustomBot"
     }
-    pub fn new(channel_login: &str) -> Box<dyn Bot> {
+    pub fn new(cli: &CLI, channel_login: &str) -> Box<dyn Bot> {
         let config = match CustomConfig::load() {
             Ok(config) => config,
             Err(error) => match error.kind() {
@@ -48,6 +49,7 @@ impl CustomBot {
         };
         let mut bot = Self {
             channel_login: channel_login.to_owned(),
+            cli: Arc::clone(cli),
             commands: Self::commands(),
             config: config.clone(),
         };

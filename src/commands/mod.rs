@@ -8,6 +8,8 @@ pub use command_node::*;
 
 pub trait CommandBot<T: Sync + Send> {
     fn get_commands(&self) -> &BotCommands<T>;
+
+    fn get_cli(&self) -> &CLI;
 }
 
 pub async fn check_command<T: CommandBot<T> + Sync + Send>(

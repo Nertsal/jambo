@@ -7,6 +7,10 @@ impl CommandBot<Self> for GameJamBot {
     fn get_commands(&self) -> &BotCommands<Self> {
         &self.commands
     }
+
+    fn get_cli(&self) -> &CLI {
+        &self.cli
+    }
 }
 
 impl GameJamBot {

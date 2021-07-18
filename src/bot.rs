@@ -31,6 +31,8 @@ pub trait Bot: Send + Sync {
     }
 }
 
+pub type CLI = Arc<linefeed::Interface<linefeed::DefaultTerminal>>;
+
 #[async_trait]
 pub trait BotLogger {
     async fn send_message(
@@ -47,11 +49,21 @@ pub trait BotLogger {
     }
 
     fn log(&self, log_type: LogType, message: &str) {
-        println!("{} {}", log_type, message);
+        let mut writer = self.get_cli().lock_writer_erase().unwrap();
+        writeln!(writer, "{} {}", log_type, message).unwrap();
     }
+
+    fn get_cli(&self) -> &CLI;
 }
 
-impl<T> BotLogger for T where T: CommandBot<T> + Sync + Send {}
+impl<T> BotLogger for T
+where
+    T: CommandBot<T> + Sync + Send,
+{
+    fn get_cli(&self) -> &CLI {
+        self.get_cli()
+    }
+}
 
 #[derive(Debug, Clone, Copy)]
 pub enum LogType {

@@ -6,6 +6,10 @@ impl CommandBot<Self> for VoteBot {
     fn get_commands(&self) -> &BotCommands<Self> {
         &self.commands
     }
+
+    fn get_cli(&self) -> &CLI {
+        &self.cli
+    }
 }
 
 impl VoteBot {

@@ -34,6 +34,7 @@ struct GoogleSheetCellFormat {
 
 pub struct GameJamBot {
     channel_login: String,
+    cli: CLI,
     config: GameJamConfig,
     commands: BotCommands<Self>,
     save_file: String,
@@ -116,7 +117,7 @@ impl GameJamBot {
     pub fn name() -> &'static str {
         "GameJamBot"
     }
-    pub fn new(channel: &str) -> Box<dyn Bot> {
+    pub fn new(cli: &CLI, channel: &str) -> Box<dyn Bot> {
         let config: GameJamConfig = serde_json::from_reader(std::io::BufReader::new(
             std::fs::File::open("config/gamejam/gamejam_config.json").unwrap(),
         ))
@@ -124,6 +125,7 @@ impl GameJamBot {
 
         let mut bot = Self {
             channel_login: channel.to_owned(),
+            cli: Arc::clone(cli),
             config,
             commands: Self::commands(),
             save_file: "config/gamejam/gamejam_nertsalbot.json".to_owned(),

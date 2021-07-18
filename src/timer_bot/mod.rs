@@ -7,6 +7,7 @@ use timer::*;
 
 pub struct TimerBot {
     channel_login: String,
+    cli: CLI,
     commands: BotCommands<Self>,
     timer: Timer,
 }
@@ -16,9 +17,10 @@ impl TimerBot {
         "TimerBot"
     }
 
-    pub fn new(channel_login: &str) -> Box<dyn Bot> {
+    pub fn new(cli: &CLI, channel_login: &str) -> Box<dyn Bot> {
         Box::new(Self {
             channel_login: channel_login.to_owned(),
+            cli: Arc::clone(cli),
             commands: Self::commands(),
             timer: Timer::from_status().unwrap_or_default(),
         })
