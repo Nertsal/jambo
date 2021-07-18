@@ -16,10 +16,18 @@ pub async fn check_command<T: CommandBot<T> + Sync + Send>(
     channel_login: String,
     message: &CommandMessage,
 ) {
+    let message_origin = message.origin;
     for (command, args) in bot.get_commands().find_commands(message) {
         if let Some(command_reply) = command(bot, message.sender_name.clone(), args) {
-            bot.send_message(client, channel_login.clone(), command_reply)
-                .await;
+            match message_origin {
+                MessageOrigin::Chat => {
+                    bot.send_message(client, channel_login.clone(), command_reply)
+                        .await;
+                }
+                MessageOrigin::Console => {
+                    bot.log(LogType::ConsoleResponse, &command_reply);
+                }
+            }
         }
     }
 }

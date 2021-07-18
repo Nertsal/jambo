@@ -59,6 +59,7 @@ pub enum LogType {
     Info,
     ChatMessage,
     SendMessage,
+    ConsoleResponse,
 }
 
 impl LogType {
@@ -68,6 +69,7 @@ impl LogType {
             LogType::Info => bunt::print!("{$yellow}[INFO]{/$}"),
             LogType::ChatMessage => bunt::print!("{$cyan}[CHAT]{/$}"),
             LogType::SendMessage => bunt::print!("{$green}[SEND]{/$}"),
+            LogType::ConsoleResponse => bunt::print!("{$magenta}[CONSOLE]{/$}"),
         }
         bunt::println!(" {}", message);
     }

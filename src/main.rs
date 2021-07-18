@@ -88,6 +88,7 @@ async fn main() {
                         sender_name: "Admin".to_owned(),
                         message_text: input.clone(),
                         authority_level: AuthorityLevel::Broadcaster,
+                        origin: MessageOrigin::Console,
                     },
                 )
                 .await;
