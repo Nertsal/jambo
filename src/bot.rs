@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::fmt::{Debug, Display};
 
 use super::*;
 
@@ -47,7 +47,7 @@ pub trait BotLogger {
     }
 
     fn log(&self, log_type: LogType, message: &str) {
-        log_type.log(message);
+        println!("{} {}", log_type, message);
     }
 }
 
@@ -62,15 +62,15 @@ pub enum LogType {
     ConsoleResponse,
 }
 
-impl LogType {
-    fn log(&self, message: &str) {
+impl Display for LogType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use colored::*;
         match &self {
-            LogType::Error => bunt::print!("{$red}[ERROR]{/$}"),
-            LogType::Info => bunt::print!("{$yellow}[INFO]{/$}"),
-            LogType::ChatMessage => bunt::print!("{$cyan}[CHAT]{/$}"),
-            LogType::SendMessage => bunt::print!("{$green}[SEND]{/$}"),
-            LogType::ConsoleResponse => bunt::print!("{$magenta}[CONSOLE]{/$}"),
+            LogType::Error => write!(f, "{}", "[ERROR]".red()),
+            LogType::Info => write!(f, "{}", "[INFO]".yellow()),
+            LogType::ChatMessage => write!(f, "{}", "[CHAT]".cyan()),
+            LogType::SendMessage => write!(f, "{}", "[SEND]".green()),
+            LogType::ConsoleResponse => write!(f, "{}", "[CONSOLE]".magenta()),
         }
-        bunt::println!(" {}", message);
     }
 }
