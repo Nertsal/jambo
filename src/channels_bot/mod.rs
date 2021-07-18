@@ -42,11 +42,20 @@ impl ChannelsBot {
                 }
             }
             ServerMessage::Privmsg(message) => {
+                use colored::*;
+                let sender_name = match &message.name_color {
+                    Some(color) => message
+                        .sender
+                        .name
+                        .truecolor(color.r, color.g, color.b)
+                        .to_string(),
+                    None => message.sender.name.clone(),
+                };
                 self.log(
                     LogType::ChatMessage,
                     &format!(
                         "{} {}: {}",
-                        message.channel_login, message.sender.name, message.message_text
+                        message.channel_login, sender_name, message.message_text
                     ),
                 );
                 let channel_login = self.channel_login.clone();
