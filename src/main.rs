@@ -8,6 +8,7 @@ use twitch_irc::login::StaticLoginCredentials;
 use twitch_irc::message::{PrivmsgMessage, ServerMessage};
 use twitch_irc::{ClientConfig, TCPTransport, TwitchIRCClient};
 
+mod bot;
 mod channels_bot;
 mod commands;
 mod custom_bot;
@@ -16,6 +17,7 @@ mod quote_bot;
 mod timer_bot;
 mod vote_bot;
 
+use bot::*;
 use channels_bot::{ActiveBots, ChannelsBot};
 use commands::*;
 use custom_bot::CustomBot;
@@ -105,45 +107,4 @@ pub struct LoginConfig {
     login_name: String,
     oauth_token: String,
     channel_login: String,
-}
-
-#[async_trait]
-pub trait Bot: Send + Sync {
-    fn name(&self) -> &str;
-
-    async fn handle_server_message(
-        &mut self,
-        client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
-        message: &ServerMessage,
-    );
-
-    async fn handle_command_message(
-        &mut self,
-        client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
-        message: &CommandMessage,
-    );
-
-    async fn update(
-        &mut self,
-        _client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
-        _delta_time: f32,
-    ) {
-    }
-
-    fn update_status(&self, status_text: &str) {
-        let path = format!("status/{}.txt", self.name());
-        std::fs::write(path, status_text).expect("Could not update bot status");
-    }
-}
-
-async fn send_message(
-    client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
-    channel_login: String,
-    message: String,
-) {
-    println!(
-        "Sending a message to channel {}: {}",
-        channel_login, message
-    );
-    client.say(channel_login, message).await.unwrap();
 }
