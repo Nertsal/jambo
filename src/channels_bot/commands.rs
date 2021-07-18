@@ -35,7 +35,7 @@ impl ChannelsBot {
             }
         };
         if let Some(new_bot) = new_bot {
-            println!("Spawned bot {}", bot_name);
+            self.log(LogType::Info, &format!("Spawned bot {}", bot_name));
             self.active_bots.insert(bot_name.to_owned(), new_bot);
         }
         self.save_bots().unwrap();

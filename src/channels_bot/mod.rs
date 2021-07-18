@@ -34,7 +34,7 @@ impl ChannelsBot {
     ) {
         match &message {
             ServerMessage::Join(message) => {
-                println!("Joined: {}", message.channel_login);
+                self.log(LogType::Info, &format!("Joined {}", message.channel_login));
             }
             ServerMessage::Notice(message) => {
                 if message.message_text == "Login authentication failed" {
@@ -42,9 +42,12 @@ impl ChannelsBot {
                 }
             }
             ServerMessage::Privmsg(message) => {
-                println!(
-                    "Got a message in channel {} from {}: {}",
-                    message.channel_login, message.sender.name, message.message_text
+                self.log(
+                    LogType::ChatMessage,
+                    &format!(
+                        "{} {}: {}",
+                        message.channel_login, message.sender.name, message.message_text
+                    ),
                 );
                 let channel_login = self.channel_login.clone();
                 check_command(self, client, channel_login, &CommandMessage::from(message)).await;

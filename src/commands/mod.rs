@@ -6,11 +6,11 @@ mod command_node;
 pub use command_message::*;
 pub use command_node::*;
 
-pub trait CommandBot<T> {
+pub trait CommandBot<T: Sync + Send> {
     fn get_commands(&self) -> &BotCommands<T>;
 }
 
-pub async fn check_command<T: CommandBot<T>>(
+pub async fn check_command<T: CommandBot<T> + Sync + Send>(
     bot: &mut T,
     client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
     channel_login: String,
@@ -18,7 +18,8 @@ pub async fn check_command<T: CommandBot<T>>(
 ) {
     for (command, args) in bot.get_commands().find_commands(message) {
         if let Some(command_reply) = command(bot, message.sender_name.clone(), args) {
-            send_message(client, channel_login.clone(), command_reply).await;
+            bot.send_message(client, channel_login.clone(), command_reply)
+                .await;
         }
     }
 }

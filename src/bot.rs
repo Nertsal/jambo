@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use super::*;
 
 #[async_trait]
@@ -29,14 +31,44 @@ pub trait Bot: Send + Sync {
     }
 }
 
-pub async fn send_message(
-    client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
-    channel_login: String,
-    message: String,
-) {
-    println!(
-        "Sending a message to channel {}: {}",
-        channel_login, message
-    );
-    client.say(channel_login, message).await.unwrap();
+#[async_trait]
+pub trait BotLogger {
+    async fn send_message(
+        &self,
+        client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
+        channel_login: String,
+        message: String,
+    ) {
+        self.log(
+            LogType::SendMessage,
+            &format!("{}: {}", channel_login, message),
+        );
+        client.say(channel_login, message).await.unwrap();
+    }
+
+    fn log(&self, log_type: LogType, message: &str) {
+        log_type.log(message);
+    }
+}
+
+impl<T> BotLogger for T where T: CommandBot<T> + Sync + Send {}
+
+#[derive(Debug, Clone, Copy)]
+pub enum LogType {
+    Error,
+    Info,
+    ChatMessage,
+    SendMessage,
+}
+
+impl LogType {
+    fn log(&self, message: &str) {
+        match &self {
+            LogType::Error => bunt::print!("{$red}[ERROR]{/$}"),
+            LogType::Info => bunt::print!("{$yellow}[INFO]{/$}"),
+            LogType::ChatMessage => bunt::print!("{$cyan}[CHAT]{/$}"),
+            LogType::SendMessage => bunt::print!("{$green}[SEND]{/$}"),
+        }
+        bunt::println!(" {}", message);
+    }
 }
