@@ -84,6 +84,17 @@ impl ChannelsBot {
         BotCommands {
             commands: vec![
                 CommandNode::LiteralNode {
+                    literals: vec!["!shutdown".to_owned()],
+                    child_nodes: vec![CommandNode::FinalNode {
+                        authority_level: AuthorityLevel::Broadcaster,
+                        command: Arc::new(|bot, _, _| {
+                            bot.queue_shutdown = true;
+                            bot.log(LogType::Info, "Shutting down...");
+                            Some(format!("Shutting down..."))
+                        }),
+                    }],
+                },
+                CommandNode::LiteralNode {
                     literals: vec!["!enable".to_owned()],
                     child_nodes: vec![CommandNode::ArgumentNode {
                         argument_type: ArgumentType::Word,

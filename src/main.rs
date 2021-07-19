@@ -58,11 +58,13 @@ async fn main() {
     let client_clone = client.clone();
     let message_handle = tokio::spawn(async move {
         while let Some(message) = incoming_messages.next().await {
-            bot.lock()
-                .await
-                .handle_message(&client_clone, message)
-                .await;
+            let mut bot_lock = bot.lock().await;
+            bot_lock.handle_message(&client_clone, message).await;
+            if bot_lock.queue_shutdown {
+                break;
+            }
         }
+        bot.lock().await.log(LogType::Info, "Chat handle shut down");
     });
 
     let bot = Arc::clone(&channels_bot);
@@ -73,11 +75,15 @@ async fn main() {
             tokio::time::interval(std::time::Duration::from_secs_f32(FIXED_DELTA_TIME));
         loop {
             interval.tick().await;
-            bot.lock()
-                .await
-                .update(&client_clone, FIXED_DELTA_TIME)
-                .await;
+            let mut bot_lock = bot.lock().await;
+            bot_lock.update(&client_clone, FIXED_DELTA_TIME).await;
+            if bot_lock.queue_shutdown {
+                break;
+            }
         }
+        bot.lock()
+            .await
+            .log(LogType::Info, "Update handle shut down");
     });
 
     let bot = Arc::clone(&channels_bot);
@@ -85,8 +91,8 @@ async fn main() {
     let console_handle = tokio::spawn(async move {
         cli.set_prompt("> ").unwrap();
         while let linefeed::ReadResult::Input(input) = cli.read_line().unwrap() {
-            bot.lock()
-                .await
+            let mut bot_lock = bot.lock().await;
+            bot_lock
                 .handle_command_message(
                     &client_clone,
                     CommandMessage {
@@ -97,10 +103,16 @@ async fn main() {
                     },
                 )
                 .await;
+            if bot_lock.queue_shutdown {
+                break;
+            }
         }
+        bot.lock()
+            .await
+            .log(LogType::Info, "Console handle shut down");
     });
 
-    client.join(login_config.channel_login);
+    client.join(login_config.channel_login.clone());
 
     message_handle.await.unwrap();
     update_handle.await.unwrap();

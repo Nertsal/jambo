@@ -9,6 +9,7 @@ pub type ActiveBots = HashSet<String>;
 pub struct ChannelsBot {
     channel_login: String,
     cli: CLI,
+    pub queue_shutdown: bool,
     commands: BotCommands<Self>,
     available_bots: HashMap<String, Box<fn(&CLI, &str) -> Box<dyn Bot>>>,
     active_bots: HashMap<String, Box<dyn Bot>>,
@@ -19,6 +20,7 @@ impl ChannelsBot {
         let mut bot = Self {
             channel_login: config.channel_login.clone(),
             cli: Arc::clone(&cli),
+            queue_shutdown: false,
             commands: Self::commands(),
             available_bots: Self::available_bots(),
             active_bots: HashMap::with_capacity(active_bots.len()),
