@@ -120,6 +120,11 @@ async fn main() {
     message_handle.await.unwrap();
     update_handle.await.unwrap();
     console_handle.await.unwrap();
+
+    channels_bot
+        .lock()
+        .await
+        .log(LogType::Info, "Shut down succefully");
 }
 
 #[derive(Serialize, Deserialize)]
