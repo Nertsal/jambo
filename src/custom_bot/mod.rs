@@ -91,4 +91,8 @@ impl Bot for CustomBot {
     ) {
         check_command(self, client, self.channel_login.clone(), &message).await;
     }
+
+    fn get_completion_tree(&self) -> Vec<CompletionNode> {
+        commands_to_completion(&self.get_commands().commands)
+    }
 }

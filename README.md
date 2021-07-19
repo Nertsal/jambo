@@ -1,6 +1,6 @@
 # Nertsal's Twitch Bot
 
-Connects to a twitch account using a provided OAuth token, joins a twitch channel and interacts with viewers. Main functionality is handling a queue of games submitted for review during game jams. Commands can be called through twitch chat or console (console calls are interpreted as broadcaster calls).
+Connects to a twitch account using a provided OAuth token, joins a twitch channel and interacts with viewers. Main functionality is handling a queue of games submitted for review during game jams. Commands can be called through twitch chat or console (console calls are interpreted as broadcaster calls). Autocomplete works for most literals in console.
 
 ## Usage
 
@@ -44,11 +44,11 @@ The main bot, that controls other bots.
 
 - `!shutdown`. Broadcaster only. Starts shutting down, chat handle will shut down only upon receiving a message (stimulate by sending a message through twitch chat).
 
-- `!enable <bot_name>`. Moderator only. Turns <bot_name> on.
+- `!enable <bot_name>`. Moderator only. Turns **bot_name** on.
 
-- `!disable <bot_name>`. Moderator only. Turns <bot_name> off.
+- `!disable <bot_name>`. Moderator only. Turns **bot_name** off.
 
-- `!reset <bot_name>`. Moderator only. Resets <bot_name> (turns it off and then back on).
+- `!reset <bot_name>`. Moderator only. Resets **bot_name** (turns it off and then back on).
 
 ### **GameJamBot**
 
@@ -110,7 +110,7 @@ The main bot, that controls other bots.
 
 #### Commands
 
-- `!submit <game_link>`. If **link_start** is given, then **!submit** checks, that **game_link** starts with **link_start**. If **allow_direct_link_submit** is true, then <game_link> will also be interpreted as !submit <game_link>, if **link_start** is also given.
+- `!submit <game_link>`. If **link_start** is given, then **!submit** checks, that **game_link** starts with **link_start**. If **allow_direct_link_submit** is true, then **game_link** will also be interpreted as !submit **game_link**, if **link_start** is also given.
 
 - `!return`. Returns one's game from the skipped list to the queue.
 
@@ -160,11 +160,11 @@ No config required.
 
 #### Commands
 
-- `!command new <command_name> <command_response>`. Moderator only. Adds a new command <command_name> (example: **!game**) with a response <command_response>.
+- `!command new <command_name> <command_response>`. Moderator only. Adds a new command **command_name** (example: **!game**) with a response **command_response**.
 
-- `!command delete <command_name>`. Moderator only. Deletes a command with the name <command_name>.
+- `!command delete <command_name>`. Moderator only. Deletes a command with the name **command_name**.
 
-- `!command edit <command_name> <command_response>`. Moderator only. Changes <command_name> response to <command_response>.
+- `!command edit <command_name> <command_response>`. Moderator only. Changes **command_name** response to **command_response**.
 
 ### **QuoteBot**
 
@@ -174,15 +174,15 @@ No config required.
 
 - `!quote`. Displays a random quote.
 
-- `!quote add <quote_name> <quote>`. Moderator only. Add quote <quote_name>: <quote>.
+- `!quote add <quote_name> <new_quote>`. Moderator only. Add quote **quote_name**: **new_quote**.
 
-- `!quote delete <quote_name>`. Moderator only. Deletes quote <quote_name>.
+- `!quote delete <quote_name>`. Moderator only. Deletes quote **quote_name**.
 
-- `!quote edit <quote_name> <quote>`. Moderator only. Edits quote <quote_name> to <quote>.
+- `!quote edit <quote_name> <new_quote>`. Moderator only. Edits quote **quote_name** to **new_quote**.
 
-- `!quote rename <quote_name> <new_name>`. Moderator only. Renames quote <quote_name> to <quote>
+- `!quote rename <quote_name> <new_name>`. Moderator only. Renames quote **quote_name** to **new_name**
 
-- `!quote <quote_name>`. Displays quote <quote_name>.
+- `!quote <quote_name>`. Displays quote **quote_name**.
 
 ### **VoteBot**
 
@@ -196,7 +196,7 @@ No config required
 
 - `!vote finish`. Broadcaster only. Finishes the voting.
 
-- `!vote <vote>`. Sets or updates one's vote to <vote>.
+- `!vote <vote>`. Sets or updates one's vote to **vote**.
 
 ### **TimerBot**
 

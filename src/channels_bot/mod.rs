@@ -94,4 +94,13 @@ impl ChannelsBot {
             bot.update(client, delta_time).await;
         }
     }
+
+    pub fn get_completion_tree(&self) -> Vec<CompletionNode> {
+        let mut completions = Vec::new();
+        completions.append(&mut commands_to_completion(&self.get_commands().commands));
+        for bot in self.active_bots.values() {
+            completions.append(&mut bot.get_completion_tree());
+        }
+        completions
+    }
 }
