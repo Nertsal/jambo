@@ -86,11 +86,7 @@ impl GameJamBot {
             }
         }
     }
-    pub fn next(
-        &mut self,
-        author_name: Option<String>,
-        confirmation_required: bool,
-    ) -> Response {
+    pub fn next(&mut self, author_name: Option<String>, confirmation_required: bool) -> Response {
         let game = match &author_name {
             Some(author_name) => match self.remove_game(author_name) {
                 Some(game) => Ok(game),
@@ -383,11 +379,17 @@ impl GameJamBot {
         reply
     }
     fn luck(&self, author_name: &str) -> Response {
-        self.games_state
-            .raffle
-            .viewers_weight
-            .get(author_name)
-            .map(|luck| format!("@{}, your current luck level is {}", author_name, luck))
+        Some(
+            self.games_state
+                .raffle
+                .viewers_weight
+                .get(author_name)
+                .map(|luck| format!("@{}, your current luck level is {}", author_name, luck))
+                .unwrap_or(format!(
+                    "@{}, you have regular luck level {}",
+                    author_name, self.config.raffle_default_weight
+                )),
+        )
     }
     pub fn commands() -> BotCommands<Self> {
         BotCommands {
