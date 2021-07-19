@@ -11,6 +11,7 @@ use twitch_irc::{ClientConfig, TCPTransport, TwitchIRCClient};
 mod bot;
 mod channels_bot;
 mod commands;
+mod completion;
 mod custom_bot;
 mod gamejam_bot;
 mod quote_bot;
@@ -20,6 +21,7 @@ mod vote_bot;
 use bot::*;
 use channels_bot::{ActiveBots, ChannelsBot};
 use commands::*;
+use completion::*;
 use custom_bot::CustomBot;
 use gamejam_bot::GameJamBot;
 use quote_bot::QuoteBot;
@@ -48,11 +50,12 @@ async fn main() {
             .await;
 
     let cli = Arc::new(linefeed::Interface::new("nertsal-bot").unwrap());
-    let channels_bot = Arc::new(Mutex::new(ChannelsBot::new(
-        &cli,
-        &login_config,
-        &active_bots,
-    )));
+    let channels_bot = ChannelsBot::new(&cli, &login_config, &active_bots);
+    let completer = Arc::new(CommandCompleter {
+        completion_tree: channels_bot.get_completion_tree(),
+    });
+    cli.set_completer(completer);
+    let channels_bot = Arc::new(Mutex::new(channels_bot));
 
     let bot = Arc::clone(&channels_bot);
     let client_clone = client.clone();

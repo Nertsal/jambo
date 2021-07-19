@@ -29,6 +29,10 @@ pub trait Bot: Send + Sync {
         let path = format!("status/{}.txt", self.name());
         std::fs::write(path, status_text).expect("Could not update bot status");
     }
+
+    fn get_completion_tree(&self) -> Vec<CompletionNode> {
+        vec![]
+    }
 }
 
 pub type CLI = Arc<linefeed::Interface<linefeed::DefaultTerminal>>;
