@@ -13,7 +13,7 @@ impl CommandBot<Self> for VoteBot {
 }
 
 impl VoteBot {
-    pub fn vote_start(&mut self) -> Option<String> {
+    pub fn vote_start(&mut self) -> Response {
         match &self.vote_mode {
             VoteMode::Active { .. } => Some(format!("The voting is in progress.")),
             VoteMode::Inactive => {
@@ -26,7 +26,7 @@ impl VoteBot {
         }
     }
 
-    pub fn vote_finish(&mut self) -> Option<String> {
+    pub fn vote_finish(&mut self) -> Response {
         let vote_mode = std::mem::replace(&mut self.vote_mode, VoteMode::Inactive);
         match vote_mode {
             VoteMode::Active { votes } => {
@@ -51,7 +51,7 @@ impl VoteBot {
         }
     }
 
-    pub fn vote(&mut self, voter: String, vote: String) -> Option<String> {
+    pub fn vote(&mut self, voter: String, vote: String) -> Response {
         match &mut self.vote_mode {
             VoteMode::Active { votes } => {
                 votes.insert(voter, vote.to_lowercase());

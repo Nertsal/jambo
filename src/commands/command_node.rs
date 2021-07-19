@@ -21,8 +21,10 @@ pub type Argument = String;
 
 pub type SenderName = String;
 
+pub type Response = Option<String>;
+
 pub type Command<T> =
-    Arc<dyn Fn(&mut T, SenderName, Vec<Argument>) -> Option<String> + Send + Sync>;
+    Arc<dyn Fn(&mut T, SenderName, Vec<Argument>) -> Response + Send + Sync>;
 
 #[derive(Clone, Copy)]
 pub enum ArgumentType {

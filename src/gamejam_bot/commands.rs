@@ -14,7 +14,7 @@ impl CommandBot<Self> for GameJamBot {
 }
 
 impl GameJamBot {
-    fn set_current(&mut self, game: Option<Game>) -> Option<String> {
+    fn set_current(&mut self, game: Option<Game>) -> Response {
         self.time_limit = None;
 
         match self.games_state.current_game.take() {
@@ -74,7 +74,7 @@ impl GameJamBot {
                 pos.map(|pos| self.games_state.skipped.remove(pos))
             })
     }
-    fn remove_game_response(&mut self, author_name: &str) -> Option<String> {
+    fn remove_game_response(&mut self, author_name: &str) -> Response {
         match self.remove_game(author_name) {
             Some(_) => {
                 let reply = format!("{}'s game has been removed from the queue", author_name);
@@ -90,7 +90,7 @@ impl GameJamBot {
         &mut self,
         author_name: Option<String>,
         confirmation_required: bool,
-    ) -> Option<String> {
+    ) -> Response {
         let game = match &author_name {
             Some(author_name) => match self.remove_game(author_name) {
                 Some(game) => Ok(game),
@@ -131,7 +131,7 @@ impl GameJamBot {
         self.save_games().unwrap();
         reply
     }
-    pub fn skip(&mut self, auto_next: bool) -> Option<String> {
+    pub fn skip(&mut self, auto_next: bool) -> Response {
         self.time_limit = None;
         match self.games_state.current_game.take() {
             Some(game) => {
@@ -148,7 +148,7 @@ impl GameJamBot {
             None => Some("Not playing any game at the moment.".to_owned()),
         }
     }
-    fn skip_all(&mut self) -> Option<String> {
+    fn skip_all(&mut self) -> Response {
         // self.skip(false);
         for game in self.games_state.returned_queue.drain(..) {
             self.games_state.skipped.push(game);
@@ -161,7 +161,7 @@ impl GameJamBot {
             "All games from the queue are moved to the skipped list."
         ))
     }
-    fn unskip(&mut self, author_name: Option<String>) -> Option<String> {
+    fn unskip(&mut self, author_name: Option<String>) -> Response {
         let mut reply = String::new();
         if let Some(current) = self.games_state.current_game.take() {
             self.games_state.returned_queue.push_front(current);
@@ -214,7 +214,7 @@ impl GameJamBot {
             true
         }
     }
-    fn submit(&mut self, game_link: String, sender_name: String) -> Option<String> {
+    fn submit(&mut self, game_link: String, sender_name: String) -> Response {
         if !self.games_state.is_open {
             Some("The queue is closed. You can not submit your game at the moment.".to_owned())
         } else if !self.config.multiple_submissions
@@ -281,7 +281,7 @@ impl GameJamBot {
             Some(format!("@{}, that link can not be submitted", sender_name))
         }
     }
-    fn raffle_start(&mut self) -> Option<String> {
+    fn raffle_start(&mut self) -> Response {
         match &self.games_state.raffle.mode {
             RaffleMode::Active { .. } => Some(format!(
                 "The raffle is in progress. Type !join to join the raffle."
@@ -298,7 +298,7 @@ impl GameJamBot {
             }
         }
     }
-    fn raffle_finish(&mut self) -> Option<String> {
+    fn raffle_finish(&mut self) -> Response {
         let raffle_mode =
             std::mem::replace(&mut self.games_state.raffle.mode, RaffleMode::Inactive);
         let reply = match raffle_mode {
@@ -329,7 +329,7 @@ impl GameJamBot {
         self.save_games().unwrap();
         reply
     }
-    fn raffle_join(&mut self, sender_name: String) -> Option<String> {
+    fn raffle_join(&mut self, sender_name: String) -> Response {
         let weight = *self
             .games_state
             .raffle
@@ -350,12 +350,12 @@ impl GameJamBot {
         }
         None
     }
-    fn raffle_cancel(&mut self) -> Option<String> {
+    fn raffle_cancel(&mut self) -> Response {
         self.games_state.raffle.mode = RaffleMode::Inactive;
         self.save_games().unwrap();
         Some(format!("Raffle is now inactive"))
     }
-    pub fn return_game(&mut self, author_name: &str) -> Option<String> {
+    pub fn return_game(&mut self, author_name: &str) -> Response {
         if !self.games_state.is_open {
             return None;
         }
@@ -382,7 +382,7 @@ impl GameJamBot {
         };
         reply
     }
-    fn luck(&self, author_name: &str) -> Option<String> {
+    fn luck(&self, author_name: &str) -> Response {
         self.games_state
             .raffle
             .viewers_weight

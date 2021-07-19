@@ -187,7 +187,7 @@ impl GameJamBot {
         }
         Box::new(bot)
     }
-    fn check_message(&mut self, message: &PrivmsgMessage) -> Option<String> {
+    fn check_message(&mut self, message: &PrivmsgMessage) -> Response {
         if let Some(_) = self.time_limit {
             let game = self.games_state.current_game.as_ref().unwrap();
             if message.sender.name == game.author {
@@ -200,7 +200,7 @@ impl GameJamBot {
         }
         None
     }
-    fn update(&mut self, delta_time: f32) -> Option<String> {
+    fn update(&mut self, delta_time: f32) -> Response {
         if let Some(time) = &mut self.time_limit {
             *time -= delta_time;
             if *time <= 0.0 {

@@ -29,7 +29,7 @@ impl ChannelsBot {
         bots_map!(CustomBot, GameJamBot, QuoteBot, TimerBot, VoteBot)
     }
 
-    pub fn spawn_bot(&mut self, bot_name: &str) -> Option<String> {
+    pub fn spawn_bot(&mut self, bot_name: &str) -> Response {
         let (response, new_bot) = if self.active_bots.contains_key(bot_name) {
             (Some(format!("{} is already active", bot_name)), None)
         } else {
@@ -46,14 +46,14 @@ impl ChannelsBot {
         response
     }
 
-    fn disable_bot(&mut self, bot_name: &str) -> Option<String> {
+    fn disable_bot(&mut self, bot_name: &str) -> Response {
         let bot = self.active_bots.remove(bot_name);
         let response = bot.map(|bot| format!("{} is no longer active", bot.name()));
         self.save_bots().unwrap();
         response
     }
 
-    fn reset_bot(&mut self, bot_name: &str) -> Option<String> {
+    fn reset_bot(&mut self, bot_name: &str) -> Response {
         self.disable_bot(bot_name);
         self.spawn_bot(bot_name)
             .map(|_| format!("{} is reset", bot_name))
