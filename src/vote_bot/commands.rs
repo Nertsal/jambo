@@ -6,6 +6,10 @@ impl CommandBot<Self> for VoteBot {
     fn get_commands(&self) -> &BotCommands<Self> {
         &self.commands
     }
+
+    fn get_cli(&self) -> &CLI {
+        &self.cli
+    }
 }
 
 impl VoteBot {
@@ -79,7 +83,7 @@ impl VoteBot {
                     CommandNode::ArgumentNode {
                         argument_type: ArgumentType::Line,
                         child_nodes: vec![CommandNode::FinalNode {
-                            authority_level: AuthorityLevel::Any,
+                            authority_level: AuthorityLevel::Viewer,
                             command: Arc::new(|bot, sender_name, mut args| {
                                 let vote = args.remove(0);
                                 bot.vote(sender_name, vote)

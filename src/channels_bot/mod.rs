@@ -8,15 +8,19 @@ pub type ActiveBots = HashSet<String>;
 
 pub struct ChannelsBot {
     channel_login: String,
+    cli: CLI,
+    pub queue_shutdown: bool,
     commands: BotCommands<Self>,
-    available_bots: HashMap<String, Box<fn(&str) -> Box<dyn Bot>>>,
+    available_bots: HashMap<String, Box<fn(&CLI, &str) -> Box<dyn Bot>>>,
     active_bots: HashMap<String, Box<dyn Bot>>,
 }
 
 impl ChannelsBot {
-    pub fn new(config: &LoginConfig, active_bots: &ActiveBots) -> Box<Self> {
+    pub fn new(cli: &CLI, config: &LoginConfig, active_bots: &ActiveBots) -> Box<Self> {
         let mut bot = Self {
             channel_login: config.channel_login.clone(),
+            cli: Arc::clone(&cli),
+            queue_shutdown: false,
             commands: Self::commands(),
             available_bots: Self::available_bots(),
             active_bots: HashMap::with_capacity(active_bots.len()),
@@ -34,7 +38,7 @@ impl ChannelsBot {
     ) {
         match &message {
             ServerMessage::Join(message) => {
-                println!("Joined: {}", message.channel_login);
+                self.log(LogType::Info, &format!("Joined {}", message.channel_login));
             }
             ServerMessage::Notice(message) => {
                 if message.message_text == "Login authentication failed" {
@@ -42,17 +46,42 @@ impl ChannelsBot {
                 }
             }
             ServerMessage::Privmsg(message) => {
-                println!(
-                    "Got a message in channel {} from {}: {}",
-                    message.channel_login, message.sender.name, message.message_text
+                use colored::*;
+                let sender_name = match &message.name_color {
+                    Some(color) => message
+                        .sender
+                        .name
+                        .truecolor(color.r, color.g, color.b)
+                        .to_string(),
+                    None => message.sender.name.clone(),
+                };
+                self.log(
+                    LogType::ChatMessage,
+                    &format!(
+                        "{} {}: {}",
+                        message.channel_login, sender_name, message.message_text
+                    ),
                 );
                 let channel_login = self.channel_login.clone();
-                check_command(self, client, channel_login, message).await;
+                check_command(self, client, channel_login, &CommandMessage::from(message)).await;
             }
             _ => (),
         }
         for bot in self.active_bots.values_mut() {
-            bot.handle_message(client, &message).await;
+            bot.handle_server_message(client, &message).await;
+        }
+    }
+
+    pub async fn handle_command_message(
+        &mut self,
+        client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
+        message: CommandMessage,
+    ) {
+        let channel_login = self.channel_login.clone();
+        check_command(self, client, channel_login, &message).await;
+
+        for bot in self.active_bots.values_mut() {
+            bot.handle_command_message(client, &message).await;
         }
     }
 

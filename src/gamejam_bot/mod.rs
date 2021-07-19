@@ -34,6 +34,7 @@ struct GoogleSheetCellFormat {
 
 pub struct GameJamBot {
     channel_login: String,
+    cli: CLI,
     config: GameJamConfig,
     commands: BotCommands<Self>,
     save_file: String,
@@ -116,7 +117,7 @@ impl GameJamBot {
     pub fn name() -> &'static str {
         "GameJamBot"
     }
-    pub fn new(channel: &str) -> Box<dyn Bot> {
+    pub fn new(cli: &CLI, channel: &str) -> Box<dyn Bot> {
         let config: GameJamConfig = serde_json::from_reader(std::io::BufReader::new(
             std::fs::File::open("config/gamejam/gamejam_config.json").unwrap(),
         ))
@@ -124,6 +125,7 @@ impl GameJamBot {
 
         let mut bot = Self {
             channel_login: channel.to_owned(),
+            cli: Arc::clone(cli),
             config,
             commands: Self::commands(),
             save_file: "config/gamejam/gamejam_nertsalbot.json".to_owned(),
@@ -151,16 +153,20 @@ impl GameJamBot {
             ));
         }
 
-        println!("Loading GameJamBot data from {}", &bot.save_file);
+        bot.log(
+            LogType::Info,
+            &format!("Loading GameJamBot data from {}", &bot.save_file),
+        );
         match bot.load_games() {
-            Ok(_) => {
-                println!("Successfully loaded GameJamBot data")
-            }
+            Ok(_) => bot.log(
+                LogType::Info,
+                &format!("Successfully loaded GameJamBot data"),
+            ),
             Err(error) => {
                 use std::io::ErrorKind;
                 match error.kind() {
                     ErrorKind::NotFound => {
-                        println!("Using default GameJamBot data");
+                        ("Using default GameJamBot data");
                         bot.save_games().unwrap();
                     }
                     _ => panic!("Error loading GameJamBot data: {}", error),
@@ -392,7 +398,7 @@ impl Bot for GameJamBot {
         Self::name()
     }
 
-    async fn handle_message(
+    async fn handle_server_message(
         &mut self,
         client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
         message: &ServerMessage,
@@ -400,9 +406,16 @@ impl Bot for GameJamBot {
         match message {
             ServerMessage::Privmsg(message) => {
                 if let Some(reply) = self.check_message(message) {
-                    send_message(client, self.channel_login.clone(), reply).await;
+                    self.send_message(client, self.channel_login.clone(), reply)
+                        .await;
                 }
-                check_command(self, client, self.channel_login.clone(), message).await;
+                check_command(
+                    self,
+                    client,
+                    self.channel_login.clone(),
+                    &CommandMessage::from(message),
+                )
+                .await;
             }
             _ => (),
         };
@@ -414,17 +427,29 @@ impl Bot for GameJamBot {
         delta_time: f32,
     ) {
         if let Some(reply) = self.update(delta_time) {
-            send_message(client, self.channel_login.clone(), reply).await;
+            self.send_message(client, self.channel_login.clone(), reply)
+                .await;
         }
 
         if self.update_sheets {
             if self.config.google_sheet_config.is_some() {
                 match self.save_sheets().await {
                     Ok(_) => (),
-                    Err(err) => println!("Error trying to save queue into google sheets: {}", err),
+                    Err(err) => self.log(
+                        LogType::Error,
+                        &format!("Error trying to save queue into google sheets: {}", err),
+                    ),
                 }
             }
             self.update_sheets = false;
         }
+    }
+
+    async fn handle_command_message(
+        &mut self,
+        client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
+        message: &CommandMessage,
+    ) {
+        check_command(self, client, self.channel_login.clone(), &message).await;
     }
 }

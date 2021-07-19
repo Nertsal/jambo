@@ -2,6 +2,16 @@ use std::sync::Arc;
 
 use super::*;
 
+impl CommandBot<Self> for TimerBot {
+    fn get_commands(&self) -> &BotCommands<Self> {
+        &self.commands
+    }
+
+    fn get_cli(&self) -> &CLI {
+        &self.cli
+    }
+}
+
 impl TimerBot {
     fn set_timer(&mut self, timer: Timer) {
         self.timer = timer;
@@ -83,11 +93,5 @@ impl TimerBot {
                 ],
             }],
         }
-    }
-}
-
-impl CommandBot<Self> for TimerBot {
-    fn get_commands(&self) -> &BotCommands<Self> {
-        &self.commands
     }
 }

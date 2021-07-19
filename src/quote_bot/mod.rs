@@ -32,6 +32,7 @@ impl QuoteConfig {
 
 pub struct QuoteBot {
     channel_login: String,
+    cli: CLI,
     config: QuoteConfig,
     commands: BotCommands<Self>,
 }
@@ -40,7 +41,7 @@ impl QuoteBot {
     pub fn name() -> &'static str {
         "QuoteBot"
     }
-    pub fn new(channel_login: &str) -> Box<dyn Bot> {
+    pub fn new(cli: &CLI, channel_login: &str) -> Box<dyn Bot> {
         let config = match QuoteConfig::load() {
             Ok(config) => config,
             Err(error) => match error.kind() {
@@ -54,6 +55,7 @@ impl QuoteBot {
         };
         Box::new(Self {
             channel_login: channel_login.to_owned(),
+            cli: Arc::clone(cli),
             config,
             commands: Self::commands(),
         })
@@ -65,16 +67,30 @@ impl Bot for QuoteBot {
     fn name(&self) -> &str {
         Self::name()
     }
-    async fn handle_message(
+    async fn handle_server_message(
         &mut self,
         client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
         message: &ServerMessage,
     ) {
         match message {
             ServerMessage::Privmsg(message) => {
-                check_command(self, client, self.channel_login.clone(), message).await;
+                check_command(
+                    self,
+                    client,
+                    self.channel_login.clone(),
+                    &CommandMessage::from(message),
+                )
+                .await;
             }
             _ => (),
         };
+    }
+
+    async fn handle_command_message(
+        &mut self,
+        client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
+        message: &CommandMessage,
+    ) {
+        check_command(self, client, self.channel_login.clone(), &message).await;
     }
 }

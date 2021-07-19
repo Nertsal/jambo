@@ -6,12 +6,16 @@ impl CommandBot<Self> for ChannelsBot {
     fn get_commands(&self) -> &BotCommands<Self> {
         &self.commands
     }
+
+    fn get_cli(&self) -> &CLI {
+        &self.cli
+    }
 }
 
 macro_rules! bots_map {
     ( $( $b:ident ),* ) => {
         {
-            let mut bots: HashMap<String, Box<fn(&str) -> Box<dyn Bot>>> = HashMap::new();
+            let mut bots: HashMap<String, Box<fn(&CLI, &str) -> Box<dyn Bot>>> = HashMap::new();
             $(
                 bots.insert($b::name().to_owned(), Box::new($b::new));
             )*
@@ -21,7 +25,7 @@ macro_rules! bots_map {
 }
 
 impl ChannelsBot {
-    pub fn available_bots() -> HashMap<String, Box<fn(&str) -> Box<dyn Bot>>> {
+    pub fn available_bots() -> HashMap<String, Box<fn(&CLI, &str) -> Box<dyn Bot>>> {
         bots_map!(CustomBot, GameJamBot, QuoteBot, TimerBot, VoteBot)
     }
 
@@ -35,7 +39,7 @@ impl ChannelsBot {
             }
         };
         if let Some(new_bot) = new_bot {
-            println!("Spawned bot {}", bot_name);
+            self.log(LogType::Info, &format!("Spawned bot {}", bot_name));
             self.active_bots.insert(bot_name.to_owned(), new_bot);
         }
         self.save_bots().unwrap();
@@ -73,12 +77,23 @@ impl ChannelsBot {
     fn new_bot(&self, bot_name: &str) -> Option<Box<dyn Bot>> {
         self.available_bots
             .get(bot_name)
-            .map(|f| f(&self.channel_login))
+            .map(|f| f(&self.cli, &self.channel_login))
     }
 
     pub fn commands() -> BotCommands<Self> {
         BotCommands {
             commands: vec![
+                CommandNode::LiteralNode {
+                    literals: vec!["!shutdown".to_owned()],
+                    child_nodes: vec![CommandNode::FinalNode {
+                        authority_level: AuthorityLevel::Broadcaster,
+                        command: Arc::new(|bot, _, _| {
+                            bot.queue_shutdown = true;
+                            bot.log(LogType::Info, "Shutting down...");
+                            Some(format!("Shutting down..."))
+                        }),
+                    }],
+                },
                 CommandNode::LiteralNode {
                     literals: vec!["!enable".to_owned()],
                     child_nodes: vec![CommandNode::ArgumentNode {

@@ -8,6 +8,7 @@ use twitch_irc::login::StaticLoginCredentials;
 use twitch_irc::message::{PrivmsgMessage, ServerMessage};
 use twitch_irc::{ClientConfig, TCPTransport, TwitchIRCClient};
 
+mod bot;
 mod channels_bot;
 mod commands;
 mod custom_bot;
@@ -16,6 +17,7 @@ mod quote_bot;
 mod timer_bot;
 mod vote_bot;
 
+use bot::*;
 use channels_bot::{ActiveBots, ChannelsBot};
 use commands::*;
 use custom_bot::CustomBot;
@@ -45,17 +47,24 @@ async fn main() {
             .compat()
             .await;
 
-    let channels_bot = Arc::new(Mutex::new(ChannelsBot::new(&login_config, &active_bots)));
+    let cli = Arc::new(linefeed::Interface::new("nertsal-bot").unwrap());
+    let channels_bot = Arc::new(Mutex::new(ChannelsBot::new(
+        &cli,
+        &login_config,
+        &active_bots,
+    )));
 
     let bot = Arc::clone(&channels_bot);
     let client_clone = client.clone();
     let message_handle = tokio::spawn(async move {
         while let Some(message) = incoming_messages.next().await {
-            bot.lock()
-                .await
-                .handle_message(&client_clone, message)
-                .await;
+            let mut bot_lock = bot.lock().await;
+            bot_lock.handle_message(&client_clone, message).await;
+            if bot_lock.queue_shutdown {
+                break;
+            }
         }
+        bot.lock().await.log(LogType::Info, "Chat handle shut down");
     });
 
     let bot = Arc::clone(&channels_bot);
@@ -66,17 +75,48 @@ async fn main() {
             tokio::time::interval(std::time::Duration::from_secs_f32(FIXED_DELTA_TIME));
         loop {
             interval.tick().await;
-            bot.lock()
-                .await
-                .update(&client_clone, FIXED_DELTA_TIME)
-                .await;
+            let mut bot_lock = bot.lock().await;
+            bot_lock.update(&client_clone, FIXED_DELTA_TIME).await;
+            if bot_lock.queue_shutdown {
+                break;
+            }
         }
+        bot.lock()
+            .await
+            .log(LogType::Info, "Update handle shut down");
     });
 
-    client.join(login_config.channel_login);
+    let bot = Arc::clone(&channels_bot);
+    let client_clone = client.clone();
+    let console_handle = tokio::spawn(async move {
+        cli.set_prompt("> ").unwrap();
+        while let linefeed::ReadResult::Input(input) = cli.read_line().unwrap() {
+            let mut bot_lock = bot.lock().await;
+            bot_lock
+                .handle_command_message(
+                    &client_clone,
+                    CommandMessage {
+                        sender_name: "Admin".to_owned(),
+                        message_text: input.clone(),
+                        authority_level: AuthorityLevel::Broadcaster,
+                        origin: MessageOrigin::Console,
+                    },
+                )
+                .await;
+            if bot_lock.queue_shutdown {
+                break;
+            }
+        }
+        bot.lock()
+            .await
+            .log(LogType::Info, "Console handle shut down");
+    });
+
+    client.join(login_config.channel_login.clone());
 
     message_handle.await.unwrap();
     update_handle.await.unwrap();
+    console_handle.await.unwrap();
 }
 
 #[derive(Serialize, Deserialize)]
@@ -84,39 +124,4 @@ pub struct LoginConfig {
     login_name: String,
     oauth_token: String,
     channel_login: String,
-}
-
-#[async_trait]
-pub trait Bot: Send + Sync {
-    fn name(&self) -> &str;
-
-    async fn handle_message(
-        &mut self,
-        client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
-        message: &ServerMessage,
-    );
-
-    async fn update(
-        &mut self,
-        _client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
-        _delta_time: f32,
-    ) {
-    }
-
-    fn update_status(&self, status_text: &str) {
-        let path = format!("status/{}.txt", self.name());
-        std::fs::write(path, status_text).expect("Could not update bot status");
-    }
-}
-
-async fn send_message(
-    client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
-    channel_login: String,
-    message: String,
-) {
-    println!(
-        "Sending a message to channel {}: {}",
-        channel_login, message
-    );
-    client.say(channel_login, message).await.unwrap();
 }

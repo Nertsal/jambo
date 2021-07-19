@@ -7,6 +7,7 @@ use timer::*;
 
 pub struct TimerBot {
     channel_login: String,
+    cli: CLI,
     commands: BotCommands<Self>,
     timer: Timer,
 }
@@ -16,9 +17,10 @@ impl TimerBot {
         "TimerBot"
     }
 
-    pub fn new(channel_login: &str) -> Box<dyn Bot> {
+    pub fn new(cli: &CLI, channel_login: &str) -> Box<dyn Bot> {
         Box::new(Self {
             channel_login: channel_login.to_owned(),
+            cli: Arc::clone(cli),
             commands: Self::commands(),
             timer: Timer::from_status().unwrap_or_default(),
         })
@@ -36,14 +38,20 @@ impl Bot for TimerBot {
         Self::name()
     }
 
-    async fn handle_message(
+    async fn handle_server_message(
         &mut self,
         client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
         message: &ServerMessage,
     ) {
         match message {
             ServerMessage::Privmsg(message) => {
-                check_command(self, client, self.channel_login.clone(), message).await;
+                check_command(
+                    self,
+                    client,
+                    self.channel_login.clone(),
+                    &CommandMessage::from(message),
+                )
+                .await;
             }
             _ => (),
         };
@@ -55,5 +63,13 @@ impl Bot for TimerBot {
         delta_time: f32,
     ) {
         self.update_timer(delta_time);
+    }
+
+    async fn handle_command_message(
+        &mut self,
+        client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
+        message: &CommandMessage,
+    ) {
+        check_command(self, client, self.channel_login.clone(), &message).await;
     }
 }

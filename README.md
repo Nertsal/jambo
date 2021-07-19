@@ -1,6 +1,6 @@
 # Nertsal's Twitch Bot
 
-Connects to a twitch account using a provided OAuth token, joins a twitch channel and interacts with viewers. Main functionality is handling a queue of games submitted for review during game jams. 
+Connects to a twitch account using a provided OAuth token, joins a twitch channel and interacts with viewers. Main functionality is handling a queue of games submitted for review during game jams. Commands can be called through twitch chat or console (console calls are interpreted as broadcaster calls).
 
 ## Usage
 
@@ -41,6 +41,8 @@ Run the executable file from the release or compile and run manually. Install ca
 The main bot, that controls other bots.
 
 #### Commands
+
+- `!shutdown`. Broadcaster only. Starts shutting down, chat handle will shut down only upon receiving a message (stimulate by sending a message through twitch chat).
 
 - `!enable <bot_name>`. Moderator only. Turns <bot_name> on.
 
