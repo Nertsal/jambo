@@ -23,12 +23,12 @@ impl TimerBot {
 
     pub fn commands() -> BotCommands<Self> {
         BotCommands {
-            commands: vec![CommandNode::LiteralNode {
+            commands: vec![CommandNode::Literal {
                 literals: vec!["!timer".to_owned()],
                 child_nodes: vec![
-                    CommandNode::LiteralNode {
+                    CommandNode::Literal {
                         literals: vec!["pause".to_owned()],
-                        child_nodes: vec![CommandNode::FinalNode {
+                        child_nodes: vec![CommandNode::Final {
                             authority_level: AuthorityLevel::Broadcaster,
                             command: Arc::new(|bot, _, _| {
                                 bot.timer_pause(true);
@@ -36,9 +36,9 @@ impl TimerBot {
                             }),
                         }],
                     },
-                    CommandNode::LiteralNode {
+                    CommandNode::Literal {
                         literals: vec!["continue".to_owned()],
-                        child_nodes: vec![CommandNode::FinalNode {
+                        child_nodes: vec![CommandNode::Final {
                             authority_level: AuthorityLevel::Broadcaster,
                             command: Arc::new(|bot, _, _| {
                                 bot.timer_pause(false);
@@ -49,10 +49,14 @@ impl TimerBot {
                             }),
                         }],
                     },
-                    CommandNode::ArgumentNode {
-                        argument_type: ArgumentType::Word,
+                    CommandNode::ArgumentChoice {
+                        choices: vec![
+                            "set".to_owned(),
+                            "countup".to_owned(),
+                            "countdown".to_owned(),
+                        ],
                         child_nodes: vec![
-                            CommandNode::FinalNode {
+                            CommandNode::Final {
                                 authority_level: AuthorityLevel::Broadcaster,
                                 command: Arc::new(|bot, _, mut args| {
                                     let mode = args.remove(0);
@@ -67,9 +71,9 @@ impl TimerBot {
                                     })
                                 }),
                             },
-                            CommandNode::ArgumentNode {
+                            CommandNode::Argument {
                                 argument_type: ArgumentType::Line,
-                                child_nodes: vec![CommandNode::FinalNode {
+                                child_nodes: vec![CommandNode::Final {
                                     authority_level: AuthorityLevel::Broadcaster,
                                     command: Arc::new(|bot, _, mut args| {
                                         let mode = args.remove(0);
@@ -82,7 +86,7 @@ impl TimerBot {
                                                 })
                                             }
                                             Err(_) => {
-                                                Some(format!("Could not parse time argument: "))
+                                                Some(format!("Could not parse time argument"))
                                             }
                                         }
                                     }),

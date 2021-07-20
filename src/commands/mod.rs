@@ -44,7 +44,7 @@ impl<T> BotCommands<T> {
             .iter()
             .filter_map(|com| com.check_node(&message.message_text, Vec::new()))
             .filter_map(|(command, arguments)| match command {
-                CommandNode::FinalNode {
+                CommandNode::Final {
                     authority_level,
                     command,
                 } => {

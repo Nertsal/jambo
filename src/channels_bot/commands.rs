@@ -83,9 +83,9 @@ impl ChannelsBot {
     pub fn commands() -> BotCommands<Self> {
         BotCommands {
             commands: vec![
-                CommandNode::LiteralNode {
+                CommandNode::Literal {
                     literals: vec!["!shutdown".to_owned()],
-                    child_nodes: vec![CommandNode::FinalNode {
+                    child_nodes: vec![CommandNode::Final {
                         authority_level: AuthorityLevel::Broadcaster,
                         command: Arc::new(|bot, _, _| {
                             bot.queue_shutdown = true;
@@ -94,11 +94,11 @@ impl ChannelsBot {
                         }),
                     }],
                 },
-                CommandNode::LiteralNode {
+                CommandNode::Literal {
                     literals: vec!["!enable".to_owned()],
-                    child_nodes: vec![CommandNode::ArgumentNode {
+                    child_nodes: vec![CommandNode::Argument {
                         argument_type: ArgumentType::Word,
-                        child_nodes: vec![CommandNode::FinalNode {
+                        child_nodes: vec![CommandNode::Final {
                             authority_level: AuthorityLevel::Moderator,
                             command: Arc::new(|bot, _, mut args| {
                                 let bot_name = args.remove(0);
@@ -108,11 +108,11 @@ impl ChannelsBot {
                         }],
                     }],
                 },
-                CommandNode::LiteralNode {
+                CommandNode::Literal {
                     literals: vec!["!disable".to_owned()],
-                    child_nodes: vec![CommandNode::ArgumentNode {
+                    child_nodes: vec![CommandNode::Argument {
                         argument_type: ArgumentType::Word,
-                        child_nodes: vec![CommandNode::FinalNode {
+                        child_nodes: vec![CommandNode::Final {
                             authority_level: AuthorityLevel::Moderator,
                             command: Arc::new(|bot, _, mut args| {
                                 let bot_name = args.remove(0);
@@ -122,11 +122,11 @@ impl ChannelsBot {
                         }],
                     }],
                 },
-                CommandNode::LiteralNode {
+                CommandNode::Literal {
                     literals: vec!["!reset".to_owned()],
-                    child_nodes: vec![CommandNode::ArgumentNode {
+                    child_nodes: vec![CommandNode::Argument {
                         argument_type: ArgumentType::Word,
-                        child_nodes: vec![CommandNode::FinalNode {
+                        child_nodes: vec![CommandNode::Final {
                             authority_level: AuthorityLevel::Moderator,
                             command: Arc::new(|bot, _, mut args| {
                                 let bot_name = args.remove(0);

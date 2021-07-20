@@ -31,6 +31,10 @@ pub enum CompletionNode {
         argument_type: ArgumentType,
         child_nodes: Vec<CompletionNode>,
     },
+    ArgumentChoice {
+        choices: Vec<String>,
+        child_nodes: Vec<CompletionNode>,
+    },
     Final,
 }
 
@@ -71,6 +75,22 @@ impl CompletionNode {
                 }
                 ArgumentType::Line => (),
             },
+            CompletionNode::ArgumentChoice {
+                choices,
+                child_nodes,
+            } => {
+                for choice in choices {
+                    if choice.starts_with(message) && choice != message {
+                        completions.push(linefeed::Completion::simple(choice.clone()));
+                    }
+                }
+                if let Some(choice) = choices.iter().find(|&choice| message.starts_with(choice)) {
+                    let message = message[choice.len()..].trim();
+                    for child_node in child_nodes {
+                        completions.append(&mut child_node.complete(message));
+                    }
+                }
+            }
             CompletionNode::Final => (),
         }
         completions
@@ -80,21 +100,28 @@ impl CompletionNode {
 impl<T> From<&CommandNode<T>> for CompletionNode {
     fn from(node: &CommandNode<T>) -> Self {
         match node {
-            CommandNode::ArgumentNode {
-                argument_type,
-                child_nodes,
-            } => CompletionNode::Argument {
-                argument_type: *argument_type,
-                child_nodes: commands_to_completion(child_nodes),
-            },
-            CommandNode::LiteralNode {
+            CommandNode::Literal {
                 literals,
                 child_nodes,
             } => CompletionNode::Literal {
                 literals: literals.clone(),
                 child_nodes: commands_to_completion(child_nodes),
             },
-            CommandNode::FinalNode { .. } => CompletionNode::Final,
+            CommandNode::Argument {
+                argument_type,
+                child_nodes,
+            } => CompletionNode::Argument {
+                argument_type: *argument_type,
+                child_nodes: commands_to_completion(child_nodes),
+            },
+            CommandNode::ArgumentChoice {
+                choices,
+                child_nodes,
+            } => CompletionNode::ArgumentChoice {
+                choices: choices.clone(),
+                child_nodes: commands_to_completion(child_nodes),
+            },
+            CommandNode::Final { .. } => CompletionNode::Final,
         }
     }
 }

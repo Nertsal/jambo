@@ -16,10 +16,10 @@ impl CommandBot<Self> for QuoteBot {
 impl QuoteBot {
     pub fn commands() -> BotCommands<Self> {
         BotCommands {
-            commands: vec![CommandNode::LiteralNode {
+            commands: vec![CommandNode::Literal {
                 literals: vec!["!quote".to_owned()],
                 child_nodes: vec![
-                    CommandNode::FinalNode {
+                    CommandNode::Final {
                         authority_level: AuthorityLevel::Viewer,
                         command: Arc::new(|bot, _, _| {
                             if let Some(random_quote_name) = bot
@@ -40,13 +40,13 @@ impl QuoteBot {
                             }
                         }),
                     },
-                    CommandNode::LiteralNode {
+                    CommandNode::Literal {
                         literals: vec!["add".to_owned()],
-                        child_nodes: vec![CommandNode::ArgumentNode {
+                        child_nodes: vec![CommandNode::Argument {
                             argument_type: ArgumentType::Word,
-                            child_nodes: vec!(CommandNode::ArgumentNode {
+                            child_nodes: vec!(CommandNode::Argument {
                                 argument_type: ArgumentType::Line,
-                                child_nodes: vec!(CommandNode::FinalNode {
+                                child_nodes: vec!(CommandNode::Final {
                                     authority_level: AuthorityLevel::Moderator,
                                     command: Arc::new(|bot, _, args| {
                                         if let [quote_name, quote] = args.as_slice() {
@@ -76,11 +76,11 @@ impl QuoteBot {
                             }),
                         }],
                     },
-                    CommandNode::LiteralNode {
+                    CommandNode::Literal {
                         literals: vec!["delete".to_owned()],
-                        child_nodes: vec![CommandNode::ArgumentNode {
+                        child_nodes: vec![CommandNode::Argument {
                             argument_type: ArgumentType::Word,
-                            child_nodes: vec!(CommandNode::FinalNode {
+                            child_nodes: vec!(CommandNode::Final {
                                 authority_level: AuthorityLevel::Moderator,
                                 command: Arc::new(|bot, _, mut args| {
                                     let quote_name = args.remove(0);
@@ -97,13 +97,13 @@ impl QuoteBot {
                             }),
                         }],
                     },
-                    CommandNode::LiteralNode {
+                    CommandNode::Literal {
                         literals: vec!["edit".to_owned()],
-                        child_nodes: vec![CommandNode::ArgumentNode {
+                        child_nodes: vec![CommandNode::Argument {
                             argument_type: ArgumentType::Word,
-                            child_nodes: vec!(CommandNode::ArgumentNode {
+                            child_nodes: vec!(CommandNode::Argument {
                                 argument_type: ArgumentType::Line,
-                                child_nodes: vec!(CommandNode::FinalNode {
+                                child_nodes: vec!(CommandNode::Final {
                                     authority_level: AuthorityLevel::Moderator,
                                     command: Arc::new(|bot, _, args| {
                                         if let [quote_name, quote] = args.as_slice() {
@@ -136,13 +136,13 @@ impl QuoteBot {
                             }),
                         }],
                     },
-                    CommandNode::LiteralNode {
+                    CommandNode::Literal {
                         literals: vec!["rename".to_owned()],
-                        child_nodes: vec![CommandNode::ArgumentNode {
+                        child_nodes: vec![CommandNode::Argument {
                             argument_type: ArgumentType::Word,
-                            child_nodes: vec!(CommandNode::ArgumentNode {
+                            child_nodes: vec!(CommandNode::Argument {
                                 argument_type: ArgumentType::Word,
-                                child_nodes: vec!(CommandNode::FinalNode {
+                                child_nodes: vec!(CommandNode::Final {
                                     authority_level: AuthorityLevel::Moderator,
                                     command: Arc::new(|bot, _, args| {
                                         if let [quote_name, quote_new_name] = args.as_slice() {
@@ -178,9 +178,9 @@ impl QuoteBot {
                             }),
                         }],
                     },
-                    CommandNode::ArgumentNode {
+                    CommandNode::Argument {
                         argument_type: ArgumentType::Word,
-                        child_nodes: vec!(CommandNode::FinalNode {
+                        child_nodes: vec!(CommandNode::Final {
                             authority_level: AuthorityLevel::Viewer,
                             command: Arc::new(|bot, _, mut args| {
                                 let quote_name = args.remove(0);

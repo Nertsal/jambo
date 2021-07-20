@@ -1,6 +1,6 @@
 # Nertsal's Twitch Bot
 
-Connects to a twitch account using a provided OAuth token, joins a twitch channel and interacts with viewers. Main functionality is handling a queue of games submitted for review during game jams. Commands can be called through twitch chat or console (console calls are interpreted as broadcaster calls). Autocomplete works for most literals in console.
+Connects to a twitch account using a provided OAuth token, joins a twitch channel and interacts with viewers. Main functionality is handling a queue of games submitted for review during game jams. Commands can be called through twitch chat or console (console calls are interpreted as broadcaster calls). Autocomplete works for literals in console.
 
 ## Usage
 

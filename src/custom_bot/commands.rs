@@ -15,16 +15,16 @@ impl CommandBot<Self> for CustomBot {
 impl CustomBot {
     pub fn commands() -> BotCommands<Self> {
         BotCommands {
-            commands: vec![CommandNode::LiteralNode {
+            commands: vec![CommandNode::Literal {
                 literals: vec!["!command".to_owned()],
                 child_nodes: vec![
-                    CommandNode::LiteralNode {
+                    CommandNode::Literal {
                         literals: vec!["new".to_owned()],
-                        child_nodes: vec![CommandNode::ArgumentNode {
+                        child_nodes: vec![CommandNode::Argument {
                             argument_type: ArgumentType::Word,
-                            child_nodes: vec![CommandNode::ArgumentNode {
+                            child_nodes: vec![CommandNode::Argument {
                                 argument_type: ArgumentType::Line,
-                                child_nodes: vec![CommandNode::FinalNode {
+                                child_nodes: vec![CommandNode::Final {
                                     authority_level: AuthorityLevel::Moderator,
                                     command: Arc::new(|bot, _, args| {
                                         if let [command_name, command_response] = args.as_slice() {
@@ -45,11 +45,11 @@ impl CustomBot {
                             }],
                         }],
                     },
-                    CommandNode::LiteralNode {
+                    CommandNode::Literal {
                         literals: vec!["delete".to_owned()],
-                        child_nodes: vec![CommandNode::ArgumentNode {
+                        child_nodes: vec![CommandNode::Argument {
                             argument_type: ArgumentType::Word,
-                            child_nodes: vec![CommandNode::FinalNode {
+                            child_nodes: vec![CommandNode::Final {
                                 authority_level: AuthorityLevel::Moderator,
                                 command: Arc::new(|bot, _, mut args| {
                                     let command_name = args.remove(0);
@@ -65,7 +65,7 @@ impl CustomBot {
                                             .commands
                                             .iter()
                                             .position(|command| match command {
-                                                CommandNode::LiteralNode { literals, .. } => {
+                                                CommandNode::Literal { literals, .. } => {
                                                     literals.contains(&command_name)
                                                 }
                                                 _ => false,
@@ -80,13 +80,13 @@ impl CustomBot {
                             }],
                         }],
                     },
-                    CommandNode::LiteralNode {
+                    CommandNode::Literal {
                         literals: vec!["edit".to_owned()],
-                        child_nodes: vec![CommandNode::ArgumentNode {
+                        child_nodes: vec![CommandNode::Argument {
                             argument_type: ArgumentType::Word,
-                            child_nodes: vec![CommandNode::ArgumentNode {
+                            child_nodes: vec![CommandNode::Argument {
                                 argument_type: ArgumentType::Line,
-                                child_nodes: vec![CommandNode::FinalNode {
+                                child_nodes: vec![CommandNode::Final {
                                     authority_level: AuthorityLevel::Moderator,
                                     command: Arc::new(|bot, _, args| {
                                         if let [command_name, command_response] = args.as_slice() {
@@ -130,9 +130,9 @@ impl CustomBot {
         self.config.save().unwrap();
     }
     pub fn push_command(&mut self, command_name: String) {
-        self.commands.commands.push(CommandNode::LiteralNode {
+        self.commands.commands.push(CommandNode::Literal {
             literals: vec![command_name.clone()],
-            child_nodes: vec![CommandNode::FinalNode {
+            child_nodes: vec![CommandNode::Final {
                 authority_level: AuthorityLevel::Viewer,
                 command: Arc::new(move |bot, _, _| {
                     Some(bot.config.commands[&command_name].clone())

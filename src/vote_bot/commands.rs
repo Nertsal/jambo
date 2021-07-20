@@ -63,26 +63,26 @@ impl VoteBot {
 
     pub fn commands() -> BotCommands<Self> {
         BotCommands {
-            commands: vec![CommandNode::LiteralNode {
+            commands: vec![CommandNode::Literal {
                 literals: vec!["!vote".to_owned()],
                 child_nodes: vec![
-                    CommandNode::LiteralNode {
+                    CommandNode::Literal {
                         literals: vec!["start".to_owned()],
-                        child_nodes: vec![CommandNode::FinalNode {
+                        child_nodes: vec![CommandNode::Final {
                             authority_level: AuthorityLevel::Broadcaster,
                             command: Arc::new(|bot, _, _| bot.vote_start()),
                         }],
                     },
-                    CommandNode::LiteralNode {
+                    CommandNode::Literal {
                         literals: vec!["finish".to_owned()],
-                        child_nodes: vec![CommandNode::FinalNode {
+                        child_nodes: vec![CommandNode::Final {
                             authority_level: AuthorityLevel::Broadcaster,
                             command: Arc::new(|bot, _, _| bot.vote_finish()),
                         }],
                     },
-                    CommandNode::ArgumentNode {
+                    CommandNode::Argument {
                         argument_type: ArgumentType::Line,
-                        child_nodes: vec![CommandNode::FinalNode {
+                        child_nodes: vec![CommandNode::Final {
                             authority_level: AuthorityLevel::Viewer,
                             command: Arc::new(|bot, sender_name, mut args| {
                                 let vote = args.remove(0);
