@@ -44,6 +44,10 @@ The main bot, that controls other bots.
 
 - `!shutdown`. Broadcaster only. Starts shutting down, chat handle will shut down only upon receiving a message (stimulate by sending a message through twitch chat).
 
+- `!backup`. Broadcaster only. Create a backup of all bots.
+
+- `!backup load`. Broadcaster only. Load backup.
+
 - `!enable <bot_name>`. Moderator only. Turns **bot_name** on.
 
 - `!disable <bot_name>`. Moderator only. Turns **bot_name** off.
