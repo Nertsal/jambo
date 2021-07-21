@@ -16,6 +16,10 @@ pub struct ChannelsBot {
 }
 
 impl ChannelsBot {
+    pub fn name() -> &'static str {
+        "ChannelsBot"
+    }
+
     pub fn new(cli: &CLI, config: &LoginConfig, active_bots: &ActiveBots) -> Box<Self> {
         let mut bot = Self {
             channel_login: config.channel_login.clone(),
@@ -30,13 +34,20 @@ impl ChannelsBot {
         }
         Box::new(bot)
     }
+}
 
-    pub async fn handle_message(
+#[async_trait]
+impl Bot for ChannelsBot {
+    fn name(&self) -> &str {
+        Self::name()
+    }
+
+    async fn handle_server_message(
         &mut self,
         client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
-        message: ServerMessage,
+        message: &ServerMessage,
     ) {
-        match &message {
+        match message {
             ServerMessage::Join(message) => {
                 self.log(LogType::Info, &format!("Joined {}", message.channel_login));
             }
@@ -72,20 +83,20 @@ impl ChannelsBot {
         }
     }
 
-    pub async fn handle_command_message(
+    async fn handle_command_message(
         &mut self,
         client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
-        message: CommandMessage,
+        message: &CommandMessage,
     ) {
         let channel_login = self.channel_login.clone();
-        check_command(self, client, channel_login, &message).await;
+        check_command(self, client, channel_login, message).await;
 
         for bot in self.active_bots.values_mut() {
-            bot.handle_command_message(client, &message).await;
+            bot.handle_command_message(client, message).await;
         }
     }
 
-    pub async fn update(
+    async fn update(
         &mut self,
         client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
         delta_time: f32,
@@ -95,7 +106,7 @@ impl ChannelsBot {
         }
     }
 
-    pub fn get_completion_tree(&self) -> Vec<CompletionNode> {
+    fn get_completion_tree(&self) -> Vec<CompletionNode> {
         let mut completions = Vec::new();
         completions.append(&mut commands_to_completion(&self.get_commands().commands));
         for bot in self.active_bots.values() {

@@ -62,7 +62,9 @@ async fn main() {
     let message_handle = tokio::spawn(async move {
         while let Some(message) = incoming_messages.next().await {
             let mut bot_lock = bot.lock().await;
-            bot_lock.handle_message(&client_clone, message).await;
+            bot_lock
+                .handle_server_message(&client_clone, &message)
+                .await;
             if bot_lock.queue_shutdown {
                 break;
             }
@@ -98,7 +100,7 @@ async fn main() {
             bot_lock
                 .handle_command_message(
                     &client_clone,
-                    CommandMessage {
+                    &CommandMessage {
                         sender_name: "Admin".to_owned(),
                         message_text: input.clone(),
                         authority_level: AuthorityLevel::Broadcaster,
