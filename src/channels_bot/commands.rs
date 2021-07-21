@@ -87,7 +87,7 @@ impl ChannelsBot {
             .map(|f| f(&self.cli, &self.channel_login))
     }
 
-    fn backup(&self, path: impl AsRef<std::path::Path>) -> std::io::Result<Response> {
+    fn backup_create(&self, path: impl AsRef<std::path::Path>) -> std::io::Result<Response> {
         let path = path.as_ref();
         clear_dir(path)?;
         copy_dir::copy_dir("config", path.join("config"))?;
@@ -97,7 +97,7 @@ impl ChannelsBot {
 
     fn backup_load(&mut self, path: impl AsRef<std::path::Path>) -> std::io::Result<Response> {
         let path = path.as_ref();
-        self.backup("backups/temp")?;
+        self.backup_create("backups/temp")?;
         std::fs::remove_dir_all("config")?;
         copy_dir::copy_dir(path.join("config"), "config")?;
         std::fs::remove_dir_all("status")?;
@@ -105,6 +105,16 @@ impl ChannelsBot {
         self.reset_all();
         std::fs::remove_dir_all("backups/temp")?;
         Ok(Some(format!("Backup loaded")))
+    }
+
+    fn load_result(&self, load_result: std::io::Result<Response>) -> Response {
+        match load_result {
+            Ok(response) => response,
+            Err(err) => {
+                self.log(LogType::Error, &format!("Error loading backup: {:?}", err));
+                Some(format!("Could not load backup, check logs"))
+            }
+        }
     }
 
     pub fn commands<'a>(available_bots: impl Iterator<Item = &'a String>) -> BotCommands<Self> {
@@ -124,29 +134,50 @@ impl ChannelsBot {
                 CommandNode::Literal {
                     literals: vec!["!backup".to_owned()],
                     child_nodes: vec![
-                        CommandNode::Final {
-                            authority_level: AuthorityLevel::Broadcaster,
-                            command: Arc::new(|bot, _, _| {
-                                bot.backup("backups/backup").unwrap()
-                            }),
+                        CommandNode::Literal {
+                            literals: vec!["create".to_owned()],
+                            child_nodes: vec![
+                                CommandNode::Argument {
+                                    argument_type: ArgumentType::Word,
+                                    child_nodes: vec![CommandNode::Final {
+                                        authority_level: AuthorityLevel::Broadcaster,
+                                        command: Arc::new(|bot, _, args| {
+                                            bot.backup_create(format!("backups/{}", args[0]))
+                                                .unwrap()
+                                        }),
+                                    }],
+                                },
+                                CommandNode::Final {
+                                    authority_level: AuthorityLevel::Broadcaster,
+                                    command: Arc::new(|bot, _, _| {
+                                        bot.backup_create("backups/backup").unwrap()
+                                    }),
+                                },
+                            ],
                         },
                         CommandNode::Literal {
                             literals: vec!["load".to_owned()],
-                            child_nodes: vec![CommandNode::Final {
-                                authority_level: AuthorityLevel::Broadcaster,
-                                command: Arc::new(|bot, _, _| {
-                                    match bot.backup_load("backups/backup") {
-                                        Ok(response) => response,
-                                        Err(err) => {
-                                            bot.log(
-                                                LogType::Error,
-                                                &format!("Error loading backup: {:?}", err),
-                                            );
-                                            Some(format!("Could not load backup, check logs"))
-                                        }
-                                    }
-                                }),
-                            }],
+                            child_nodes: vec![
+                                CommandNode::Argument {
+                                    argument_type: ArgumentType::Word,
+                                    child_nodes: vec![CommandNode::Final {
+                                        authority_level: AuthorityLevel::Broadcaster,
+                                        command: Arc::new(|bot, _, args| {
+                                            let load_result =
+                                                bot.backup_load(format!("backups/{}", args[0]));
+                                            bot.load_result(load_result)
+                                        }),
+                                    }],
+                                },
+                                CommandNode::Final {
+                                    authority_level: AuthorityLevel::Broadcaster,
+                                    command: Arc::new(|bot, _, _| {
+                                        bot.log(LogType::Info, "test");
+                                        let load_result = bot.backup_load("backups/backup");
+                                        bot.load_result(load_result)
+                                    }),
+                                },
+                            ],
                         },
                     ],
                 },
