@@ -21,13 +21,14 @@ impl ChannelsBot {
     }
 
     pub fn new(cli: &CLI, config: &LoginConfig, active_bots: &ActiveBots) -> Box<Self> {
+        let available_bots = Self::available_bots();
         let mut bot = Self {
             channel_login: config.channel_login.clone(),
             cli: Arc::clone(&cli),
             queue_shutdown: false,
-            commands: Self::commands(),
-            available_bots: Self::available_bots(),
+            commands: Self::commands(available_bots.keys()),
             active_bots: HashMap::with_capacity(active_bots.len()),
+            available_bots,
         };
         for active_bot in active_bots {
             bot.spawn_bot(active_bot);

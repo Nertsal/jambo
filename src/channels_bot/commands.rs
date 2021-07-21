@@ -80,7 +80,7 @@ impl ChannelsBot {
             .map(|f| f(&self.cli, &self.channel_login))
     }
 
-    pub fn commands() -> BotCommands<Self> {
+    pub fn commands<'a>(available_bots: impl Iterator<Item = &'a String>) -> BotCommands<Self> {
         BotCommands {
             commands: vec![
                 CommandNode::Literal {
@@ -94,44 +94,24 @@ impl ChannelsBot {
                         }),
                     }],
                 },
-                CommandNode::Literal {
-                    literals: vec!["!enable".to_owned()],
-                    child_nodes: vec![CommandNode::Argument {
-                        argument_type: ArgumentType::Word,
+                CommandNode::ArgumentChoice {
+                    choices: vec![
+                        "!enable".to_owned(),
+                        "!disable".to_owned(),
+                        "!reset".to_owned(),
+                    ],
+                    child_nodes: vec![CommandNode::ArgumentChoice {
+                        choices: available_bots.map(|name| name.clone()).collect(),
                         child_nodes: vec![CommandNode::Final {
                             authority_level: AuthorityLevel::Moderator,
-                            command: Arc::new(|bot, _, mut args| {
-                                let bot_name = args.remove(0);
-                                let response = bot.spawn_bot(bot_name.as_str());
-                                response
-                            }),
-                        }],
-                    }],
-                },
-                CommandNode::Literal {
-                    literals: vec!["!disable".to_owned()],
-                    child_nodes: vec![CommandNode::Argument {
-                        argument_type: ArgumentType::Word,
-                        child_nodes: vec![CommandNode::Final {
-                            authority_level: AuthorityLevel::Moderator,
-                            command: Arc::new(|bot, _, mut args| {
-                                let bot_name = args.remove(0);
-                                let response = bot.disable_bot(bot_name.as_str());
-                                response
-                            }),
-                        }],
-                    }],
-                },
-                CommandNode::Literal {
-                    literals: vec!["!reset".to_owned()],
-                    child_nodes: vec![CommandNode::Argument {
-                        argument_type: ArgumentType::Word,
-                        child_nodes: vec![CommandNode::Final {
-                            authority_level: AuthorityLevel::Moderator,
-                            command: Arc::new(|bot, _, mut args| {
-                                let bot_name = args.remove(0);
-                                let response = bot.reset_bot(&bot_name);
-                                response
+                            command: Arc::new(|bot, _, args| {
+                                let bot_name = args[1].as_str();
+                                match args[0].as_str() {
+                                    "!enable" => bot.spawn_bot(bot_name),
+                                    "!disable" => bot.disable_bot(bot_name),
+                                    "!reset" => bot.reset_bot(bot_name),
+                                    _ => unreachable!(),
+                                }
                             }),
                         }],
                     }],

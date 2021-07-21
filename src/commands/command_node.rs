@@ -99,6 +99,7 @@ impl<T> CommandNode<T> {
                         .iter()
                         .find(|&choice| choice == argument)
                         .map(|choice| {
+                            let message = message[choice.len()..].trim();
                             arguments.push(choice.to_owned());
                             child_nodes!(child_nodes, message, arguments);
                             None
