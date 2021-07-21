@@ -106,12 +106,17 @@ impl ChannelsBot {
                             authority_level: AuthorityLevel::Moderator,
                             command: Arc::new(|bot, _, args| {
                                 let bot_name = args[1].as_str();
-                                match args[0].as_str() {
+                                let response = match args[0].as_str() {
                                     "!enable" => bot.spawn_bot(bot_name),
                                     "!disable" => bot.disable_bot(bot_name),
                                     "!reset" => bot.reset_bot(bot_name),
                                     _ => unreachable!(),
-                                }
+                                };
+                                let completer = Arc::new(CommandCompleter {
+                                    completion_tree: bot.get_completion_tree(),
+                                });
+                                bot.get_cli().set_completer(completer);
+                                response
                             }),
                         }],
                     }],

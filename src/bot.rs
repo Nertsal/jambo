@@ -53,18 +53,18 @@ pub trait BotLogger {
     }
 
     fn log(&self, log_type: LogType, message: &str) {
-        let mut writer = self.get_cli().lock_writer_erase().unwrap();
+        let mut writer = self.get_log_cli().lock_writer_erase().unwrap();
         writeln!(writer, "{} {}", log_type, message).unwrap();
     }
 
-    fn get_cli(&self) -> &CLI;
+    fn get_log_cli(&self) -> &CLI;
 }
 
 impl<T> BotLogger for T
 where
     T: CommandBot<T> + Sync + Send,
 {
-    fn get_cli(&self) -> &CLI {
+    fn get_log_cli(&self) -> &CLI {
         self.get_cli()
     }
 }
