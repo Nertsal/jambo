@@ -59,25 +59,52 @@ impl ChannelsBot {
             .map(|_| format!("{} is reset", bot_name))
     }
 
+    fn reset_all(&mut self) -> Response {
+        for bot in self.active_bots.keys().cloned().collect::<Vec<String>>() {
+            self.reset_bot(&bot);
+        }
+        Some(format!("All active bots reset"))
+    }
+
     fn save_bots(&self) -> std::io::Result<()> {
-        let active_bots = self.active_bots().unwrap();
+        let active_bots = self.active_bots();
         let file = std::io::BufWriter::new(std::fs::File::create("config/active_bots.json")?);
         serde_json::to_writer(file, &active_bots)?;
         Ok(())
     }
 
-    fn active_bots(&self) -> Result<ActiveBots, ()> {
+    fn active_bots(&self) -> ActiveBots {
         let mut active_bots = HashSet::with_capacity(self.active_bots.len());
         for bot_name in self.active_bots.keys() {
             active_bots.insert(bot_name.to_owned());
         }
-        Ok(active_bots)
+        active_bots
     }
 
     fn new_bot(&self, bot_name: &str) -> Option<Box<dyn Bot>> {
         self.available_bots
             .get(bot_name)
             .map(|f| f(&self.cli, &self.channel_login))
+    }
+
+    fn backup(&self, path: impl AsRef<std::path::Path>) -> std::io::Result<Response> {
+        let path = path.as_ref();
+        clear_dir(path)?;
+        copy_dir::copy_dir("config", path.join("config"))?;
+        copy_dir::copy_dir("status", path.join("status"))?;
+        Ok(Some(format!("Backup created")))
+    }
+
+    fn backup_load(&mut self, path: impl AsRef<std::path::Path>) -> std::io::Result<Response> {
+        let path = path.as_ref();
+        self.backup("backups/temp")?;
+        std::fs::remove_dir_all("config")?;
+        copy_dir::copy_dir(path.join("config"), "config")?;
+        std::fs::remove_dir_all("status")?;
+        copy_dir::copy_dir(path.join("status"), "status")?;
+        self.reset_all();
+        std::fs::remove_dir_all("backups/temp")?;
+        Ok(Some(format!("Backup loaded")))
     }
 
     pub fn commands<'a>(available_bots: impl Iterator<Item = &'a String>) -> BotCommands<Self> {
@@ -93,6 +120,35 @@ impl ChannelsBot {
                             Some(format!("Shutting down..."))
                         }),
                     }],
+                },
+                CommandNode::Literal {
+                    literals: vec!["!backup".to_owned()],
+                    child_nodes: vec![
+                        CommandNode::Final {
+                            authority_level: AuthorityLevel::Broadcaster,
+                            command: Arc::new(|bot, _, _| {
+                                bot.backup("backups/backup").unwrap()
+                            }),
+                        },
+                        CommandNode::Literal {
+                            literals: vec!["load".to_owned()],
+                            child_nodes: vec![CommandNode::Final {
+                                authority_level: AuthorityLevel::Broadcaster,
+                                command: Arc::new(|bot, _, _| {
+                                    match bot.backup_load("backups/backup") {
+                                        Ok(response) => response,
+                                        Err(err) => {
+                                            bot.log(
+                                                LogType::Error,
+                                                &format!("Error loading backup: {:?}", err),
+                                            );
+                                            Some(format!("Could not load backup, check logs"))
+                                        }
+                                    }
+                                }),
+                            }],
+                        },
+                    ],
                 },
                 CommandNode::ArgumentChoice {
                     choices: vec![
@@ -124,4 +180,11 @@ impl ChannelsBot {
             ],
         }
     }
+}
+
+fn clear_dir(path: impl AsRef<std::path::Path>) -> std::io::Result<()> {
+    let path = path.as_ref();
+    std::fs::remove_dir_all(path).unwrap_or(());
+    std::fs::create_dir_all(path)?;
+    Ok(())
 }
