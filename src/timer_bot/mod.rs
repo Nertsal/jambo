@@ -5,6 +5,7 @@ mod timer;
 
 use timer::*;
 
+#[derive(Bot)]
 pub struct TimerBot {
     channel_login: String,
     cli: CLI,
@@ -26,54 +27,12 @@ impl TimerBot {
         })
     }
 
-    fn update_timer(&mut self, delta_time: f32) {
-        self.timer.update(delta_time);
-        self.update_status(&self.timer.time_status());
-    }
-}
-
-#[async_trait]
-impl Bot for TimerBot {
-    fn name(&self) -> &str {
-        Self::name()
-    }
-
-    async fn handle_server_message(
-        &mut self,
-        client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
-        message: &ServerMessage,
-    ) {
-        match message {
-            ServerMessage::Privmsg(message) => {
-                check_command(
-                    self,
-                    client,
-                    self.channel_login.clone(),
-                    &CommandMessage::from(message),
-                )
-                .await;
-            }
-            _ => (),
-        };
-    }
-
-    async fn update(
-        &mut self,
-        _client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
-        delta_time: f32,
-    ) {
+    async fn handle_update(&mut self, _client: &TwitchClient, delta_time: f32) {
         self.update_timer(delta_time);
     }
 
-    async fn handle_command_message(
-        &mut self,
-        client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
-        message: &CommandMessage,
-    ) {
-        check_command(self, client, self.channel_login.clone(), &message).await;
-    }
-
-    fn get_completion_tree(&self) -> Vec<CompletionNode> {
-        commands_to_completion(&self.get_commands().commands)
+    fn update_timer(&mut self, delta_time: f32) {
+        self.timer.update(delta_time);
+        self.update_status(&self.timer.time_status());
     }
 }

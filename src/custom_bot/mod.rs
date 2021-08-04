@@ -22,6 +22,7 @@ impl CustomConfig {
     }
 }
 
+#[derive(Bot)]
 pub struct CustomBot {
     channel_login: String,
     cli: CLI,
@@ -33,6 +34,7 @@ impl CustomBot {
     pub fn name() -> &'static str {
         "CustomBot"
     }
+
     pub fn new(cli: &CLI, channel_login: &str) -> Box<dyn Bot> {
         let config = match CustomConfig::load() {
             Ok(config) => config,
@@ -58,41 +60,6 @@ impl CustomBot {
         }
         Box::new(bot)
     }
-}
 
-#[async_trait]
-impl Bot for CustomBot {
-    fn name(&self) -> &str {
-        Self::name()
-    }
-    async fn handle_server_message(
-        &mut self,
-        client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
-        message: &ServerMessage,
-    ) {
-        match message {
-            ServerMessage::Privmsg(message) => {
-                check_command(
-                    self,
-                    client,
-                    self.channel_login.clone(),
-                    &CommandMessage::from(message),
-                )
-                .await;
-            }
-            _ => (),
-        };
-    }
-
-    async fn handle_command_message(
-        &mut self,
-        client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
-        message: &CommandMessage,
-    ) {
-        check_command(self, client, self.channel_login.clone(), &message).await;
-    }
-
-    fn get_completion_tree(&self) -> Vec<CompletionNode> {
-        commands_to_completion(&self.get_commands().commands)
-    }
+    async fn handle_update(&mut self, _client: &TwitchClient, _delta_time: f32) {}
 }

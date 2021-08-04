@@ -43,11 +43,7 @@ impl Bot for ChannelsBot {
         Self::name()
     }
 
-    async fn handle_server_message(
-        &mut self,
-        client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
-        message: &ServerMessage,
-    ) {
+    async fn handle_server_message(&mut self, client: &TwitchClient, message: &ServerMessage) {
         match message {
             ServerMessage::Join(message) => {
                 self.log(LogType::Info, &format!("Joined {}", message.channel_login));
@@ -84,11 +80,7 @@ impl Bot for ChannelsBot {
         }
     }
 
-    async fn handle_command_message(
-        &mut self,
-        client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
-        message: &CommandMessage,
-    ) {
+    async fn handle_command_message(&mut self, client: &TwitchClient, message: &CommandMessage) {
         let channel_login = self.channel_login.clone();
         check_command(self, client, channel_login, message).await;
 
@@ -97,11 +89,7 @@ impl Bot for ChannelsBot {
         }
     }
 
-    async fn update(
-        &mut self,
-        client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
-        delta_time: f32,
-    ) {
+    async fn update(&mut self, client: &TwitchClient, delta_time: f32) {
         for bot in self.active_bots.values_mut() {
             bot.update(client, delta_time).await;
         }

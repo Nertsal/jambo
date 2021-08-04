@@ -231,11 +231,7 @@ impl Bot for GameJamBot {
         Self::name()
     }
 
-    async fn handle_server_message(
-        &mut self,
-        client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
-        message: &ServerMessage,
-    ) {
+    async fn handle_server_message(&mut self, client: &TwitchClient, message: &ServerMessage) {
         match message {
             ServerMessage::Privmsg(message) => {
                 if let Some(reply) = self.check_message(message) {
@@ -254,11 +250,7 @@ impl Bot for GameJamBot {
         };
     }
 
-    async fn update(
-        &mut self,
-        client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
-        delta_time: f32,
-    ) {
+    async fn update(&mut self, client: &TwitchClient, delta_time: f32) {
         if let Some(reply) = self.update(delta_time) {
             self.send_message(client, self.channel_login.clone(), reply)
                 .await;
@@ -278,11 +270,7 @@ impl Bot for GameJamBot {
         }
     }
 
-    async fn handle_command_message(
-        &mut self,
-        client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
-        message: &CommandMessage,
-    ) {
+    async fn handle_command_message(&mut self, client: &TwitchClient, message: &CommandMessage) {
         check_command(self, client, self.channel_login.clone(), &message).await;
     }
 

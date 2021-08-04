@@ -14,7 +14,7 @@ pub trait CommandBot<T: Sync + Send> {
 
 pub async fn check_command<T: CommandBot<T> + Sync + Send>(
     bot: &mut T,
-    client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
+    client: &TwitchClient,
     channel_login: String,
     message: &CommandMessage,
 ) {

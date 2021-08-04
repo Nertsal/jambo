@@ -23,3 +23,4 @@ async-std = "1.9.0"
 colored = "2"
 linefeed = "0.6.0"
 copy_dir = "0.1.2"
+nertsal-bot-derive = { path = "nertsal-bot-derive" }

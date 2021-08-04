@@ -2,6 +2,7 @@ use super::*;
 
 mod commands;
 
+#[derive(Bot)]
 pub struct VoteBot {
     channel_login: String,
     cli: CLI,
@@ -22,47 +23,11 @@ impl VoteBot {
             vote_mode: VoteMode::Inactive,
         })
     }
+
+    async fn handle_update(&mut self, _client: &TwitchClient, _delta_time: f32) {}
 }
 
-pub enum VoteMode {
+enum VoteMode {
     Inactive,
     Active { votes: HashMap<String, String> },
-}
-
-#[async_trait]
-impl Bot for VoteBot {
-    fn name(&self) -> &str {
-        Self::name()
-    }
-
-    async fn handle_server_message(
-        &mut self,
-        client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
-        message: &ServerMessage,
-    ) {
-        match message {
-            ServerMessage::Privmsg(message) => {
-                check_command(
-                    self,
-                    client,
-                    self.channel_login.clone(),
-                    &CommandMessage::from(message),
-                )
-                .await;
-            }
-            _ => (),
-        };
-    }
-
-    async fn handle_command_message(
-        &mut self,
-        client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
-        message: &CommandMessage,
-    ) {
-        check_command(self, client, self.channel_login.clone(), &message).await;
-    }
-
-    fn get_completion_tree(&self) -> Vec<CompletionNode> {
-        commands_to_completion(&self.get_commands().commands)
-    }
 }

@@ -1,5 +1,6 @@
 use async_trait::async_trait;
 use futures::{lock::Mutex, prelude::*};
+use nertsal_bot_derive::Bot;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -28,6 +29,8 @@ use quote_bot::QuoteBot;
 use timer_bot::TimerBot;
 use vote_bot::VoteBot;
 
+type TwitchClient = TwitchIRCClient<TCPTransport, StaticLoginCredentials>;
+
 #[tokio::main]
 async fn main() {
     let login_config: LoginConfig = serde_json::from_reader(std::io::BufReader::new(
@@ -44,10 +47,7 @@ async fn main() {
         Some(login_config.oauth_token.clone()),
     ));
 
-    let (mut incoming_messages, client) =
-        async { TwitchIRCClient::<TCPTransport, StaticLoginCredentials>::new(client_config) }
-            .compat()
-            .await;
+    let (mut incoming_messages, client) = async { TwitchClient::new(client_config) }.compat().await;
 
     let cli = Arc::new(linefeed::Interface::new("nertsal-bot").unwrap());
     let channels_bot = ChannelsBot::new(&cli, &login_config, &active_bots);
