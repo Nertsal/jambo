@@ -1,16 +1,15 @@
-use std::collections::HashSet;
-
 use super::*;
+use std::collections::HashSet;
 
 mod commands;
 
 pub type ActiveBots = HashSet<String>;
 
 pub struct ChannelsBot {
+    commands: Commands<Self, Sender>,
     channel_login: String,
     cli: CLI,
     pub queue_shutdown: bool,
-    commands: BotCommands<Self>,
     available_bots: HashMap<String, Box<fn(&CLI, &str) -> Box<dyn Bot>>>,
     active_bots: HashMap<String, Box<dyn Bot>>,
 }
@@ -26,8 +25,8 @@ impl ChannelsBot {
             channel_login: config.channel_login.clone(),
             cli: Arc::clone(&cli),
             queue_shutdown: false,
-            commands: Self::commands(available_bots.keys()),
             active_bots: HashMap::with_capacity(active_bots.len()),
+            commands: Self::commands(available_bots.keys()),
             available_bots,
         };
         for active_bot in active_bots {
@@ -71,7 +70,13 @@ impl Bot for ChannelsBot {
                     ),
                 );
                 let channel_login = self.channel_login.clone();
-                check_command(self, client, channel_login, &CommandMessage::from(message)).await;
+                perform_commands(
+                    self,
+                    client,
+                    channel_login,
+                    &private_to_command_message(message),
+                )
+                .await;
             }
             _ => (),
         }
@@ -80,9 +85,13 @@ impl Bot for ChannelsBot {
         }
     }
 
-    async fn handle_command_message(&mut self, client: &TwitchClient, message: &CommandMessage) {
+    async fn handle_command_message(
+        &mut self,
+        client: &TwitchClient,
+        message: &CommandMessage<Sender>,
+    ) {
         let channel_login = self.channel_login.clone();
-        check_command(self, client, channel_login, message).await;
+        perform_commands(self, client, channel_login, message).await;
 
         for bot in self.active_bots.values_mut() {
             bot.handle_command_message(client, message).await;

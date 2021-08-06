@@ -1,35 +1,24 @@
 use async_trait::async_trait;
+use bot_commands::MessageOrigin;
+use bot_completion::CommandCompleter;
 use futures::{lock::Mutex, prelude::*};
-use nertsal_bot_derive::Bot;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio_compat_02::FutureExt;
 use twitch_irc::login::StaticLoginCredentials;
-use twitch_irc::message::{PrivmsgMessage, ServerMessage};
-use twitch_irc::{ClientConfig, TCPTransport, TwitchIRCClient};
+use twitch_irc::ClientConfig;
 
-mod bot;
-mod channels_bot;
-mod commands;
-mod completion;
-mod custom_bot;
-mod gamejam_bot;
-mod quote_bot;
-mod timer_bot;
-mod vote_bot;
-
-use bot::*;
-use channels_bot::{ActiveBots, ChannelsBot};
-use commands::*;
-use completion::*;
+use bot_core::prelude::*;
 use custom_bot::CustomBot;
 use gamejam_bot::GameJamBot;
 use quote_bot::QuoteBot;
 use timer_bot::TimerBot;
 use vote_bot::VoteBot;
 
-type TwitchClient = TwitchIRCClient<TCPTransport, StaticLoginCredentials>;
+mod channels_bot;
+
+use channels_bot::{ActiveBots, ChannelsBot};
 
 #[tokio::main]
 async fn main() {
@@ -101,10 +90,12 @@ async fn main() {
                 .handle_command_message(
                     &client_clone,
                     &CommandMessage {
-                        sender_name: "Admin".to_owned(),
+                        sender: Sender {
+                            name: "Admin".to_owned(),
+                            origin: MessageOrigin::Console,
+                        },
                         message_text: input.clone(),
-                        authority_level: AuthorityLevel::Broadcaster,
-                        origin: MessageOrigin::Console,
+                        authority_level: AuthorityLevel::Broadcaster as usize,
                     },
                 )
                 .await;
