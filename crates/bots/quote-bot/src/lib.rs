@@ -34,7 +34,6 @@ impl QuoteConfig {
 
 #[derive(Bot)]
 pub struct QuoteBot {
-    channel_login: String,
     cli: CLI,
     config: QuoteConfig,
     commands: Commands<Self, Sender>,
@@ -45,7 +44,7 @@ impl QuoteBot {
         "QuoteBot"
     }
 
-    pub fn new(cli: &CLI, channel_login: &str) -> Box<dyn Bot> {
+    pub fn new(cli: &CLI) -> Box<dyn Bot> {
         let config = match QuoteConfig::load() {
             Ok(config) => config,
             Err(error) => match error.kind() {
@@ -58,12 +57,18 @@ impl QuoteBot {
             },
         };
         Box::new(Self {
-            channel_login: channel_login.to_owned(),
             cli: Arc::clone(cli),
             config,
             commands: Self::commands(),
         })
     }
 
-    async fn handle_update(&mut self, _client: &TwitchClient, _delta_time: f32) {}
+    #[allow(unused_variables)]
+    async fn handle_update(
+        &mut self,
+        client: &TwitchClient,
+        channel_login: &String,
+        delta_time: f32,
+    ) {
+    }
 }

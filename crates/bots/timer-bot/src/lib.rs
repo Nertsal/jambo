@@ -9,7 +9,6 @@ use timer::*;
 
 #[derive(Bot)]
 pub struct TimerBot {
-    channel_login: String,
     cli: CLI,
     commands: Commands<Self, Sender>,
     timer: Timer,
@@ -20,16 +19,21 @@ impl TimerBot {
         "TimerBot"
     }
 
-    pub fn new(cli: &CLI, channel_login: &str) -> Box<dyn Bot> {
+    pub fn new(cli: &CLI) -> Box<dyn Bot> {
         Box::new(Self {
-            channel_login: channel_login.to_owned(),
             cli: Arc::clone(cli),
             commands: Self::commands(),
             timer: Timer::from_status().unwrap_or_default(),
         })
     }
 
-    async fn handle_update(&mut self, _client: &TwitchClient, delta_time: f32) {
+    #[allow(unused_variables)]
+    async fn handle_update(
+        &mut self,
+        client: &TwitchClient,
+        channel_login: &String,
+        delta_time: f32,
+    ) {
         self.update_timer(delta_time);
     }
 

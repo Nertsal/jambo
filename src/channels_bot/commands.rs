@@ -14,7 +14,7 @@ impl CommandBot<Self, Sender> for ChannelsBot {
 macro_rules! bots_map {
     ( $( $b:ident ),* ) => {
         {
-            let mut bots: HashMap<String, Box<fn(&CLI, &str) -> Box<dyn Bot>>> = HashMap::new();
+            let mut bots: HashMap<String, NewBotFn> = HashMap::new();
             $(
                 bots.insert($b::name().to_owned(), Box::new($b::new));
             )*
@@ -24,7 +24,7 @@ macro_rules! bots_map {
 }
 
 impl ChannelsBot {
-    pub fn available_bots() -> HashMap<String, Box<fn(&CLI, &str) -> Box<dyn Bot>>> {
+    pub fn available_bots() -> HashMap<String, NewBotFn> {
         bots_map!(CustomBot, GameJamBot, QuoteBot, TimerBot, VoteBot)
     }
 
@@ -81,9 +81,7 @@ impl ChannelsBot {
     }
 
     fn new_bot(&self, bot_name: &str) -> Option<Box<dyn Bot>> {
-        self.available_bots
-            .get(bot_name)
-            .map(|f| f(&self.cli, &self.channel_login))
+        self.available_bots.get(bot_name).map(|f| f(&self.cli))
     }
 
     fn backup_create(&self, path: impl AsRef<std::path::Path>) -> std::io::Result<Response> {

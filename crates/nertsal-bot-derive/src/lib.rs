@@ -23,7 +23,7 @@ pub fn bot_macro(input: TokenStream) -> TokenStream {
                     ServerMessage::Privmsg(message) => {
                         perform_commands(self,
                             client,
-                            self.channel_login.clone(),
+                            message.channel_login.clone(),
                             &private_to_command_message(message),
                         )
                         .await;
@@ -34,17 +34,19 @@ pub fn bot_macro(input: TokenStream) -> TokenStream {
 
             async fn handle_command_message(&mut self,
                 client: &TwitchClient,
+                channel_login: &String,
                 message: &CommandMessage<Sender>,
             ) {
-                perform_commands(self, client, self.channel_login.clone(), message).await;
+                perform_commands(self, client, channel_login.clone(), message).await;
             }
 
             async fn update(
                 &mut self,
                 client: &TwitchClient,
+                channel_login: &String,
                 delta_time: f32,
             ) {
-                self.handle_update(client, delta_time).await;
+                self.handle_update(client, channel_login, delta_time).await;
             }
 
             fn get_completion_tree(&self) -> Vec<CompletionNode> {

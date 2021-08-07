@@ -25,7 +25,6 @@ pub struct GameJamConfig {
 }
 
 pub struct GameJamBot {
-    channel_login: String,
     cli: CLI,
     config: GameJamConfig,
     commands: Commands<Self, Sender>,
@@ -110,14 +109,13 @@ impl GameJamBot {
         "GameJamBot"
     }
 
-    pub fn new(cli: &CLI, channel: &str) -> Box<dyn Bot> {
+    pub fn new(cli: &CLI) -> Box<dyn Bot> {
         let config: GameJamConfig = serde_json::from_reader(std::io::BufReader::new(
             std::fs::File::open("config/gamejam/gamejam_config.json").unwrap(),
         ))
         .unwrap();
 
         let mut bot = Self {
-            channel_login: channel.to_owned(),
             cli: Arc::clone(cli),
             config,
             commands: Self::commands(),
@@ -237,21 +235,21 @@ impl Bot for GameJamBot {
 
     async fn handle_server_message(&mut self, client: &TwitchClient, message: &ServerMessage) {
         match message {
-            ServerMessage::Privmsg(message) => {
-                let message = private_to_command_message(message);
+            ServerMessage::Privmsg(private_message) => {
+                let message = private_to_command_message(private_message);
                 if let Some(reply) = self.check_message(&message) {
-                    self.send_message(client, self.channel_login.clone(), reply)
+                    self.send_message(client, private_message.channel_login.clone(), reply)
                         .await;
                 }
-                perform_commands(self, client, self.channel_login.clone(), &message).await;
+                perform_commands(self, client, private_message.channel_login.clone(), &message).await;
             }
             _ => (),
         };
     }
 
-    async fn update(&mut self, client: &TwitchClient, delta_time: f32) {
+    async fn update(&mut self, client: &TwitchClient, channel_login: &String, delta_time: f32) {
         if let Some(reply) = self.update(delta_time) {
-            self.send_message(client, self.channel_login.clone(), reply)
+            self.send_message(client, channel_login.clone(), reply)
                 .await;
         }
 
@@ -272,9 +270,10 @@ impl Bot for GameJamBot {
     async fn handle_command_message(
         &mut self,
         client: &TwitchClient,
+        channel_login: &String,
         message: &CommandMessage<Sender>,
     ) {
-        perform_commands(self, client, self.channel_login.clone(), &message).await;
+        perform_commands(self, client, channel_login.clone(), &message).await;
     }
 
     fn get_completion_tree(&self) -> Vec<CompletionNode> {

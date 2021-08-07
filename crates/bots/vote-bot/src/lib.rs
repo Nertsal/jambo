@@ -5,7 +5,6 @@ use bot_core::prelude::*;
 
 #[derive(Bot)]
 pub struct VoteBot {
-    channel_login: String,
     cli: CLI,
     commands: Commands<Self, Sender>,
     vote_mode: VoteMode,
@@ -16,16 +15,22 @@ impl VoteBot {
         "VoteBot"
     }
 
-    pub fn new(cli: &CLI, channel_login: &str) -> Box<dyn Bot> {
+    pub fn new(cli: &CLI) -> Box<dyn Bot> {
         Box::new(Self {
-            channel_login: channel_login.to_owned(),
             cli: Arc::clone(cli),
             commands: Self::commands(),
             vote_mode: VoteMode::Inactive,
         })
     }
 
-    async fn handle_update(&mut self, _client: &TwitchClient, _delta_time: f32) {}
+    #[allow(unused_variables)]
+    async fn handle_update(
+        &mut self,
+        client: &TwitchClient,
+        channel_login: &String,
+        delta_time: f32,
+    ) {
+    }
 }
 
 enum VoteMode {

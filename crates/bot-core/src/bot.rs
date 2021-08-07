@@ -13,10 +13,12 @@ pub trait Bot: Send + Sync {
     async fn handle_command_message(
         &mut self,
         client: &TwitchClient,
+        channel_login: &String,
         message: &CommandMessage<Sender>,
     );
 
-    async fn update(&mut self, _client: &TwitchClient, _delta_time: f32) {}
+    #[allow(unused_variables)]
+    async fn update(&mut self, client: &TwitchClient, channel_login: &String, delta_time: f32) {}
 
     fn update_status(&self, status_text: &str) {
         let path = format!("status/{}.txt", self.name());

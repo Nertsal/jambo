@@ -4,13 +4,13 @@ use std::collections::HashSet;
 mod commands;
 
 pub type ActiveBots = HashSet<String>;
+type NewBotFn = Box<fn(&CLI) -> Box<dyn Bot>>;
 
 pub struct ChannelsBot {
     commands: Commands<Self, Sender>,
-    channel_login: String,
     cli: CLI,
     pub queue_shutdown: bool,
-    available_bots: HashMap<String, Box<fn(&CLI, &str) -> Box<dyn Bot>>>,
+    available_bots: HashMap<String, NewBotFn>,
     active_bots: HashMap<String, Box<dyn Bot>>,
 }
 
@@ -19,10 +19,9 @@ impl ChannelsBot {
         "ChannelsBot"
     }
 
-    pub fn new(cli: &CLI, config: &LoginConfig, active_bots: &ActiveBots) -> Box<Self> {
+    pub fn new(cli: &CLI, active_bots: &ActiveBots) -> Box<Self> {
         let available_bots = Self::available_bots();
         let mut bot = Self {
-            channel_login: config.channel_login.clone(),
             cli: Arc::clone(&cli),
             queue_shutdown: false,
             active_bots: HashMap::with_capacity(active_bots.len()),
@@ -69,11 +68,10 @@ impl Bot for ChannelsBot {
                         message.channel_login, sender_name, message.message_text
                     ),
                 );
-                let channel_login = self.channel_login.clone();
                 perform_commands(
                     self,
                     client,
-                    channel_login,
+                    message.channel_login.clone(),
                     &private_to_command_message(message),
                 )
                 .await;
@@ -88,19 +86,20 @@ impl Bot for ChannelsBot {
     async fn handle_command_message(
         &mut self,
         client: &TwitchClient,
+        channel_login: &String,
         message: &CommandMessage<Sender>,
     ) {
-        let channel_login = self.channel_login.clone();
-        perform_commands(self, client, channel_login, message).await;
+        perform_commands(self, client, channel_login.clone(), message).await;
 
         for bot in self.active_bots.values_mut() {
-            bot.handle_command_message(client, message).await;
+            bot.handle_command_message(client, channel_login, message)
+                .await;
         }
     }
 
-    async fn update(&mut self, client: &TwitchClient, delta_time: f32) {
+    async fn update(&mut self, client: &TwitchClient, channel_login: &String, delta_time: f32) {
         for bot in self.active_bots.values_mut() {
-            bot.update(client, delta_time).await;
+            bot.update(client, channel_login, delta_time).await;
         }
     }
 
