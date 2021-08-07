@@ -1,9 +1,8 @@
+use super::*;
 use std::sync::Arc;
 
-use super::*;
-
-impl CommandBot<Self> for ChannelsBot {
-    fn get_commands(&self) -> &BotCommands<Self> {
+impl CommandBot<Self, Sender> for ChannelsBot {
+    fn get_commands(&self) -> &Commands<Self, Sender> {
         &self.commands
     }
 
@@ -15,7 +14,7 @@ impl CommandBot<Self> for ChannelsBot {
 macro_rules! bots_map {
     ( $( $b:ident ),* ) => {
         {
-            let mut bots: HashMap<String, Box<fn(&CLI, &str) -> Box<dyn Bot>>> = HashMap::new();
+            let mut bots: HashMap<String, NewBotFn> = HashMap::new();
             $(
                 bots.insert($b::name().to_owned(), Box::new($b::new));
             )*
@@ -25,7 +24,7 @@ macro_rules! bots_map {
 }
 
 impl ChannelsBot {
-    pub fn available_bots() -> HashMap<String, Box<fn(&CLI, &str) -> Box<dyn Bot>>> {
+    pub fn available_bots() -> HashMap<String, NewBotFn> {
         bots_map!(CustomBot, GameJamBot, QuoteBot, TimerBot, VoteBot)
     }
 
@@ -82,9 +81,7 @@ impl ChannelsBot {
     }
 
     fn new_bot(&self, bot_name: &str) -> Option<Box<dyn Bot>> {
-        self.available_bots
-            .get(bot_name)
-            .map(|f| f(&self.cli, &self.channel_login))
+        self.available_bots.get(bot_name).map(|f| f(&self.cli))
     }
 
     fn backup_create(&self, path: impl AsRef<std::path::Path>) -> std::io::Result<Response> {
@@ -117,13 +114,15 @@ impl ChannelsBot {
         }
     }
 
-    pub fn commands<'a>(available_bots: impl Iterator<Item = &'a String>) -> BotCommands<Self> {
-        BotCommands {
+    pub fn commands<'a>(
+        available_bots: impl Iterator<Item = &'a String>,
+    ) -> Commands<Self, Sender> {
+        Commands {
             commands: vec![
                 CommandNode::Literal {
                     literals: vec!["!shutdown".to_owned()],
                     child_nodes: vec![CommandNode::Final {
-                        authority_level: AuthorityLevel::Broadcaster,
+                        authority_level: AuthorityLevel::Broadcaster as usize,
                         command: Arc::new(|bot, _, _| {
                             bot.queue_shutdown = true;
                             bot.log(LogType::Info, "Shutting down...");
@@ -140,7 +139,7 @@ impl ChannelsBot {
                                 CommandNode::Argument {
                                     argument_type: ArgumentType::Word,
                                     child_nodes: vec![CommandNode::Final {
-                                        authority_level: AuthorityLevel::Broadcaster,
+                                        authority_level: AuthorityLevel::Broadcaster as usize,
                                         command: Arc::new(|bot, _, args| {
                                             bot.backup_create(format!("backups/{}", args[0]))
                                                 .unwrap()
@@ -148,7 +147,7 @@ impl ChannelsBot {
                                     }],
                                 },
                                 CommandNode::Final {
-                                    authority_level: AuthorityLevel::Broadcaster,
+                                    authority_level: AuthorityLevel::Broadcaster as usize,
                                     command: Arc::new(|bot, _, _| {
                                         bot.backup_create("backups/backup").unwrap()
                                     }),
@@ -161,7 +160,7 @@ impl ChannelsBot {
                                 CommandNode::Argument {
                                     argument_type: ArgumentType::Word,
                                     child_nodes: vec![CommandNode::Final {
-                                        authority_level: AuthorityLevel::Broadcaster,
+                                        authority_level: AuthorityLevel::Broadcaster as usize,
                                         command: Arc::new(|bot, _, args| {
                                             let load_result =
                                                 bot.backup_load(format!("backups/{}", args[0]));
@@ -170,7 +169,7 @@ impl ChannelsBot {
                                     }],
                                 },
                                 CommandNode::Final {
-                                    authority_level: AuthorityLevel::Broadcaster,
+                                    authority_level: AuthorityLevel::Broadcaster as usize,
                                     command: Arc::new(|bot, _, _| {
                                         bot.log(LogType::Info, "test");
                                         let load_result = bot.backup_load("backups/backup");
@@ -190,7 +189,7 @@ impl ChannelsBot {
                     child_nodes: vec![CommandNode::ArgumentChoice {
                         choices: available_bots.map(|name| name.clone()).collect(),
                         child_nodes: vec![CommandNode::Final {
-                            authority_level: AuthorityLevel::Moderator,
+                            authority_level: AuthorityLevel::Moderator as usize,
                             command: Arc::new(|bot, _, args| {
                                 let bot_name = args[1].as_str();
                                 let response = match args[0].as_str() {

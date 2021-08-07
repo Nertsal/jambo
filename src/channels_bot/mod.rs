@@ -1,17 +1,16 @@
-use std::collections::HashSet;
-
 use super::*;
+use std::collections::HashSet;
 
 mod commands;
 
 pub type ActiveBots = HashSet<String>;
+type NewBotFn = Box<fn(&CLI) -> Box<dyn Bot>>;
 
 pub struct ChannelsBot {
-    channel_login: String,
+    commands: Commands<Self, Sender>,
     cli: CLI,
     pub queue_shutdown: bool,
-    commands: BotCommands<Self>,
-    available_bots: HashMap<String, Box<fn(&CLI, &str) -> Box<dyn Bot>>>,
+    available_bots: HashMap<String, NewBotFn>,
     active_bots: HashMap<String, Box<dyn Bot>>,
 }
 
@@ -20,14 +19,13 @@ impl ChannelsBot {
         "ChannelsBot"
     }
 
-    pub fn new(cli: &CLI, config: &LoginConfig, active_bots: &ActiveBots) -> Box<Self> {
+    pub fn new(cli: &CLI, active_bots: &ActiveBots) -> Box<Self> {
         let available_bots = Self::available_bots();
         let mut bot = Self {
-            channel_login: config.channel_login.clone(),
             cli: Arc::clone(&cli),
             queue_shutdown: false,
-            commands: Self::commands(available_bots.keys()),
             active_bots: HashMap::with_capacity(active_bots.len()),
+            commands: Self::commands(available_bots.keys()),
             available_bots,
         };
         for active_bot in active_bots {
@@ -43,11 +41,7 @@ impl Bot for ChannelsBot {
         Self::name()
     }
 
-    async fn handle_server_message(
-        &mut self,
-        client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
-        message: &ServerMessage,
-    ) {
+    async fn handle_server_message(&mut self, client: &TwitchClient, message: &ServerMessage) {
         match message {
             ServerMessage::Join(message) => {
                 self.log(LogType::Info, &format!("Joined {}", message.channel_login));
@@ -74,8 +68,13 @@ impl Bot for ChannelsBot {
                         message.channel_login, sender_name, message.message_text
                     ),
                 );
-                let channel_login = self.channel_login.clone();
-                check_command(self, client, channel_login, &CommandMessage::from(message)).await;
+                perform_commands(
+                    self,
+                    client,
+                    message.channel_login.clone(),
+                    &private_to_command_message(message),
+                )
+                .await;
             }
             _ => (),
         }
@@ -86,24 +85,21 @@ impl Bot for ChannelsBot {
 
     async fn handle_command_message(
         &mut self,
-        client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
-        message: &CommandMessage,
+        client: &TwitchClient,
+        channel_login: &String,
+        message: &CommandMessage<Sender>,
     ) {
-        let channel_login = self.channel_login.clone();
-        check_command(self, client, channel_login, message).await;
+        perform_commands(self, client, channel_login.clone(), message).await;
 
         for bot in self.active_bots.values_mut() {
-            bot.handle_command_message(client, message).await;
+            bot.handle_command_message(client, channel_login, message)
+                .await;
         }
     }
 
-    async fn update(
-        &mut self,
-        client: &TwitchIRCClient<TCPTransport, StaticLoginCredentials>,
-        delta_time: f32,
-    ) {
+    async fn update(&mut self, client: &TwitchClient, channel_login: &String, delta_time: f32) {
         for bot in self.active_bots.values_mut() {
-            bot.update(client, delta_time).await;
+            bot.update(client, channel_login, delta_time).await;
         }
     }
 
