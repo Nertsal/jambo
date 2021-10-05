@@ -42,7 +42,7 @@ impl GameJamBot {
         ));
         if let Some(game) = &self.games_state.current_game {
             rows.push(self.values_to_row_data(
-                vec![game.name.clone(), game.author.clone()],
+                vec![game.link.clone(), game.author.clone()],
                 self.game_to_format(GameType::Current),
             ));
         }
@@ -54,13 +54,13 @@ impl GameJamBot {
         }
         for game in &self.games_state.skipped {
             rows.push(self.values_to_row_data(
-                vec![game.name.clone(), game.author.clone()],
+                vec![game.link.clone(), game.author.clone()],
                 self.game_to_format(GameType::Skipped),
             ));
         }
         for game in &self.played_games {
             rows.push(self.values_to_row_data(
-                vec![game.name.clone(), game.author.clone()],
+                vec![game.link.clone(), game.author.clone()],
                 self.game_to_format(GameType::Played),
             ));
         }
@@ -122,7 +122,7 @@ impl GameJamBot {
     }
 
     fn game_to_values(&self, game: &Game) -> Vec<String> {
-        let mut values = vec![game.name.clone(), game.author.clone()];
+        let mut values = vec![game.link.clone(), game.author.clone()];
         if let Some(sheet_config) = &self.config.google_sheet_config {
             if sheet_config.display_luck {
                 values.push(

@@ -27,8 +27,8 @@ impl GameJamBot {
 
         let reply = match game {
             Some(game) => {
-                self.update_status(&format!("Playing {} from {}", game.name, game.author));
-                let reply = format!("Now playing {} from @{}. ", game.name, game.author);
+                self.update_status(&format!("Playing {}", game));
+                let reply = format!("Now playing {}. ", game);
                 self.games_state.raffle.viewers_weight.remove(&game.author);
                 self.games_state.current_game = Some(game);
                 Some(reply)
@@ -230,12 +230,12 @@ impl GameJamBot {
             Some(format!("You can not submit more than one game"))
         } else if self.check_link(&game_link) {
             if let Some(current_game) = &self.games_state.current_game {
-                if current_game.name == game_link {
+                if current_game.link == game_link {
                     return Some(format!("@{}, we are playing that game right now!", sender));
                 }
             }
 
-            if let Some(_) = self.games_state.queue().find(|game| game.name == game_link) {
+            if let Some(_) = self.games_state.queue().find(|game| game.link == game_link) {
                 return Some(format!(
                     "@{}, that game has already been submitted.",
                     sender,
@@ -246,7 +246,7 @@ impl GameJamBot {
                 .games_state
                 .skipped
                 .iter()
-                .find(|game| game.name == game_link)
+                .find(|game| game.link == game_link)
             {
                 return Some(format!(
                     "@{}, your game was skipped. You may return to the queue using !return command",
@@ -254,16 +254,15 @@ impl GameJamBot {
                 ));
             }
 
-            if let Some(_) = self.played_games.iter().find(|game| game.name == game_link) {
+            if let Some(_) = self.played_games.iter().find(|game| game.link == game_link) {
                 return Some(format!("@{}, we have already played that game.", sender));
             }
 
-            self.games_state.games_queue.push_back(Game {
-                author: sender.clone(),
-                name: game_link,
-            });
+            self.games_state
+                .games_queue
+                .push_back(Game::new(sender.clone(), game_link));
             self.save_games().unwrap();
-            Some(format!("@{}, your game has been submitted!", sender,))
+            Some(format!("@{}, your game has been submitted!", sender))
         } else {
             Some(format!("@{}, that link can not be submitted", sender))
         }
@@ -522,10 +521,7 @@ impl GameJamBot {
                     child_nodes: vec![CommandNode::Final {
                         authority_level: AuthorityLevel::Viewer as usize,
                         command: Arc::new(|bot, _, _| match &bot.games_state.current_game {
-                            Some(game) => Some(format!(
-                                "Current game is: {} from {}",
-                                game.name, game.author
-                            )),
+                            Some(game) => Some(format!("Current game is: {}", game)),
                             None => Some("Not playing any game at the moment".to_owned()),
                         }),
                     }],
@@ -589,7 +585,7 @@ impl GameJamBot {
                         command: Arc::new(|bot, _, _| {
                             if let Some(_) = bot.time_limit.take() {
                                 let game = bot.games_state.current_game.as_ref().unwrap();
-                                Some(format!("Now playing {} from @{}", game.name, game.author))
+                                Some(format!("Now playing {}", game))
                             } else {
                                 Some("Not waiting for response at the moment".to_owned())
                             }

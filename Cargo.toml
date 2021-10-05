@@ -1,6 +1,6 @@
 [package]
 name = "nertsal-bot"
-version = "0.1.0"
+version = "0.2.0-alpha.1"
 authors = ["Kudasov Alexander <sasha.kudasov04@gmail.com>"]
 edition = "2018"
 

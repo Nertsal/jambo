@@ -40,7 +40,41 @@ pub struct GameJamBot {
 #[derive(Serialize, Deserialize, Clone)]
 struct Game {
     author: String,
-    name: String,
+    link: String,
+    name: Option<String>,
+}
+
+impl Game {
+    fn new(author_name: String, link: String) -> Self {
+        Self {
+            author: author_name,
+            name: Game::name_from_link(&link),
+            link,
+        }
+    }
+
+    fn display_name(&self) -> &str {
+        self.name.as_ref().unwrap_or(&self.link)
+    }
+
+    fn name_from_link(link: &str) -> Option<String> {
+        // Ludumdare
+        let ludumdare = "https://ldjam.com/events/ludum-dare/";
+        if link.starts_with(ludumdare) {
+            let mut args = link[ludumdare.len()..].split('/');
+            let _ld_number = args.next()?;
+            let game_name = args.next()?;
+            Some(game_name.to_owned())
+        } else {
+            None
+        }
+    }
+}
+
+impl std::fmt::Display for Game {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} from @{}", self.display_name(), self.author)
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Copy)]
@@ -184,7 +218,7 @@ impl GameJamBot {
             let game = self.games_state.current_game.as_ref().unwrap();
             if message.sender.name == game.author {
                 self.time_limit = None;
-                return Some(format!("Now playing {} from @{}. ", game.name, game.author));
+                return Some(format!("Now playing {}. ", game));
             }
         }
         if self.config.auto_return {
@@ -241,7 +275,13 @@ impl Bot for GameJamBot {
                     self.send_message(client, private_message.channel_login.clone(), reply)
                         .await;
                 }
-                perform_commands(self, client, private_message.channel_login.clone(), &message).await;
+                perform_commands(
+                    self,
+                    client,
+                    private_message.channel_login.clone(),
+                    &message,
+                )
+                .await;
             }
             _ => (),
         };
