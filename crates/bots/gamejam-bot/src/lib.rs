@@ -43,15 +43,16 @@ impl GameJamBot {
 
     fn check_message(&mut self, message: &CommandMessage<Sender>) -> Response {
         // Check if waiting for reply
-        match &self.save_state.current_state {
-            GameJamState::Waiting { .. } => {
-                let game = self.save_state.current_game.as_ref().unwrap();
+        let state = std::mem::take(&mut self.save_state.current_state);
+        match state {
+            GameJamState::Waiting { game, .. } => {
                 if message.sender.name == game.author {
-                    self.save_state.current_state = GameJamState::Playing;
-                    return Some(format!("Now playing {}. ", game.to_string_link(true)));
+                    return self.set_current(Some(game));
                 }
             }
-            _ => (),
+            state => {
+                self.save_state.current_state = state;
+            }
         }
 
         // Try return if auto return is set
@@ -64,7 +65,7 @@ impl GameJamBot {
 
     fn update(&mut self, delta_time: f32) -> Response {
         match &mut self.save_state.current_state {
-            GameJamState::Waiting { time_limit } => {
+            GameJamState::Waiting { time_limit, .. } => {
                 *time_limit -= delta_time;
                 if *time_limit <= 0.0 {
                     self.skip(true)

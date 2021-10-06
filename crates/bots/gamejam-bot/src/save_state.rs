@@ -4,7 +4,6 @@ use super::*;
 pub struct SaveState {
     pub current_state: GameJamState,
     pub is_open: bool,
-    pub current_game: Option<Game>,
     pub returned_queue: VecDeque<Game>,
     pub games_queue: VecDeque<Game>,
     pub skipped: Vec<Game>,
@@ -16,7 +15,6 @@ impl SaveState {
         Self {
             current_state: GameJamState::Idle,
             is_open: true,
-            current_game: None,
             returned_queue: VecDeque::new(),
             games_queue: VecDeque::new(),
             skipped: Vec::new(),

@@ -14,15 +14,14 @@ impl CommandBot<Self, Sender> for GameJamBot {
 }
 
 impl GameJamBot {
-    fn set_current(&mut self, game: Option<Game>) -> Response {
-        self.save_state.current_state = GameJamState::Idle;
-
-        match self.save_state.current_game.take() {
-            Some(game) => {
+    pub fn set_current(&mut self, game: Option<Game>) -> Response {
+        let state = std::mem::take(&mut self.save_state.current_state);
+        match state {
+            GameJamState::Playing { game } | GameJamState::Waiting { game, .. } => {
                 self.played_games.push(game.clone());
                 save_into(&self.played_games, PLAYED_GAMES_FILE).unwrap();
             }
-            None => (),
+            _ => (),
         }
 
         let reply = match game {
@@ -30,12 +29,12 @@ impl GameJamBot {
                 self.update_status(&format!("Playing {}", game.to_string_name(true)));
                 let reply = format!("Now playing {}. ", game.to_string_link(true));
                 self.save_state.raffle_viewer_weights.remove(&game.author);
-                self.save_state.current_game = Some(game);
+                self.save_state.current_state = GameJamState::Playing { game };
                 Some(reply)
             }
             None => {
                 self.update_status("Not playing a game");
-                self.save_state.current_game = None;
+                self.save_state.current_state = GameJamState::Idle;
                 None
             }
         };
@@ -45,6 +44,8 @@ impl GameJamBot {
     }
 
     fn remove_game(&mut self, author_name: &str) -> Option<Game> {
+        self.save_state.current_state = GameJamState::Idle;
+
         let pos = self
             .save_state
             .returned_queue
@@ -109,20 +110,20 @@ impl GameJamBot {
         let reply = match game {
             Ok(game) => {
                 let game_author = game.author.clone();
-                let mut reply = self.set_current(Some(game));
-                if confirmation_required {
-                    if let Some(response_time) = self.config.response_time_limit {
-                        self.save_state.current_state = GameJamState::Waiting {
-                            time_limit: response_time as f32,
-                        };
-                        self.update_status(&format!("Waiting for response from {}", game_author));
-                        reply = Some(format!(
-                            "@{}, we are about to play your game. Please reply in {} seconds.",
-                            game_author, response_time
-                        ))
-                    }
+                if confirmation_required && self.config.response_time_limit.is_some() {
+                    let response_time = self.config.response_time_limit.unwrap();
+                    self.save_state.current_state = GameJamState::Waiting {
+                        time_limit: response_time as f32,
+                        game,
+                    };
+                    self.update_status(&format!("Waiting for response from {}", game_author));
+                    Some(format!(
+                        "@{}, we are about to play your game. Please reply in {} seconds.",
+                        game_author, response_time
+                    ))
+                } else {
+                    self.set_current(Some(game))
                 }
-                reply
             }
             Err(reply) => {
                 self.set_current(None);
@@ -134,9 +135,10 @@ impl GameJamBot {
     }
 
     pub fn skip(&mut self, auto_next: bool) -> Response {
-        self.save_state.current_state = GameJamState::Idle;
-        match self.save_state.current_game.take() {
-            Some(game) => {
+        let state = std::mem::take(&mut self.save_state.current_state);
+        match state {
+            GameJamState::Playing { game } | GameJamState::Waiting { game, .. } => {
+                self.save_state.current_state = GameJamState::Idle;
                 self.save_state.skipped.push(game);
                 let reply = "Game has been skipped.".to_owned();
                 let reply = if auto_next {
@@ -147,7 +149,10 @@ impl GameJamBot {
                 };
                 Some(reply)
             }
-            None => Some("Not playing any game at the moment.".to_owned()),
+            state => {
+                self.save_state.current_state = state;
+                Some("Not playing any game at the moment.".to_owned())
+            }
         }
     }
 
@@ -167,9 +172,14 @@ impl GameJamBot {
 
     fn unskip(&mut self, author_name: Option<String>) -> Response {
         let mut reply = String::new();
-        if let Some(current) = self.save_state.current_game.take() {
-            self.save_state.returned_queue.push_front(current);
-            reply.push_str("Current game has been put at the front of the queue. ");
+
+        let state = std::mem::take(&mut self.save_state.current_state);
+        match state {
+            GameJamState::Playing { game } | GameJamState::Waiting { game, .. } => {
+                self.save_state.returned_queue.push_front(game);
+                reply.push_str("Current game has been put at the front of the queue. ");
+            }
+            _ => (),
         }
 
         match author_name {
@@ -224,13 +234,12 @@ impl GameJamBot {
         if !self.save_state.is_open {
             Some("The queue is closed. You can not submit your game at the moment.".to_owned())
         } else if !self.config.multiple_submissions
-            && (self
-                .save_state
-                .current_game
-                .as_ref()
-                .filter(|game| game.author == sender)
-                .is_some()
-                || self.save_state.queue().any(|game| game.author == sender)
+            && (match &self.save_state.current_state {
+                GameJamState::Playing { game } | GameJamState::Waiting { game, .. } => {
+                    game.author == sender
+                }
+                _ => false,
+            } || self.save_state.queue().any(|game| game.author == sender)
                 || self
                     .save_state
                     .skipped
@@ -239,10 +248,13 @@ impl GameJamBot {
         {
             Some(format!("You can not submit more than one game"))
         } else if self.check_link(&game_link) {
-            if let Some(current_game) = &self.save_state.current_game {
-                if current_game.link == game_link {
+            match &self.save_state.current_state {
+                GameJamState::Playing { game } | GameJamState::Waiting { game, .. }
+                    if game.link == game_link =>
+                {
                     return Some(format!("@{}, we are playing that game right now!", sender));
                 }
+                _ => (),
             }
 
             if let Some(_) = self.save_state.queue().find(|game| game.link == game_link) {
@@ -316,13 +328,9 @@ impl GameJamBot {
                 let reply = match chosen {
                     Ok((sender, _)) => {
                         match self.remove_game(sender) {
-                            Some(game) => {
-                                self.save_state.current_state = GameJamState::Playing;
-                                self.set_current(Some(game))
-                            }
+                            Some(game) => self.set_current(Some(game)),
                             None => {
                                 // The winner has not submitted a game
-                                self.save_state.current_state = GameJamState::Idle;
                                 self.save_state.raffle_viewer_weights.remove(sender);
                                 Some(format!("{} has won the raffle!", sender))
                             }
@@ -420,12 +428,61 @@ impl GameJamBot {
     }
 
     fn force(&mut self) -> Response {
-        match self.save_state.current_state {
-            GameJamState::Waiting { .. } => {
-                let game = self.save_state.current_game.as_ref().unwrap();
-                Some(format!("Now playing {}", game.to_string_link(true)))
+        let state = std::mem::take(&mut self.save_state.current_state);
+        match state {
+            GameJamState::Waiting { game, .. } => self.set_current(Some(game)),
+            state => {
+                self.save_state.current_state = state;
+                Some("Not waiting for response at the moment".to_owned())
             }
-            _ => Some("Not waiting for response at the moment".to_owned()),
+        }
+    }
+
+    fn queue(&self, sender_name: &str) -> Response {
+        let mut reply = String::new();
+        if self.config.queue_mode {
+            if let Some((pos, _)) = self
+                .save_state
+                .queue()
+                .enumerate()
+                .find(|(_, game)| game.author == *sender_name)
+            {
+                reply.push_str(&format!(
+                    "@{}, your game is {} in the queue. ",
+                    sender_name,
+                    pos + 1
+                ));
+            }
+        }
+
+        if self
+            .save_state
+            .skipped
+            .iter()
+            .any(|game| game.author == *sender_name)
+        {
+            reply.push_str(&format!(
+                "@{}, your game was skipped. You may return to the queue using !return command. ",
+                sender_name
+            ))
+        }
+
+        if let Some(config) = &self.config.google_sheet_config {
+            reply.push_str(&format!("Look at the current queue at: https://docs.google.com/spreadsheets/d/{}/edit#gid=0", config.sheet_id))
+        } else if self.config.queue_mode {
+            let mut reply = String::new();
+            let games_count = self.save_state.queue().count();
+            if games_count == 0 {
+                reply.push_str("The queue is empty");
+            } else {
+                reply.push_str(&format!("There are {} games in the queue", games_count));
+            }
+        }
+
+        if !reply.is_empty() {
+            Some(reply)
+        } else {
+            None
         }
     }
 
@@ -512,71 +569,18 @@ impl GameJamBot {
                     literals: vec!["!queue".to_owned(), "!list".to_owned()],
                     child_nodes: vec![CommandNode::Final {
                         authority_level: AuthorityLevel::Viewer as usize,
-                        command: Arc::new(|bot, sender, _| {
-                            let mut reply = String::new();
-                            if bot.config.queue_mode {
-                                if let Some((pos, _)) = bot
-                                    .save_state
-                                    .queue()
-                                    .enumerate()
-                                    .find(|(_, game)| game.author == sender.name)
-                                {
-                                    reply.push_str(&format!(
-                                        "@{}, your game is {} in the queue. ",
-                                        sender.name,
-                                        pos + 1
-                                    ));
-                                }
-                            }
-
-                            if bot
-                                .save_state
-                                .skipped
-                                .iter()
-                                .any(|game| game.author == sender.name)
-                            {
-                                reply.push_str(&format!("@{}, your game was skipped. You may return to the queue using !return command. ", sender.name))
-                            } else if let Some(game) = &bot.save_state.current_game {
-                                if game.author == sender.name {
-                                    reply.push_str(&format!(
-                                        "@{}, we are currently playing your game. ",
-                                        sender.name
-                                    ))
-                                }
-                            }
-
-                            if let Some(config) = &bot.config.google_sheet_config {
-                                reply.push_str(&format!("Look at the current queue at: https://docs.google.com/spreadsheets/d/{}/edit#gid=0", config.sheet_id))
-                            } else if bot.config.queue_mode {
-                                let mut reply = String::new();
-                                let games_count = bot.save_state.queue().count();
-                                if games_count == 0 {
-                                    reply.push_str("The queue is empty");
-                                } else {
-                                    reply.push_str(&format!(
-                                        "There are {} games in the queue",
-                                        games_count
-                                    ));
-                                }
-                            }
-
-                            if !reply.is_empty() {
-                                Some(reply)
-                            } else {
-                                None
-                            }
-                        }),
+                        command: Arc::new(|bot, sender, _| bot.queue(&sender.name)),
                     }],
                 },
                 CommandNode::Literal {
                     literals: vec!["!current".to_owned()],
                     child_nodes: vec![CommandNode::Final {
                         authority_level: AuthorityLevel::Viewer as usize,
-                        command: Arc::new(|bot, _, _| match &bot.save_state.current_game {
-                            Some(game) => {
+                        command: Arc::new(|bot, _, _| match &bot.save_state.current_state {
+                            GameJamState::Playing { game } => {
                                 Some(format!("Current game is: {}", game.to_string_link(false)))
                             }
-                            None => Some("Not playing any game at the moment".to_owned()),
+                            _ => Some("Not playing any game at the moment".to_owned()),
                         }),
                     }],
                 },

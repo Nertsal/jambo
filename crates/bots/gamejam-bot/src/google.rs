@@ -40,7 +40,11 @@ impl GameJamBot {
                 ..Default::default()
             }),
         ));
-        if let Some(game) = &self.save_state.current_game {
+        let current_game = match &self.save_state.current_state {
+            GameJamState::Playing { game } | GameJamState::Waiting { game, .. } => Some(game),
+            _ => None,
+        };
+        if let Some(game) = current_game {
             rows.push(self.values_to_row_data(
                 vec![game.link.clone(), game.author.clone()],
                 self.game_to_format(GameType::Current),
