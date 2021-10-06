@@ -28,7 +28,7 @@ impl GameJamBot {
         let reply = match game {
             Some(game) => {
                 self.update_status(&format!("Playing {}", game));
-                let reply = format!("Now playing {}. ", game);
+                let reply = format!("Now playing {} from @{}. ", game.link, game.author);
                 self.games_state.raffle.viewers_weight.remove(&game.author);
                 self.games_state.current_game = Some(game);
                 Some(reply)
@@ -521,7 +521,10 @@ impl GameJamBot {
                     child_nodes: vec![CommandNode::Final {
                         authority_level: AuthorityLevel::Viewer as usize,
                         command: Arc::new(|bot, _, _| match &bot.games_state.current_game {
-                            Some(game) => Some(format!("Current game is: {}", game)),
+                            Some(game) => Some(format!(
+                                "Current game is: {} from {}",
+                                game.link, game.author
+                            )),
                             None => Some("Not playing any game at the moment".to_owned()),
                         }),
                     }],
@@ -585,7 +588,7 @@ impl GameJamBot {
                         command: Arc::new(|bot, _, _| {
                             if let Some(_) = bot.time_limit.take() {
                                 let game = bot.games_state.current_game.as_ref().unwrap();
-                                Some(format!("Now playing {}", game))
+                                Some(format!("Now playing {} from {}", game.link, game.author))
                             } else {
                                 Some("Not waiting for response at the moment".to_owned())
                             }
