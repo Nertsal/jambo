@@ -9,6 +9,13 @@ pub enum GameType {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
+struct GameSerialized {
+    author: String,
+    link: String,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+#[serde(from = "GameSerialized", into = "GameSerialized")]
 pub struct Game {
     pub author: String,
     pub link: String,
@@ -54,6 +61,21 @@ impl Game {
             Some(game_name.to_owned())
         } else {
             None
+        }
+    }
+}
+
+impl From<GameSerialized> for Game {
+    fn from(game: GameSerialized) -> Self {
+        Self::new(game.author, game.link)
+    }
+}
+
+impl From<Game> for GameSerialized {
+    fn from(game: Game) -> Self {
+        Self {
+            author: game.author,
+            link: game.link,
         }
     }
 }
