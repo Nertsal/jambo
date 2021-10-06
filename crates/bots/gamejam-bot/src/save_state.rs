@@ -8,7 +8,7 @@ pub struct SaveState {
     pub returned_queue: VecDeque<Game>,
     pub games_queue: VecDeque<Game>,
     pub skipped: Vec<Game>,
-    pub raffle_viewer_weights: HashMap<String, usize>,
+    pub raffle_viewer_weights: HashMap<String, u32>,
 }
 
 impl SaveState {

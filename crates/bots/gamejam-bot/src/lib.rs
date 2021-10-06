@@ -42,27 +42,38 @@ impl GameJamBot {
     }
 
     fn check_message(&mut self, message: &CommandMessage<Sender>) -> Response {
-        // if let Some(_) = self.time_limit {
-        //     let game = self.games_state.current_game.as_ref().unwrap();
-        //     if message.sender.name == game.author {
-        //         self.time_limit = None;
-        //         return Some(format!("Now playing {}. ", game));
-        //     }
-        // }
-        // if self.config.auto_return {
-        //     return self.return_game(&message.sender.name);
-        // }
+        // Check if waiting for reply
+        match &self.save_state.current_state {
+            GameJamState::Waiting { .. } => {
+                let game = self.save_state.current_game.as_ref().unwrap();
+                if message.sender.name == game.author {
+                    self.save_state.current_state = GameJamState::Playing;
+                    return Some(format!("Now playing {}. ", game.to_string_link(true)));
+                }
+            }
+            _ => (),
+        }
+
+        // Try return if auto return is set
+        if self.config.auto_return {
+            return self.return_game(&message.sender.name);
+        }
+
         None
     }
 
     fn update(&mut self, delta_time: f32) -> Response {
-        // if let Some(time) = &mut self.time_limit {
-        //     *time -= delta_time;
-        //     if *time <= 0.0 {
-        //         return self.skip(true);
-        //     }
-        // }
-        None
+        match &mut self.save_state.current_state {
+            GameJamState::Waiting { time_limit } => {
+                *time_limit -= delta_time;
+                if *time_limit <= 0.0 {
+                    self.skip(true)
+                } else {
+                    None
+                }
+            }
+            _ => None,
+        }
     }
 
     fn save_games(&mut self) -> std::io::Result<()> {

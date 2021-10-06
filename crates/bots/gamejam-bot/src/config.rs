@@ -1,6 +1,6 @@
 use super::*;
 
-pub const CONFIG_FILE: &'static str = "config/gamejam/gamejam_config.json";
+const CONFIG_FILE: &'static str = "config/gamejam/gamejam_config.json";
 pub const SAVE_FILE: &'static str = "config/gamejam/gamejam_nertsalbot.json";
 pub const PLAYED_GAMES_FILE: &'static str = "config/gamejam/games_played.json";
 
@@ -19,7 +19,7 @@ pub struct GameJamConfig {
     pub response_time_limit: Option<u64>,
     pub link_start: Option<String>,
     pub allow_direct_link_submit: bool,
-    pub raffle_default_weight: usize,
+    pub raffle_default_weight: u32,
     pub google_sheet_config: Option<GoogleSheetConfig>,
 }
 
