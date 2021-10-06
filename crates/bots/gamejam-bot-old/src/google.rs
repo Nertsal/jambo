@@ -40,19 +40,19 @@ impl GameJamBot {
                 ..Default::default()
             }),
         ));
-        if let Some(game) = &self.save_state.current_game {
+        if let Some(game) = &self.games_state.current_game {
             rows.push(self.values_to_row_data(
                 vec![game.link.clone(), game.author.clone()],
                 self.game_to_format(GameType::Current),
             ));
         }
-        for game in self.save_state.queue() {
+        for game in self.games_state.queue() {
             rows.push(self.values_to_row_data(
                 self.game_to_values(game),
                 self.game_to_format(GameType::Queued),
             ));
         }
-        for game in &self.save_state.skipped {
+        for game in &self.games_state.skipped {
             rows.push(self.values_to_row_data(
                 vec![game.link.clone(), game.author.clone()],
                 self.game_to_format(GameType::Skipped),
@@ -126,8 +126,9 @@ impl GameJamBot {
         if let Some(sheet_config) = &self.config.google_sheet_config {
             if sheet_config.display_luck {
                 values.push(
-                    self.save_state
-                        .raffle_viewer_weights
+                    self.games_state
+                        .raffle
+                        .viewers_weight
                         .get(&game.author)
                         .copied()
                         .unwrap_or(self.config.raffle_default_weight)
