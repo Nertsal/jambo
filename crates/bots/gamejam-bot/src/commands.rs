@@ -43,6 +43,37 @@ impl GameJamBot {
         reply
     }
 
+    fn find_game(&self, predicate: impl Fn(&Game) -> bool) -> Option<(&Game, GameType)> {
+        // Check current
+        if let GameJamState::Playing { game } | GameJamState::Waiting { game, .. } =
+            &self.save_state.current_state
+        {
+            if predicate(game) {
+                return Some((game, GameType::Current));
+            }
+        }
+
+        // Look in the queue
+        let game = self.save_state.queue().find(|game| predicate(game));
+        if let Some(game) = game {
+            return Some((game, GameType::Queued));
+        }
+
+        // Look in the skipped list
+        let game = self.save_state.skipped.iter().find(|game| predicate(game));
+        if let Some(game) = game {
+            return Some((game, GameType::Skipped));
+        }
+
+        // Look in the played list
+        let game = self.played_games.iter().find(|game| predicate(game));
+        if let Some(game) = game {
+            return Some((game, GameType::Played));
+        }
+
+        None
+    }
+
     fn remove_game(&mut self, author_name: &str) -> Option<Game> {
         self.save_state.current_state = GameJamState::Idle;
 
@@ -231,63 +262,59 @@ impl GameJamBot {
     }
 
     fn submit(&mut self, game_link: String, sender: String) -> Response {
+        // Check if submissions are closed
         if !self.save_state.is_open {
-            Some("The queue is closed. You can not submit your game at the moment.".to_owned())
-        } else if !self.config.multiple_submissions
-            && (match &self.save_state.current_state {
-                GameJamState::Playing { game } | GameJamState::Waiting { game, .. } => {
-                    game.author == sender
-                }
-                _ => false,
-            } || self.save_state.queue().any(|game| game.author == sender)
-                || self
-                    .save_state
-                    .skipped
-                    .iter()
-                    .any(|game| game.author == sender))
-        {
-            Some(format!("You can not submit more than one game"))
-        } else if self.check_link(&game_link) {
-            match &self.save_state.current_state {
-                GameJamState::Playing { game } | GameJamState::Waiting { game, .. }
-                    if game.link == game_link =>
-                {
-                    return Some(format!("@{}, we are playing that game right now!", sender));
-                }
-                _ => (),
-            }
-
-            if let Some(_) = self.save_state.queue().find(|game| game.link == game_link) {
-                return Some(format!(
-                    "@{}, that game has already been submitted.",
-                    sender,
-                ));
-            }
-
-            if let Some(_) = self
-                .save_state
-                .skipped
-                .iter()
-                .find(|game| game.link == game_link)
-            {
-                return Some(format!(
-                    "@{}, your game was skipped. You may return to the queue using !return command",
-                    sender
-                ));
-            }
-
-            if let Some(_) = self.played_games.iter().find(|game| game.link == game_link) {
-                return Some(format!("@{}, we have already played that game.", sender));
-            }
-
-            self.save_state
-                .games_queue
-                .push_back(Game::new(sender.clone(), game_link));
-            self.save_games().unwrap();
-            Some(format!("@{}, your game has been submitted!", sender))
-        } else {
-            Some(format!("@{}, that link can not be submitted", sender))
+            return Some(
+                "The queue is closed. You can not submit your game at the moment.".to_owned(),
+            );
         }
+
+        // Check if the link is legal
+        if !self.check_link(&game_link) {
+            return Some(format!("@{}, that link can not be submitted", sender));
+        }
+
+        // Check if the sender has already submitted a game
+        let same_author = self.find_game(|game| game.author == sender);
+        if !self.config.multiple_submissions && same_author.is_some() {
+            return Some(format!(
+                "@{}, you can not submit more than one game",
+                sender
+            ));
+        }
+
+        // Check if a game with the same link was already submitted
+        let same_name = self.find_game(|game| game.link == game_link);
+        if let Some((game, game_type)) = same_name {
+            // Check if the author is different
+            if game.author != sender {
+                return Some(format!(
+                    "@{}, that game has already been submitted by {}",
+                    sender, game.author
+                ));
+            }
+
+            let response = match game_type {
+                GameType::Queued => {
+                    format!("@{}, that game has already been submitted.", sender)
+                }
+                GameType::Current => {
+                    format!("@{}, we are playing that game right now!", sender)
+                }
+                GameType::Skipped => format!(
+                    "@{}, that game was skipped. You may return to the queue using !return command",
+                    sender
+                ),
+                GameType::Played => format!("@{}, we have already played that game.", sender),
+            };
+            return Some(response);
+        }
+
+        self.save_state
+            .games_queue
+            .push_back(Game::new(sender.clone(), game_link));
+        self.save_games().unwrap();
+        return Some(format!("@{}, your game has been submitted!", sender));
     }
 
     fn raffle_start(&mut self) -> Response {
