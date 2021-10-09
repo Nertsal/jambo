@@ -63,10 +63,7 @@ impl Bot for ChannelsBot {
                 };
                 self.log(
                     LogType::ChatMessage,
-                    &format!(
-                        "{} {}: {}",
-                        message.channel_login, sender_name, message.message_text
-                    ),
+                    &format!("{}: {}", sender_name, message.message_text),
                 );
                 perform_commands(
                     self,

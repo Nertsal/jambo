@@ -7,18 +7,14 @@ use std::{
 };
 
 mod bot;
+mod bot_state;
 mod commands;
 mod config;
-mod game;
 mod google;
-mod save_state;
-mod state;
 
+use bot_state::*;
 use config::*;
-use game::*;
 use google::*;
-use save_state::*;
-use state::*;
 
 pub struct GameJamBot {
     // Bot stuff
@@ -31,9 +27,7 @@ pub struct GameJamBot {
     update_sheets_queued: bool,
 
     // Actual data
-    played_games: Vec<Game>,
-    save_state: SaveState,
-    // time_limit: Option<f32>,
+    state: BotState,
 }
 
 impl GameJamBot {
@@ -43,15 +37,15 @@ impl GameJamBot {
 
     fn check_message(&mut self, message: &CommandMessage<Sender>) -> Response {
         // Check if waiting for reply
-        let state = std::mem::take(&mut self.save_state.current_state);
+        let state = std::mem::take(&mut self.state.current_state);
         match state {
             GameJamState::Waiting { game, .. } => {
-                if message.sender.name == game.author {
+                if game.authors.contains(&message.sender.name) {
                     return self.set_current(Some(game));
                 }
             }
             state => {
-                self.save_state.current_state = state;
+                self.state.current_state = state;
             }
         }
 
@@ -64,7 +58,7 @@ impl GameJamBot {
     }
 
     fn update(&mut self, delta_time: f32) -> Response {
-        match &mut self.save_state.current_state {
+        match &mut self.state.current_state {
             GameJamState::Waiting { time_limit, .. } => {
                 *time_limit -= delta_time;
                 if *time_limit <= 0.0 {
@@ -79,11 +73,6 @@ impl GameJamBot {
 
     fn save_games(&mut self) -> std::io::Result<()> {
         self.update_sheets_queued = true;
-        save_into(&self.save_state, SAVE_FILE)
-    }
-
-    fn load_games(&mut self) -> std::io::Result<()> {
-        self.save_state = load_from(SAVE_FILE)?;
-        Ok(())
+        save_into(&self.state, SAVE_FILE)
     }
 }

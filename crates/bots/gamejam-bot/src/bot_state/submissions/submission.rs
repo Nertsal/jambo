@@ -10,22 +10,22 @@ pub enum GameType {
 
 #[derive(Serialize, Deserialize, Clone)]
 struct GameSerialized {
-    author: String,
+    authors: Vec<String>,
     link: String,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(from = "GameSerialized", into = "GameSerialized")]
-pub struct Game {
-    pub author: String,
+pub struct Submission {
+    pub authors: Vec<String>,
     pub link: String,
     pub name: Option<String>,
 }
 
-impl Game {
-    pub fn new(author: String, link: String) -> Self {
+impl Submission {
+    pub fn new(authors: Vec<String>, link: String) -> Self {
         Self {
-            author,
+            authors,
             name: Self::name_from_link(&link),
             link,
         }
@@ -37,17 +37,17 @@ impl Game {
 
     pub fn to_string_name(&self, ping: bool) -> String {
         if ping {
-            format!("{} from @{}", self.name(), self.author)
+            format!("{} from @{}", self.name(), self.authors[0])
         } else {
-            format!("{} from {}", self.name(), self.author)
+            format!("{} from {}", self.name(), self.authors[0])
         }
     }
 
     pub fn to_string_link(&self, ping: bool) -> String {
         if ping {
-            format!("{} from @{}", self.link, self.author)
+            format!("{} from @{}", self.link, self.authors[0])
         } else {
-            format!("{} from {}", self.link, self.author)
+            format!("{} from {}", self.link, self.authors[0])
         }
     }
 
@@ -65,16 +65,16 @@ impl Game {
     }
 }
 
-impl From<GameSerialized> for Game {
+impl From<GameSerialized> for Submission {
     fn from(game: GameSerialized) -> Self {
-        Self::new(game.author, game.link)
+        Self::new(game.authors, game.link)
     }
 }
 
-impl From<Game> for GameSerialized {
-    fn from(game: Game) -> Self {
+impl From<Submission> for GameSerialized {
+    fn from(game: Submission) -> Self {
         Self {
-            author: game.author,
+            authors: game.authors,
             link: game.link,
         }
     }

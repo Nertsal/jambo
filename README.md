@@ -108,21 +108,31 @@ The main bot, that controls other bots.
 
 - `allow_direct_link_submit`: bool. If true, then posted links, which start with **link_start**, will be submitted.
 
+- `allow_multiple_authors_submits`: bool. If true, then viewers will be able to add themselves to the authors list of a game by calling `!submit <game_link>`. Otherwise, they can be added as an author by a moderator or by the main author (the one who submitted the game the first).
+
 - `raffle_default_weight`: usize. Determines default weight when participating in raffles for the first time.
 
 - `google_sheet_config`: Option\<GoogleSheetConfig\>. If not null, then current queue state will be displayed in the given google sheet. **display_luck** defines, whether viewers' luck (in raffles) will be displayed for queued games. (Requires **service_key.json** file)
 
 #### Commands
 
-- `!submit <game_link>`. If **link_start** is given, then **!submit** checks, that **game_link** starts with **link_start**. If **allow_direct_link_submit** is true, then **game_link** will also be interpreted as !submit **game_link**, if **link_start** is also given.
+- `!submit <game_link>`. If **link_start** is given, then **!submit** checks, that **game_link** starts with **link_start**. If **allow_direct_link_submit** is true and **link_start** is given, then **game_link** will also be interpreted as !submit **game_link**. If `allow_multiple_authors_submits` is true, such game has already been submitted, and it is in the queue (or skipped), then the person will be marked as another author of the game.
 
-- `!return`. Returns one's game from the skipped list to the queue.
+- `!authors add <author_name>`. Adds another author to the caller's game. Only the main author can call this command.
+
+- `!authors add <game_link> <author_name>`. Moderator only. Adds another author to the game.
+
+- `!authors remove <author_name>`. Removes an author from the caller's game. Only the main author can call this command. The last author cannot be removed.
+
+- `!authors remove <game_link> <author_name>`. Moderator only. Adds another author to the game.
+
+- `!return`. Returns callers's game from the skipped list to the queue.
 
 - `!next`. Broadcaster only. Moves current game to the played list, gets the next game from the queue and sets it as current. If **response_time_limit** is given, then waits for a reply from the author. If there is no response in the given time, **!skip next** is called.
 
 - `!next <author_name>`. Broadcaster only. Moves current game to the played list, looks for the game from <author_name>, if found, sets it as current. No response required, even if **response_time_limit** is not null.
 
-- `!cancel`. Removes one's game from the queue or the skipped list.
+- `!cancel`. Removes callers's game from the queue or the skipped list. Only the main author (the one who submitted the game the first) can call this command.
 
 - `!cancel <author_name>`. Moderator only. Works just like **!cancel**, but looks for <author_name>.
 

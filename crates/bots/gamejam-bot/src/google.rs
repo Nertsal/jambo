@@ -19,6 +19,7 @@ impl GameJamBot {
     pub async fn save_sheets(&self) -> google_sheets4::Result<()> {
         use google_sheets4::api::*;
 
+        // Headers
         let mut rows = Vec::new();
         let mut values = vec!["Game link".to_owned(), "Author".to_owned()];
         if self
@@ -40,31 +41,46 @@ impl GameJamBot {
                 ..Default::default()
             }),
         ));
-        let current_game = match &self.save_state.current_state {
+
+        // Current game
+        let current_game = match &self.state.current_state {
             GameJamState::Playing { game } | GameJamState::Waiting { game, .. } => Some(game),
             _ => None,
         };
         if let Some(game) = current_game {
             rows.push(self.values_to_row_data(
-                vec![game.link.clone(), game.author.clone()],
+                self.game_to_values(game),
                 self.game_to_format(GameType::Current),
             ));
         }
-        for game in self.save_state.queue() {
+
+        // Queued games
+        for game in self.state.submissions.queue.get_queue() {
+            let mut values = self.game_to_values(game);
+            if let Some(sheet_config) = &self.config.google_sheet_config {
+                if sheet_config.display_luck {
+                    values.push(
+                        self.state
+                            .raffle_weights
+                            .get(&game.link)
+                            .copied()
+                            .unwrap_or(self.config.raffle_default_weight)
+                            .to_string(),
+                    )
+                }
+            }
+            rows.push(self.values_to_row_data(values, self.game_to_format(GameType::Queued)));
+        }
+
+        for game in &self.state.submissions.skipped {
             rows.push(self.values_to_row_data(
                 self.game_to_values(game),
-                self.game_to_format(GameType::Queued),
-            ));
-        }
-        for game in &self.save_state.skipped {
-            rows.push(self.values_to_row_data(
-                vec![game.link.clone(), game.author.clone()],
                 self.game_to_format(GameType::Skipped),
             ));
         }
-        for game in &self.played_games {
+        for game in &self.state.submissions.played_games {
             rows.push(self.values_to_row_data(
-                vec![game.link.clone(), game.author.clone()],
+                self.game_to_values(game),
                 self.game_to_format(GameType::Played),
             ));
         }
@@ -125,21 +141,14 @@ impl GameJamBot {
         result.map(|_| ())
     }
 
-    fn game_to_values(&self, game: &Game) -> Vec<String> {
-        let mut values = vec![game.link.clone(), game.author.clone()];
-        if let Some(sheet_config) = &self.config.google_sheet_config {
-            if sheet_config.display_luck {
-                values.push(
-                    self.save_state
-                        .raffle_viewer_weights
-                        .get(&game.author)
-                        .copied()
-                        .unwrap_or(self.config.raffle_default_weight)
-                        .to_string(),
-                )
-            }
+    fn game_to_values(&self, game: &Submission) -> Vec<String> {
+        let mut authors_iter = game.authors.iter();
+        let mut game_authors = authors_iter.next().unwrap().to_owned();
+        for author in &game.authors {
+            game_authors.push_str(", ");
+            game_authors.push_str(author);
         }
-        values
+        vec![game.link.clone(), game_authors]
     }
 
     fn game_to_format(&self, game_type: GameType) -> Option<google_sheets4::api::CellFormat> {
