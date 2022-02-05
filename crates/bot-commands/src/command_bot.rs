@@ -15,7 +15,7 @@ pub async fn perform_commands<T: CommandBot<T, Sender> + Sync + Send>(
 ) {
     let message_origin = message.sender.origin;
     let commands = bot.get_commands();
-    for (command, args) in commands.find_commands(message) {
+    for (command, args) in commands.find_commands(message).collect::<Vec<_>>() {
         if let Some(command_reply) = command(bot, &message.sender, args) {
             match message_origin {
                 MessageOrigin::Chat => {

@@ -32,12 +32,11 @@ impl CustomBot {
     pub fn push_command(&mut self, command_name: String) {
         self.commands.commands.push(CommandNode::Literal {
             literals: vec![command_name.clone()],
-            child_nodes: vec![CommandNode::Final {
-                authority_level: AuthorityLevel::Viewer as usize,
-                command: Arc::new(move |bot, _, _| {
-                    Some(bot.config.commands[&command_name].clone())
-                }),
-            }],
+            child_nodes: vec![CommandNode::final_node(
+                true,
+                AuthorityLevel::Viewer as usize,
+                Arc::new(move |bot, _, _| Some(bot.config.commands[&command_name].clone())),
+            )],
         });
     }
 
@@ -52,9 +51,10 @@ impl CustomBot {
                             argument_type: ArgumentType::Word,
                             child_nodes: vec![CommandNode::Argument {
                                 argument_type: ArgumentType::Line,
-                                child_nodes: vec![CommandNode::Final {
-                                    authority_level: AuthorityLevel::Moderator as usize,
-                                    command: Arc::new(|bot, _, args| {
+                                child_nodes: vec![CommandNode::final_node(
+                                    true,
+                                    AuthorityLevel::Moderator as usize,
+                                    Arc::new(|bot, _, args| {
                                         if let [command_name, command_response] = args.as_slice() {
                                             let response = Some(format!(
                                                 "Added new command {}: {}",
@@ -69,7 +69,7 @@ impl CustomBot {
                                         }
                                         None
                                     }),
-                                }],
+                                )],
                             }],
                         }],
                     },
@@ -77,9 +77,10 @@ impl CustomBot {
                         literals: vec!["delete".to_owned()],
                         child_nodes: vec![CommandNode::Argument {
                             argument_type: ArgumentType::Word,
-                            child_nodes: vec![CommandNode::Final {
-                                authority_level: AuthorityLevel::Moderator as usize,
-                                command: Arc::new(|bot, _, mut args| {
+                            child_nodes: vec![CommandNode::final_node(
+                                true,
+                                AuthorityLevel::Moderator as usize,
+                                Arc::new(|bot, _, mut args| {
                                     let command_name = args.remove(0);
                                     if let Some(command_response) =
                                         bot.config.commands.remove(&command_name)
@@ -105,7 +106,7 @@ impl CustomBot {
                                     }
                                     None
                                 }),
-                            }],
+                            )],
                         }],
                     },
                     CommandNode::Literal {
@@ -114,9 +115,10 @@ impl CustomBot {
                             argument_type: ArgumentType::Word,
                             child_nodes: vec![CommandNode::Argument {
                                 argument_type: ArgumentType::Line,
-                                child_nodes: vec![CommandNode::Final {
-                                    authority_level: AuthorityLevel::Moderator as usize,
-                                    command: Arc::new(|bot, _, args| {
+                                child_nodes: vec![CommandNode::final_node(
+                                    true,
+                                    AuthorityLevel::Moderator as usize,
+                                    Arc::new(|bot, _, args| {
                                         if let [command_name, command_response] = args.as_slice() {
                                             if let Some(old_response) =
                                                 bot.config.commands.get_mut(command_name)
@@ -134,7 +136,7 @@ impl CustomBot {
                                         }
                                         None
                                     }),
-                                }],
+                                )],
                             }],
                         }],
                     },

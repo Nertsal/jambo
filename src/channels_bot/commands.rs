@@ -121,14 +121,15 @@ impl ChannelsBot {
             commands: vec![
                 CommandNode::Literal {
                     literals: vec!["!shutdown".to_owned()],
-                    child_nodes: vec![CommandNode::Final {
-                        authority_level: AuthorityLevel::Broadcaster as usize,
-                        command: Arc::new(|bot, _, _| {
+                    child_nodes: vec![CommandNode::final_node(
+                        true,
+                        AuthorityLevel::Broadcaster as usize,
+                        Arc::new(|bot, _, _| {
                             bot.queue_shutdown = true;
                             bot.log(LogType::Info, "Shutting down...");
                             Some(format!("Shutting down..."))
                         }),
-                    }],
+                    )],
                 },
                 CommandNode::Literal {
                     literals: vec!["!backup".to_owned()],
@@ -138,20 +139,22 @@ impl ChannelsBot {
                             child_nodes: vec![
                                 CommandNode::Argument {
                                     argument_type: ArgumentType::Word,
-                                    child_nodes: vec![CommandNode::Final {
-                                        authority_level: AuthorityLevel::Broadcaster as usize,
-                                        command: Arc::new(|bot, _, args| {
+                                    child_nodes: vec![CommandNode::final_node(
+                                        true,
+                                        AuthorityLevel::Broadcaster as usize,
+                                        Arc::new(|bot, _, args| {
                                             bot.backup_create(format!("backups/{}", args[0]))
                                                 .unwrap()
                                         }),
-                                    }],
+                                    )],
                                 },
-                                CommandNode::Final {
-                                    authority_level: AuthorityLevel::Broadcaster as usize,
-                                    command: Arc::new(|bot, _, _| {
+                                CommandNode::final_node(
+                                    true,
+                                    AuthorityLevel::Broadcaster as usize,
+                                    Arc::new(|bot, _, _| {
                                         bot.backup_create("backups/backup").unwrap()
                                     }),
-                                },
+                                ),
                             ],
                         },
                         CommandNode::Literal {
@@ -159,23 +162,25 @@ impl ChannelsBot {
                             child_nodes: vec![
                                 CommandNode::Argument {
                                     argument_type: ArgumentType::Word,
-                                    child_nodes: vec![CommandNode::Final {
-                                        authority_level: AuthorityLevel::Broadcaster as usize,
-                                        command: Arc::new(|bot, _, args| {
+                                    child_nodes: vec![CommandNode::final_node(
+                                        true,
+                                        AuthorityLevel::Broadcaster as usize,
+                                        Arc::new(|bot, _, args| {
                                             let load_result =
                                                 bot.backup_load(format!("backups/{}", args[0]));
                                             bot.load_result(load_result)
                                         }),
-                                    }],
+                                    )],
                                 },
-                                CommandNode::Final {
-                                    authority_level: AuthorityLevel::Broadcaster as usize,
-                                    command: Arc::new(|bot, _, _| {
+                                CommandNode::final_node(
+                                    true,
+                                    AuthorityLevel::Broadcaster as usize,
+                                    Arc::new(|bot, _, _| {
                                         bot.log(LogType::Info, "test");
                                         let load_result = bot.backup_load("backups/backup");
                                         bot.load_result(load_result)
                                     }),
-                                },
+                                ),
                             ],
                         },
                     ],
@@ -188,9 +193,10 @@ impl ChannelsBot {
                     ],
                     child_nodes: vec![CommandNode::ArgumentChoice {
                         choices: available_bots.map(|name| name.clone()).collect(),
-                        child_nodes: vec![CommandNode::Final {
-                            authority_level: AuthorityLevel::Moderator as usize,
-                            command: Arc::new(|bot, _, args| {
+                        child_nodes: vec![CommandNode::final_node(
+                            true,
+                            AuthorityLevel::Moderator as usize,
+                            Arc::new(|bot, _, args| {
                                 let bot_name = args[1].as_str();
                                 let response = match args[0].as_str() {
                                     "!enable" => bot.spawn_bot(bot_name),
@@ -204,7 +210,7 @@ impl ChannelsBot {
                                 bot.get_cli().set_completer(completer);
                                 response
                             }),
-                        }],
+                        )],
                     }],
                 },
             ],

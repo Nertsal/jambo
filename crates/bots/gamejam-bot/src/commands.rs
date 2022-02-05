@@ -643,9 +643,10 @@ impl GameJamBot {
             commands: vec![
                 CommandNode::Argument {
                     argument_type: ArgumentType::Word,
-                    child_nodes: vec![CommandNode::Final {
-                        authority_level: AuthorityLevel::Viewer as usize,
-                        command: Arc::new(|bot, sender, mut args| {
+                    child_nodes: vec![CommandNode::final_node(
+                        true,
+                        AuthorityLevel::Viewer as usize,
+                        Arc::new(|bot, sender, mut args| {
                             let game_link = args.remove(0);
                             if bot.config.allow_direct_link_submit
                                 && bot.config.link_start.is_some()
@@ -655,204 +656,224 @@ impl GameJamBot {
                             }
                             None
                         }),
-                    }],
+                    )],
                 },
                 CommandNode::Literal {
                     literals: vec!["!submit".to_owned()],
                     child_nodes: vec![CommandNode::Argument {
                         argument_type: ArgumentType::Word,
-                        child_nodes: vec![CommandNode::Final {
-                            authority_level: AuthorityLevel::Viewer as usize,
-                            command: Arc::new(|bot, sender, mut args| {
+                        child_nodes: vec![CommandNode::final_node(
+                            true,
+                            AuthorityLevel::Viewer as usize,
+                            Arc::new(|bot, sender, mut args| {
                                 let game_link = args.remove(0);
                                 bot.submit(game_link, sender.name.clone())
                             }),
-                        }],
+                        )],
                     }],
                 },
                 CommandNode::Literal {
                     literals: vec!["!return".to_owned()],
-                    child_nodes: vec![CommandNode::Final {
-                        authority_level: AuthorityLevel::Viewer as usize,
-                        command: Arc::new(|bot, sender, _| bot.return_game(&sender.name)),
-                    }],
+                    child_nodes: vec![CommandNode::final_node(
+                        true,
+                        AuthorityLevel::Viewer as usize,
+                        Arc::new(|bot, sender, _| bot.return_game(&sender.name)),
+                    )],
                 },
                 CommandNode::Literal {
                     literals: vec!["!next".to_owned()],
                     child_nodes: vec![
-                        CommandNode::Final {
-                            authority_level: AuthorityLevel::Broadcaster as usize,
-                            command: Arc::new(|bot, _, _| bot.next(None, true)),
-                        },
+                        CommandNode::final_node(
+                            true,
+                            AuthorityLevel::Broadcaster as usize,
+                            Arc::new(|bot, _, _| bot.next(None, true)),
+                        ),
                         CommandNode::Argument {
                             argument_type: ArgumentType::Word,
-                            child_nodes: vec![CommandNode::Final {
-                                authority_level: AuthorityLevel::Broadcaster as usize,
-                                command: Arc::new(|bot, _, mut args| {
+                            child_nodes: vec![CommandNode::final_node(
+                                true,
+                                AuthorityLevel::Broadcaster as usize,
+                                Arc::new(|bot, _, mut args| {
                                     let author_name = args.remove(0);
                                     bot.next(Some(&author_name), false)
                                 }),
-                            }],
+                            )],
                         },
                     ],
                 },
                 CommandNode::Literal {
                     literals: vec!["!cancel".to_owned()],
                     child_nodes: vec![
-                        CommandNode::Final {
-                            authority_level: AuthorityLevel::Viewer as usize,
-                            command: Arc::new(|bot, sender, _| {
-                                bot.remove_game_response(&sender.name, true)
-                            }),
-                        },
+                        CommandNode::final_node(
+                            true,
+                            AuthorityLevel::Viewer as usize,
+                            Arc::new(|bot, sender, _| bot.remove_game_response(&sender.name, true)),
+                        ),
                         CommandNode::Argument {
                             argument_type: ArgumentType::Word,
-                            child_nodes: vec![CommandNode::Final {
-                                authority_level: AuthorityLevel::Moderator as usize,
-                                command: Arc::new(|bot, _, mut args| {
+                            child_nodes: vec![CommandNode::final_node(
+                                true,
+                                AuthorityLevel::Moderator as usize,
+                                Arc::new(|bot, _, mut args| {
                                     let author_name = args.remove(0);
                                     bot.remove_game_response(&author_name, false)
                                 }),
-                            }],
+                            )],
                         },
                     ],
                 },
                 CommandNode::Literal {
                     literals: vec!["!queue".to_owned(), "!list".to_owned()],
-                    child_nodes: vec![CommandNode::Final {
-                        authority_level: AuthorityLevel::Viewer as usize,
-                        command: Arc::new(|bot, sender, _| bot.queue(&sender.name)),
-                    }],
+                    child_nodes: vec![CommandNode::final_node(
+                        true,
+                        AuthorityLevel::Viewer as usize,
+                        Arc::new(|bot, sender, _| bot.queue(&sender.name)),
+                    )],
                 },
                 CommandNode::Literal {
                     literals: vec!["!current".to_owned()],
-                    child_nodes: vec![CommandNode::Final {
-                        authority_level: AuthorityLevel::Viewer as usize,
-                        command: Arc::new(|bot, _, _| match &bot.state.current_state {
+                    child_nodes: vec![CommandNode::final_node(
+                        true,
+                        AuthorityLevel::Viewer as usize,
+                        Arc::new(|bot, _, _| match &bot.state.current_state {
                             GameJamState::Playing { game } => {
                                 Some(format!("Current game is: {}", game.to_string_link(false)))
                             }
                             _ => Some("Not playing any game at the moment".to_owned()),
                         }),
-                    }],
+                    )],
                 },
                 CommandNode::Literal {
                     literals: vec!["!skip".to_owned()],
                     child_nodes: vec![
                         CommandNode::Literal {
                             literals: vec!["next".to_owned()],
-                            child_nodes: vec![CommandNode::Final {
-                                authority_level: AuthorityLevel::Broadcaster as usize,
-                                command: Arc::new(|bot, _, _| bot.skip(true)),
-                            }],
+                            child_nodes: vec![CommandNode::final_node(
+                                true,
+                                AuthorityLevel::Broadcaster as usize,
+                                Arc::new(|bot, _, _| bot.skip(true)),
+                            )],
                         },
                         CommandNode::Literal {
                             literals: vec!["all".to_owned()],
-                            child_nodes: vec![CommandNode::Final {
-                                authority_level: AuthorityLevel::Broadcaster as usize,
-                                command: Arc::new(|bot, _, _| bot.skip_all()),
-                            }],
+                            child_nodes: vec![CommandNode::final_node(
+                                true,
+                                AuthorityLevel::Broadcaster as usize,
+                                Arc::new(|bot, _, _| bot.skip_all()),
+                            )],
                         },
-                        CommandNode::Final {
-                            authority_level: AuthorityLevel::Broadcaster as usize,
-                            command: Arc::new(|bot, _, _| bot.skip(false)),
-                        },
+                        CommandNode::final_node(
+                            true,
+                            AuthorityLevel::Broadcaster as usize,
+                            Arc::new(|bot, _, _| bot.skip(false)),
+                        ),
                     ],
                 },
                 CommandNode::Literal {
                     literals: vec!["!unskip".to_owned()],
                     child_nodes: vec![
-                        CommandNode::Final {
-                            authority_level: AuthorityLevel::Broadcaster as usize,
-                            command: Arc::new(|bot, _, _| bot.unskip(None)),
-                        },
+                        CommandNode::final_node(
+                            true,
+                            AuthorityLevel::Broadcaster as usize,
+                            Arc::new(|bot, _, _| bot.unskip(None)),
+                        ),
                         CommandNode::Argument {
                             argument_type: ArgumentType::Word,
-                            child_nodes: vec![CommandNode::Final {
-                                authority_level: AuthorityLevel::Broadcaster as usize,
-                                command: Arc::new(|bot, _, mut args| {
+                            child_nodes: vec![CommandNode::final_node(
+                                true,
+                                AuthorityLevel::Broadcaster as usize,
+                                Arc::new(|bot, _, mut args| {
                                     let author_name = args.remove(0);
                                     bot.unskip(Some(&author_name))
                                 }),
-                            }],
+                            )],
                         },
                     ],
                 },
                 CommandNode::Literal {
                     literals: vec!["!stop".to_owned()],
-                    child_nodes: vec![CommandNode::Final {
-                        authority_level: AuthorityLevel::Broadcaster as usize,
-                        command: Arc::new(|bot, _, _| {
+                    child_nodes: vec![CommandNode::final_node(
+                        true,
+                        AuthorityLevel::Broadcaster as usize,
+                        Arc::new(|bot, _, _| {
                             bot.set_current(None);
                             Some("Current game set to None".to_owned())
                         }),
-                    }],
+                    )],
                 },
                 CommandNode::Literal {
                     literals: vec!["!force".to_owned()],
-                    child_nodes: vec![CommandNode::Final {
-                        authority_level: AuthorityLevel::Moderator as usize,
-                        command: Arc::new(|bot, _, _| bot.force()),
-                    }],
+                    child_nodes: vec![CommandNode::final_node(
+                        true,
+                        AuthorityLevel::Moderator as usize,
+                        Arc::new(|bot, _, _| bot.force()),
+                    )],
                 },
                 CommandNode::Literal {
                     literals: vec!["!close".to_owned()],
-                    child_nodes: vec![CommandNode::Final {
-                        authority_level: AuthorityLevel::Moderator as usize,
-                        command: Arc::new(|bot, _, _| {
+                    child_nodes: vec![CommandNode::final_node(
+                        true,
+                        AuthorityLevel::Moderator as usize,
+                        Arc::new(|bot, _, _| {
                             bot.state.is_queue_open = false;
                             bot.save_games().unwrap();
                             Some("The queue is now closed".to_owned())
                         }),
-                    }],
+                    )],
                 },
                 CommandNode::Literal {
                     literals: vec!["!open".to_owned()],
-                    child_nodes: vec![CommandNode::Final {
-                        authority_level: AuthorityLevel::Moderator as usize,
-                        command: Arc::new(|bot, _, _| {
+                    child_nodes: vec![CommandNode::final_node(
+                        true,
+                        AuthorityLevel::Moderator as usize,
+                        Arc::new(|bot, _, _| {
                             bot.state.is_queue_open = true;
                             bot.save_games().unwrap();
                             Some("The queue is now open".to_owned())
                         }),
-                    }],
+                    )],
                 },
                 CommandNode::Literal {
                     literals: vec!["!raffle".to_owned()],
                     child_nodes: vec![
-                        CommandNode::Final {
-                            authority_level: AuthorityLevel::Broadcaster as usize,
-                            command: Arc::new(|bot, _, _| bot.raffle_start()),
-                        },
+                        CommandNode::final_node(
+                            true,
+                            AuthorityLevel::Broadcaster as usize,
+                            Arc::new(|bot, _, _| bot.raffle_start()),
+                        ),
                         CommandNode::Literal {
                             literals: vec!["finish".to_owned()],
-                            child_nodes: vec![CommandNode::Final {
-                                authority_level: AuthorityLevel::Broadcaster as usize,
-                                command: Arc::new(|bot, _, _| bot.raffle_finish()),
-                            }],
+                            child_nodes: vec![CommandNode::final_node(
+                                true,
+                                AuthorityLevel::Broadcaster as usize,
+                                Arc::new(|bot, _, _| bot.raffle_finish()),
+                            )],
                         },
                         CommandNode::Literal {
                             literals: vec!["cancel".to_owned()],
-                            child_nodes: vec![CommandNode::Final {
-                                authority_level: AuthorityLevel::Broadcaster as usize,
-                                command: Arc::new(|bot, _, _| bot.raffle_cancel()),
-                            }],
+                            child_nodes: vec![CommandNode::final_node(
+                                true,
+                                AuthorityLevel::Broadcaster as usize,
+                                Arc::new(|bot, _, _| bot.raffle_cancel()),
+                            )],
                         },
                     ],
                 },
                 CommandNode::Literal {
                     literals: vec!["!join".to_owned()],
-                    child_nodes: vec![CommandNode::Final {
-                        authority_level: AuthorityLevel::Viewer as usize,
-                        command: Arc::new(|bot, sender, _| bot.raffle_join(sender.name.clone())),
-                    }],
+                    child_nodes: vec![CommandNode::final_node(
+                        true,
+                        AuthorityLevel::Viewer as usize,
+                        Arc::new(|bot, sender, _| bot.raffle_join(sender.name.clone())),
+                    )],
                 },
                 CommandNode::Literal {
                     literals: vec!["!luck".to_owned()],
-                    child_nodes: vec![CommandNode::Final {
-                        authority_level: AuthorityLevel::Viewer as usize,
-                        command: Arc::new(|bot, sender, _| bot.luck(&sender.name)),
-                    }],
+                    child_nodes: vec![CommandNode::final_node(
+                        true,
+                        AuthorityLevel::Viewer as usize,
+                        Arc::new(|bot, sender, _| bot.luck(&sender.name)),
+                    )],
                 },
                 CommandNode::Literal {
                     literals: vec!["!authors".to_owned()],
@@ -864,9 +885,10 @@ impl GameJamBot {
                                 child_nodes: vec![
                                     CommandNode::Argument {
                                         argument_type: ArgumentType::Word,
-                                        child_nodes: vec![CommandNode::Final {
-                                            authority_level: AuthorityLevel::Moderator as usize,
-                                            command: Arc::new(|bot, sender, mut args| {
+                                        child_nodes: vec![CommandNode::final_node(
+                                            true,
+                                            AuthorityLevel::Moderator as usize,
+                                            Arc::new(|bot, sender, mut args| {
                                                 let game_link = args.remove(0);
                                                 let other_author = args.remove(0);
                                                 bot.authors_add(
@@ -876,11 +898,12 @@ impl GameJamBot {
                                                     |game| game.link == game_link,
                                                 )
                                             }),
-                                        }],
+                                        )],
                                     },
-                                    CommandNode::Final {
-                                        authority_level: AuthorityLevel::Viewer as usize,
-                                        command: Arc::new(|bot, sender, mut args| {
+                                    CommandNode::final_node(
+                                        true,
+                                        AuthorityLevel::Viewer as usize,
+                                        Arc::new(|bot, sender, mut args| {
                                             let other_author = args.remove(0);
                                             bot.authors_add(
                                                 &sender.name,
@@ -889,7 +912,7 @@ impl GameJamBot {
                                                 |game| game.authors.contains(&sender.name),
                                             )
                                         }),
-                                    },
+                                    ),
                                 ],
                             }],
                         },
@@ -900,9 +923,10 @@ impl GameJamBot {
                                 child_nodes: vec![
                                     CommandNode::Argument {
                                         argument_type: ArgumentType::Word,
-                                        child_nodes: vec![CommandNode::Final {
-                                            authority_level: AuthorityLevel::Moderator as usize,
-                                            command: Arc::new(|bot, sender, mut args| {
+                                        child_nodes: vec![CommandNode::final_node(
+                                            true,
+                                            AuthorityLevel::Moderator as usize,
+                                            Arc::new(|bot, sender, mut args| {
                                                 let game_link = args.remove(0);
                                                 let other_author = args.remove(0);
                                                 bot.authors_remove(
@@ -912,11 +936,12 @@ impl GameJamBot {
                                                     |game| game.link == game_link,
                                                 )
                                             }),
-                                        }],
+                                        )],
                                     },
-                                    CommandNode::Final {
-                                        authority_level: AuthorityLevel::Viewer as usize,
-                                        command: Arc::new(|bot, sender, mut args| {
+                                    CommandNode::final_node(
+                                        true,
+                                        AuthorityLevel::Viewer as usize,
+                                        Arc::new(|bot, sender, mut args| {
                                             let other_author = args.remove(0);
                                             bot.authors_remove(
                                                 &sender.name,
@@ -925,7 +950,7 @@ impl GameJamBot {
                                                 |game| game.authors.contains(&sender.name),
                                             )
                                         }),
-                                    },
+                                    ),
                                 ],
                             }],
                         },

@@ -68,27 +68,30 @@ impl VoteBot {
                 child_nodes: vec![
                     CommandNode::Literal {
                         literals: vec!["start".to_owned()],
-                        child_nodes: vec![CommandNode::Final {
-                            authority_level: AuthorityLevel::Broadcaster as usize,
-                            command: Arc::new(|bot, _, _| bot.vote_start()),
-                        }],
+                        child_nodes: vec![CommandNode::final_node(
+                            true,
+                            AuthorityLevel::Broadcaster as usize,
+                            Arc::new(|bot, _, _| bot.vote_start()),
+                        )],
                     },
                     CommandNode::Literal {
                         literals: vec!["finish".to_owned()],
-                        child_nodes: vec![CommandNode::Final {
-                            authority_level: AuthorityLevel::Broadcaster as usize,
-                            command: Arc::new(|bot, _, _| bot.vote_finish()),
-                        }],
+                        child_nodes: vec![CommandNode::final_node(
+                            true,
+                            AuthorityLevel::Broadcaster as usize,
+                            Arc::new(|bot, _, _| bot.vote_finish()),
+                        )],
                     },
                     CommandNode::Argument {
                         argument_type: ArgumentType::Line,
-                        child_nodes: vec![CommandNode::Final {
-                            authority_level: AuthorityLevel::Viewer as usize,
-                            command: Arc::new(|bot, sender, mut args| {
+                        child_nodes: vec![CommandNode::final_node(
+                            true,
+                            AuthorityLevel::Viewer as usize,
+                            Arc::new(|bot, sender, mut args| {
                                 let vote = args.remove(0);
                                 bot.vote(sender.name.clone(), vote)
                             }),
-                        }],
+                        )],
                     },
                 ],
             }],

@@ -28,26 +28,28 @@ impl TimerBot {
                 child_nodes: vec![
                     CommandNode::Literal {
                         literals: vec!["pause".to_owned()],
-                        child_nodes: vec![CommandNode::Final {
-                            authority_level: AuthorityLevel::Broadcaster as usize,
-                            command: Arc::new(|bot, _, _| {
+                        child_nodes: vec![CommandNode::final_node(
+                            true,
+                            AuthorityLevel::Broadcaster as usize,
+                            Arc::new(|bot, _, _| {
                                 bot.timer_pause(true);
                                 Some(format!("Timer has been paused"))
                             }),
-                        }],
+                        )],
                     },
                     CommandNode::Literal {
                         literals: vec!["continue".to_owned()],
-                        child_nodes: vec![CommandNode::Final {
-                            authority_level: AuthorityLevel::Broadcaster as usize,
-                            command: Arc::new(|bot, _, _| {
+                        child_nodes: vec![CommandNode::final_node(
+                            true,
+                            AuthorityLevel::Broadcaster as usize,
+                            Arc::new(|bot, _, _| {
                                 bot.timer_pause(false);
                                 Some(match bot.timer.timer_mode {
                                     TimerMode::Idle => format!("Timer is in idle state. Call !timer countdown or !timer countup to start the timer."),
                                     _ => format!("Timer has been unpaused"),
                                 })
                             }),
-                        }],
+                        )],
                     },
                     CommandNode::ArgumentChoice {
                         choices: vec![
@@ -56,9 +58,10 @@ impl TimerBot {
                             "countdown".to_owned(),
                         ],
                         child_nodes: vec![
-                            CommandNode::Final {
-                                authority_level: AuthorityLevel::Broadcaster as usize,
-                                command: Arc::new(|bot, _, mut args| {
+                            CommandNode::final_node(
+                                true,
+                                AuthorityLevel::Broadcaster as usize,
+                                Arc::new(|bot, _, mut args| {
                                     let mode = args.remove(0);
                                     Timer::new_str(bot.timer.time, &mode).map_or(None, |timer| {
                                         if !timer.paused {
@@ -70,12 +73,13 @@ impl TimerBot {
                                         }
                                     })
                                 }),
-                            },
+                            ),
                             CommandNode::Argument {
                                 argument_type: ArgumentType::Line,
-                                child_nodes: vec![CommandNode::Final {
-                                    authority_level: AuthorityLevel::Broadcaster as usize,
-                                    command: Arc::new(|bot, _, mut args| {
+                                child_nodes: vec![CommandNode::final_node(
+                                    true,
+                                    AuthorityLevel::Broadcaster as usize,
+                                    Arc::new(|bot, _, mut args| {
                                         let mode = args.remove(0);
                                         match Timer::parse_duration(args.remove(0).as_ref()) {
                                             Ok(time) => {
@@ -90,7 +94,7 @@ impl TimerBot {
                                             }
                                         }
                                     }),
-                                }],
+                                )],
                             },
                         ],
                     },
