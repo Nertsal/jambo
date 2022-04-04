@@ -62,12 +62,12 @@ impl GameJamBot {
 
         // Initialize google sheets
         if bot.config.google_sheet_config.is_some() {
-            let service_key: yup_oauth2::ServiceAccountKey = serde_json::from_reader(
+            let service_key: oauth2::ServiceAccountKey = serde_json::from_reader(
                 std::io::BufReader::new(std::fs::File::open("secrets/service_key.json").unwrap()),
             )
             .unwrap();
             let auth = async_std::task::block_on(
-                yup_oauth2::ServiceAccountAuthenticator::builder(service_key).build(),
+                oauth2::ServiceAccountAuthenticator::builder(service_key).build(),
             )
             .unwrap();
 

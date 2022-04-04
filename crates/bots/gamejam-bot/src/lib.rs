@@ -1,5 +1,5 @@
 use bot_core::prelude::*;
-use google_sheets4::Sheets;
+use google_sheets4::{oauth2, Sheets};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::{HashMap, VecDeque},
