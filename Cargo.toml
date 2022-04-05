@@ -6,6 +6,11 @@ edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[workspace]
+members = [
+    "crates/*"
+]
+
 [dependencies]
 twitch-irc = "0.2.1"
 futures = "0.3.6"
@@ -20,8 +25,8 @@ colored = "2"
 bot-core = { path = "crates/bot-core" }
 bot-completion = { path = "crates/bot-completion" }
 bot-commands = { path = "crates/bot-commands" }
-custom-bot = { path = "crates/bots/custom-bot" }
-gamejam-bot = { path = "crates/bots/gamejam-bot" }
-quote-bot = { path = "crates/bots/quote-bot" }
-timer-bot = { path = "crates/bots/timer-bot" }
-vote-bot = { path = "crates/bots/vote-bot" }
+custom-bot = { path = "crates/custom-bot" }
+gamejam-bot = { path = "crates/gamejam-bot" }
+quote-bot = { path = "crates/quote-bot" }
+timer-bot = { path = "crates/timer-bot" }
+vote-bot = { path = "crates/vote-bot" }
