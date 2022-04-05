@@ -142,9 +142,9 @@ impl GameJamBot {
     }
 
     fn game_to_values(&self, game: &Submission) -> Vec<String> {
-        let mut authors_iter = game.authors.iter();
-        let mut game_authors = authors_iter.next().unwrap().to_owned();
-        for author in &game.authors {
+        let mut authors = game.authors.iter();
+        let mut game_authors = authors.next().unwrap().to_owned();
+        for author in authors {
             game_authors.push_str(", ");
             game_authors.push_str(author);
         }
