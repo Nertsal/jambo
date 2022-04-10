@@ -27,10 +27,8 @@ async fn main() {
 
     let cli = Arc::new(linefeed::Interface::new("nertsal-bot").unwrap());
     let channels_bot = ChannelsBot::new(&cli, active_bots);
-    // let completer = Arc::new(CommandCompleter {
-    //     completion_tree: channels_bot.get_completion_tree(),
-    // });
-    // cli.set_completer(completer);
+    let completer = channels_bot.commands.clone();
+    cli.set_completer(completer);
     let channels_bot = Arc::new(Mutex::new(channels_bot));
 
     let bot = Arc::clone(&channels_bot);
@@ -132,16 +130,23 @@ pub type ChannelLogin = String;
 pub type ActiveBots = HashSet<BotName>;
 pub type Cli = Arc<linefeed::Interface<linefeed::DefaultTerminal>>;
 
+pub struct BotCommands {
+    pub inner: Mutex<Commands<ChannelsBot>>,
+}
+
+#[derive(Clone)]
 pub struct ChannelsBot {
     cli: Cli,
-    commands: Commands<Self>,
+    commands: Arc<BotCommands>,
 }
 
 impl ChannelsBot {
     pub fn new(cli: &Cli, active_bots: ActiveBots) -> Self {
         Self {
             cli: cli.clone(),
-            commands: Self::commands(),
+            commands: Arc::new(BotCommands {
+                inner: Mutex::new(Self::commands()),
+            }),
         }
     }
 
@@ -210,7 +215,10 @@ impl ChannelsBot {
         message: CommandMessage,
     ) {
         let message_origin = message.sender.origin;
-        for (command, args) in self.commands.find_commands(&message).collect::<Vec<_>>() {
+        let commands = self.commands.inner.lock().await;
+        let matched = commands.find_commands(&message).collect::<Vec<_>>();
+        drop(commands); // Interestingly this line is required to force Rust to drop early
+        for (command, args) in matched {
             if let Some(command_reply) = command(self, &message.sender, args) {
                 match message_origin {
                     MessageOrigin::Twitch => {
@@ -236,7 +244,29 @@ impl ChannelsBot {
     }
 
     fn commands() -> Commands<Self> {
-        Commands::new(vec![])
+        Commands::new(vec![CommandNode::literal(
+            ["test"],
+            vec![CommandNode::final_node(
+                true,
+                AuthorityLevel::Viewer as _,
+                Arc::new(|_, sender, args| {
+                    Some(format!("Got a message from {sender:?}: {args:?}"))
+                }),
+            )],
+        )])
+    }
+}
+
+impl<Term: linefeed::Terminal> linefeed::Completer<Term> for BotCommands {
+    fn complete(
+        &self,
+        word: &str,
+        prompter: &linefeed::Prompter<Term>,
+        start: usize,
+        end: usize,
+    ) -> Option<Vec<linefeed::Completion>> {
+        let commands = futures::executor::block_on(self.inner.lock());
+        commands.complete(word, prompter, start, end)
     }
 }
 
