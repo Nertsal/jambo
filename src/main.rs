@@ -6,6 +6,8 @@ use twitch_irc::{login::StaticLoginCredentials, ClientConfig};
 
 use twitch_bot::prelude::*;
 
+const CONSOLE_PREFIX_LENGTH: usize = 7;
+
 #[tokio::main]
 async fn main() {
     let login_config: LoginConfig = serde_json::from_reader(std::io::BufReader::new(
@@ -70,7 +72,8 @@ async fn main() {
     let client_clone = client.clone();
     let channel_login_clone = channel_login.clone();
     let console_handle = tokio::spawn(async move {
-        cli.set_prompt("> ").unwrap();
+        cli.set_prompt(&format!("{:w$} > ", " ", w = CONSOLE_PREFIX_LENGTH))
+            .unwrap();
         while let linefeed::ReadResult::Input(input) = cli.read_line().unwrap() {
             let mut bot_lock = bot.lock().await;
             bot_lock
@@ -273,13 +276,14 @@ impl<Term: linefeed::Terminal> linefeed::Completer<Term> for BotCommands {
 impl Display for LogType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use colored::*;
+        let w = CONSOLE_PREFIX_LENGTH;
         match &self {
-            LogType::Info => write!(f, "{:9}", "[INFO]".white()),
-            LogType::Warn => write!(f, "{:9}", "[WARN]".yellow()),
-            LogType::Error => write!(f, "{:9}", "[ERROR]".red()),
-            LogType::Chat => write!(f, "{:9}", "[CHAT]".cyan()),
-            LogType::Send => write!(f, "{:9}", "[SEND]".green()),
-            LogType::Console => write!(f, "{:9}", "[CONSOLE]".magenta()),
+            LogType::Info => write!(f, "{:>w$} >", "INFO".white(), w = w),
+            LogType::Warn => write!(f, "{:>w$} >", "WARN".yellow(), w = w),
+            LogType::Error => write!(f, "{:>w$} >", "ERROR".red(), w = w),
+            LogType::Chat => write!(f, "{:>w$} >", "CHAT".cyan(), w = w),
+            LogType::Send => write!(f, "{:>w$} >", "SEND".green(), w = w),
+            LogType::Console => write!(f, "{:>w$} >", "CONSOLE".magenta(), w = w),
         }
     }
 }
