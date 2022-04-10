@@ -134,14 +134,54 @@ pub type Cli = Arc<linefeed::Interface<linefeed::DefaultTerminal>>;
 
 pub struct ChannelsBot {
     cli: Cli,
+    commands: Commands<Self>,
 }
 
 impl ChannelsBot {
     pub fn new(cli: &Cli, active_bots: ActiveBots) -> Self {
-        Self { cli: cli.clone() }
+        Self {
+            cli: cli.clone(),
+            commands: Self::commands(),
+        }
     }
 
-    pub async fn handle_server_message(&mut self, client: &TwitchClient, message: ServerMessage) {}
+    pub async fn handle_server_message(&mut self, client: &TwitchClient, message: ServerMessage) {
+        match message {
+            ServerMessage::Join(message) => {
+                self.log(LogType::Info, &format!("Joined {}", message.channel_login));
+            }
+            ServerMessage::Notice(message) => {
+                if message.message_text == "Login authentication failed" {
+                    panic!("Login authentication failed.");
+                }
+            }
+            ServerMessage::Privmsg(message) => {
+                use colored::*;
+                let sender_name = match &message.name_color {
+                    Some(color) => message
+                        .sender
+                        .name
+                        .truecolor(color.r, color.g, color.b)
+                        .to_string(),
+                    None => message.sender.name.clone(),
+                };
+                self.log(
+                    LogType::Chat,
+                    &format!("{}: {}", sender_name, message.message_text),
+                );
+                self.perform_commands(
+                    client,
+                    &message.channel_login,
+                    private_to_command_message(&message),
+                )
+                .await;
+            }
+            _ => (),
+        }
+        // for bot in self.active_bots.values_mut() {
+        //     bot.handle_server_message(client, &message).await;
+        // }
+    }
 
     pub async fn handle_command_message(
         &mut self,
@@ -149,14 +189,54 @@ impl ChannelsBot {
         channel: &ChannelLogin,
         message: CommandMessage,
     ) {
+        self.perform_commands(client, channel, message).await;
+
+        // for bot in self.active_bots.values_mut() {
+        //     bot.handle_command_message(client, channel, message)
+        //         .await;
+        // }
     }
 
     pub async fn update(&mut self, client: &TwitchClient, channel: &ChannelLogin, delta_time: f32) {
+        // for bot in self.active_bots.values_mut() {
+        //     bot.update(client, channel, delta_time).await;
+        // }
+    }
+
+    pub async fn perform_commands(
+        &mut self,
+        client: &TwitchClient,
+        channel: &ChannelLogin,
+        message: CommandMessage,
+    ) {
+        let message_origin = message.sender.origin;
+        for (command, args) in self.commands.find_commands(&message).collect::<Vec<_>>() {
+            if let Some(command_reply) = command(self, &message.sender, args) {
+                match message_origin {
+                    MessageOrigin::Twitch => {
+                        self.send_message(client, channel.clone(), command_reply)
+                            .await;
+                    }
+                    MessageOrigin::Console => {
+                        self.log(LogType::Console, &command_reply);
+                    }
+                }
+            }
+        }
+    }
+
+    pub async fn send_message(&self, client: &TwitchClient, channel: String, message: String) {
+        self.log(LogType::Send, &format!("{}: {}", channel, message));
+        client.say(channel, message).await.unwrap();
     }
 
     pub fn log(&self, log_type: LogType, message: &str) {
         let mut writer = self.cli.lock_writer_erase().unwrap();
         writeln!(writer, "{} {}", log_type, message).unwrap();
+    }
+
+    fn commands() -> Commands<Self> {
+        Commands::new(vec![])
     }
 }
 

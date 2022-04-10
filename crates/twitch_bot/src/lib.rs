@@ -1,33 +1,9 @@
-use serde::{Deserialize, Serialize};
+mod types;
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct Sender {
-    pub name: String,
-    pub origin: MessageOrigin,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
-pub enum MessageOrigin {
-    Console,
-    Twitch,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
-pub enum AuthorityLevel {
-    Viewer,
-    Moderator,
-    Broadcaster,
-}
-
-pub type TwitchClient = twitch_irc::TwitchIRCClient<
-    twitch_irc::TCPTransport,
-    twitch_irc::login::StaticLoginCredentials,
->;
-
-pub type CommandMessage = nertsal_commands::CommandMessage<Sender>;
+pub use types::*;
 
 pub mod prelude {
-    pub use crate::{AuthorityLevel, CommandMessage, MessageOrigin, Sender, TwitchClient};
+    pub use crate::types::{AuthorityLevel, CommandMessage, Commands, *};
     pub use async_trait::async_trait;
     pub use futures;
     pub use nertsal_commands::*;
