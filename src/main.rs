@@ -119,11 +119,7 @@ pub struct LoginConfig {
 
 pub type BotName = String;
 pub type ChannelLogin = String;
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct ActiveBots {
-    pub active_bots: HashSet<BotName>,
-}
+pub type ActiveBots = HashSet<BotName>;
 
 pub struct ChannelsBot {}
 
