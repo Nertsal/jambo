@@ -1,6 +1,6 @@
 use futures::{lock::Mutex, prelude::*};
 use serde::{Deserialize, Serialize};
-use std::{collections::HashSet, sync::Arc};
+use std::{collections::HashSet, fmt::Display, sync::Arc};
 use tokio_compat_02::FutureExt;
 use twitch_irc::{login::StaticLoginCredentials, ClientConfig};
 
@@ -43,7 +43,7 @@ async fn main() {
             //     break;
             // }
         }
-        // bot.lock().await.log(LogType::Info, "Chat handle shut down");
+        bot.lock().await.log(LogType::Info, "Chat handle shut down");
     });
 
     let bot = Arc::clone(&channels_bot);
@@ -63,9 +63,9 @@ async fn main() {
             //     break;
             // }
         }
-        // bot.lock()
-        //     .await
-        //     .log(LogType::Info, "Update handle shut down");
+        bot.lock()
+            .await
+            .log(LogType::Info, "Update handle shut down");
     });
 
     let bot = Arc::clone(&channels_bot);
@@ -93,9 +93,9 @@ async fn main() {
             //     break;
             // }
         }
-        // bot.lock()
-        //     .await
-        //     .log(LogType::Info, "Console handle shut down");
+        bot.lock()
+            .await
+            .log(LogType::Info, "Console handle shut down");
     });
 
     client.join(channel_login);
@@ -104,10 +104,10 @@ async fn main() {
     update_handle.await.unwrap();
     console_handle.await.unwrap();
 
-    // channels_bot
-    //     .lock()
-    //     .await
-    //     .log(LogType::Info, "Shut down succefully");
+    channels_bot
+        .lock()
+        .await
+        .log(LogType::Info, "Shut down succefully");
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -117,18 +117,28 @@ pub struct LoginConfig {
     pub channel_login: String,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+pub enum LogType {
+    Info,
+    Warn,
+    Error,
+    Chat,
+    Send,
+    Console,
+}
+
 pub type BotName = String;
 pub type ChannelLogin = String;
 pub type ActiveBots = HashSet<BotName>;
+pub type Cli = Arc<linefeed::Interface<linefeed::DefaultTerminal>>;
 
-pub struct ChannelsBot {}
+pub struct ChannelsBot {
+    cli: Cli,
+}
 
 impl ChannelsBot {
-    pub fn new(
-        cli: &Arc<linefeed::Interface<impl linefeed::Terminal>>,
-        active_bots: ActiveBots,
-    ) -> Self {
-        Self {}
+    pub fn new(cli: &Cli, active_bots: ActiveBots) -> Self {
+        Self { cli: cli.clone() }
     }
 
     pub async fn handle_server_message(&mut self, client: &TwitchClient, message: ServerMessage) {}
@@ -142,5 +152,24 @@ impl ChannelsBot {
     }
 
     pub async fn update(&mut self, client: &TwitchClient, channel: &ChannelLogin, delta_time: f32) {
+    }
+
+    pub fn log(&self, log_type: LogType, message: &str) {
+        let mut writer = self.cli.lock_writer_erase().unwrap();
+        writeln!(writer, "{} {}", log_type, message).unwrap();
+    }
+}
+
+impl Display for LogType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use colored::*;
+        match &self {
+            LogType::Info => write!(f, "{:9}", "[INFO]".white()),
+            LogType::Warn => write!(f, "{:9}", "[WARN]".yellow()),
+            LogType::Error => write!(f, "{:9}", "[ERROR]".red()),
+            LogType::Chat => write!(f, "{:9}", "[CHAT]".cyan()),
+            LogType::Send => write!(f, "{:9}", "[SEND]".green()),
+            LogType::Console => write!(f, "{:9}", "[CONSOLE]".magenta()),
+        }
     }
 }
