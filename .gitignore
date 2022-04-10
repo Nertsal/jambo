@@ -1,2 +1,6 @@
-/target
+target
 Cargo.lock
+/config
+/secrets
+/status
+/backups
