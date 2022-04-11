@@ -10,6 +10,7 @@ const CONSOLE_PREFIX_LENGTH: usize = 7;
 
 #[tokio::main]
 async fn main() {
+    // Load config
     let login_config: LoginConfig = serde_json::from_reader(std::io::BufReader::new(
         std::fs::File::open("secrets/login.json").expect("Missing secrets/login.json"),
     ))
@@ -25,15 +26,18 @@ async fn main() {
     ));
     let channel_login = login_config.channel_login;
 
+    // Connect to Twitch
     let (mut incoming_messages, client) = async { TwitchClient::new(client_config) }.compat().await;
 
+    // Setup CLI
     let cli = Arc::new(linefeed::Interface::new("nertsal-bot").unwrap());
-    let channels_bot = ChannelsBot::new(&cli, active_bots);
-    let completer = channels_bot.commands.clone();
+    let main_bot = MainBot::new(&cli, active_bots);
+    let completer = main_bot.commands.clone();
     cli.set_completer(completer);
-    let channels_bot = Arc::new(Mutex::new(channels_bot));
+    let main_bot = Arc::new(Mutex::new(main_bot));
 
-    let bot = Arc::clone(&channels_bot);
+    // Initialize twitch handle
+    let bot = Arc::clone(&main_bot);
     let client_clone = client.clone();
     let message_handle = tokio::spawn(async move {
         while let Some(message) = incoming_messages.next().await {
@@ -46,7 +50,8 @@ async fn main() {
         bot.lock().await.log(LogType::Info, "Chat handle shut down");
     });
 
-    let bot = Arc::clone(&channels_bot);
+    // Initialize update handle
+    let bot = Arc::clone(&main_bot);
     let client_clone = client.clone();
     let channel_login_clone = channel_login.clone();
     let update_handle = tokio::spawn(async move {
@@ -68,7 +73,8 @@ async fn main() {
             .log(LogType::Info, "Update handle shut down");
     });
 
-    let bot = Arc::clone(&channels_bot);
+    // Initialize CLI handle
+    let bot = Arc::clone(&main_bot);
     let client_clone = client.clone();
     let channel_login_clone = channel_login.clone();
     let console_handle = tokio::spawn(async move {
@@ -99,13 +105,14 @@ async fn main() {
             .log(LogType::Info, "Console handle shut down");
     });
 
+    // Wait for all threads to finish
     client.join(channel_login);
 
     message_handle.await.unwrap();
     update_handle.await.unwrap();
     console_handle.await.unwrap();
 
-    channels_bot
+    main_bot
         .lock()
         .await
         .log(LogType::Info, "Shut down succefully");
@@ -134,16 +141,16 @@ pub type ActiveBots = HashSet<BotName>;
 pub type Cli = Arc<linefeed::Interface<linefeed::DefaultTerminal>>;
 
 pub struct BotCommands {
-    pub inner: Mutex<Commands<ChannelsBot>>,
+    pub inner: Mutex<Commands<MainBot>>,
 }
 
 #[derive(Clone)]
-pub struct ChannelsBot {
+pub struct MainBot {
     cli: Cli,
     commands: Arc<BotCommands>,
 }
 
-impl ChannelsBot {
+impl MainBot {
     pub fn new(cli: &Cli, active_bots: ActiveBots) -> Self {
         Self {
             cli: cli.clone(),
