@@ -1,6 +1,7 @@
 use super::*;
 
 pub struct CustomBot {
+    cli: Cli,
     commands: Commands<Self>,
 }
 
@@ -15,8 +16,9 @@ impl Bot<Self> for CustomBot {
 }
 
 impl CustomBot {
-    pub fn new() -> Self {
+    pub fn new(cli: &Cli) -> Self {
         Self {
+            cli: cli.clone(),
             commands: Commands::new(vec![]),
         }
     }

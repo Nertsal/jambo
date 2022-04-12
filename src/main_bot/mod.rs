@@ -6,11 +6,20 @@ use bots::*;
 
 // -- Modify this section to include a new bot into the main bot
 
-// List all subbots in this structure (the fields can be private),
-// then add 2 lines for each bot in the functions below
+// List all sub-bots in this structure (the fields can be private),
+// then add a line in the constructor,
+// add 2 lines for each bot in the functions below
 // to include it in performance and autocompletion
 pub struct Bots {
     custom: CustomBot,
+}
+
+impl Bots {
+    fn new(cli: &Cli, active_bots: ActiveBots) -> Self {
+        Self {
+            custom: CustomBot::new(cli),
+        }
+    }
 }
 
 impl MainBot {
@@ -24,7 +33,7 @@ impl MainBot {
         bot_perform(self, cli, client, channel, &message).await;
         let bots = &mut self.bots;
 
-        // To make the subbot perform commands, add a line below of this pattern:
+        // To make the sub-bot perform commands, add a line below of this pattern:
         // bot_perform(&mut bots.<bot_name>, cli, client, channel, &message).await;
         bot_perform(&mut bots.custom, cli, client, channel, &message).await;
     }
@@ -42,7 +51,7 @@ impl<Term: linefeed::Terminal> linefeed::Completer<Term> for MutexBot {
         let main_completetion = main.commands.complete(word, prompter, start, end);
         let bots = &mut main.bots;
 
-        // To include the bot into auto-completion add a line below of the pattern:
+        // To include the sub-bot into auto-completion add a line below of the pattern:
         // bots.<bot_name>.complete(word, prompter, start, end),
         let completions = [
             main_completetion,
@@ -107,9 +116,7 @@ impl MainBot {
         Self {
             cli: cli.clone(),
             commands: Self::commands(),
-            bots: Bots {
-                custom: CustomBot::new(),
-            },
+            bots: Bots::new(cli, active_bots),
         }
     }
 
