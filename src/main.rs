@@ -7,6 +7,11 @@ use twitch_irc::{login::StaticLoginCredentials, ClientConfig};
 
 use twitch_bot::prelude::*;
 
+mod bots;
+mod main_bot;
+
+use main_bot::*;
+
 const CONSOLE_PREFIX_LENGTH: usize = 7;
 
 #[tokio::main]
@@ -48,11 +53,7 @@ async fn main() {
             //     break;
             // }
         }
-        log(
-            &bot.lock().await.cli,
-            LogType::Info,
-            "Chat handle shut down",
-        );
+        bot.lock().await.log(LogType::Info, "Chat handle shut down");
     });
 
     // Initialize update handle
@@ -73,11 +74,9 @@ async fn main() {
             //     break;
             // }
         }
-        log(
-            &bot.lock().await.cli,
-            LogType::Info,
-            "Update handle shut down",
-        );
+        bot.lock()
+            .await
+            .log(LogType::Info, "Update handle shut down");
     });
 
     // Initialize CLI handle
@@ -107,11 +106,9 @@ async fn main() {
             //     break;
             // }
         }
-        log(
-            &bot.lock().await.cli,
-            LogType::Info,
-            "Console handle shut down",
-        );
+        bot.lock()
+            .await
+            .log(LogType::Info, "Console handle shut down");
     });
 
     // Wait for all threads to finish
@@ -121,11 +118,10 @@ async fn main() {
     update_handle.await.unwrap();
     console_handle.await.unwrap();
 
-    log(
-        &main_bot.lock().await.cli,
-        LogType::Info,
-        "Shut down succefully",
-    );
+    main_bot
+        .lock()
+        .await
+        .log(LogType::Info, "Shut down succefully");
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -150,198 +146,6 @@ pub type ChannelLogin = String;
 pub type ActiveBots = HashSet<BotName>;
 pub type Cli = Arc<linefeed::Interface<linefeed::DefaultTerminal>>;
 
-pub trait Bot<T> {
-    fn inner(&mut self) -> &mut T;
-    fn commands(&self) -> &Commands<T>;
-
-    fn complete<Term: linefeed::Terminal>(
-        &self,
-        word: &str,
-        prompter: &linefeed::Prompter<Term>,
-        start: usize,
-        end: usize,
-    ) -> Option<Vec<linefeed::Completion>> {
-        self.commands().complete(word, prompter, start, end)
-    }
-}
-
-pub struct Bots {
-    pub custom: CustomBot,
-}
-
-pub struct CustomBot {
-    commands: Commands<Self>,
-}
-
-impl Bot<Self> for CustomBot {
-    fn inner(&mut self) -> &mut Self {
-        self
-    }
-
-    fn commands(&self) -> &Commands<Self> {
-        &self.commands
-    }
-}
-
-pub struct MutexBot(Mutex<MainBot>);
-
-impl MutexBot {
-    pub fn new(bot: MainBot) -> Self {
-        Self(Mutex::new(bot))
-    }
-}
-
-impl std::ops::Deref for MutexBot {
-    type Target = Mutex<MainBot>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-pub struct MainBot {
-    cli: Cli,
-    commands: Commands<MainBot>,
-    bots: Bots,
-}
-
-impl Bot<Self> for MainBot {
-    fn inner(&mut self) -> &mut Self {
-        self
-    }
-
-    fn commands(&self) -> &Commands<Self> {
-        &self.commands
-    }
-}
-
-impl MainBot {
-    pub fn new(cli: &Cli, active_bots: ActiveBots) -> Self {
-        Self {
-            cli: cli.clone(),
-            commands: Self::commands(),
-            bots: Bots {
-                custom: CustomBot {
-                    commands: Commands::new(vec![]),
-                },
-            },
-        }
-    }
-
-    pub async fn handle_server_message(&mut self, client: &TwitchClient, message: ServerMessage) {
-        match message {
-            ServerMessage::Join(message) => {
-                log(
-                    &self.cli,
-                    LogType::Info,
-                    &format!("Joined {}", message.channel_login),
-                );
-            }
-            ServerMessage::Notice(message) => {
-                if message.message_text == "Login authentication failed" {
-                    panic!("Login authentication failed.");
-                }
-            }
-            ServerMessage::Privmsg(message) => {
-                use colored::*;
-                let sender_name = match &message.name_color {
-                    Some(color) => message
-                        .sender
-                        .name
-                        .truecolor(color.r, color.g, color.b)
-                        .to_string(),
-                    None => message.sender.name.clone(),
-                };
-                log(
-                    &self.cli,
-                    LogType::Chat,
-                    &format!("{}: {}", sender_name, message.message_text),
-                );
-                self.perform_commands(
-                    client,
-                    &message.channel_login,
-                    private_to_command_message(&message),
-                )
-                .await;
-            }
-            _ => (),
-        }
-        // for bot in self.active_bots.values_mut() {
-        //     bot.handle_server_message(client, &message).await;
-        // }
-    }
-
-    pub async fn handle_command_message(
-        &mut self,
-        client: &TwitchClient,
-        channel: &ChannelLogin,
-        message: CommandMessage,
-    ) {
-        self.perform_commands(client, channel, message).await;
-
-        // for bot in self.active_bots.values_mut() {
-        //     bot.handle_command_message(client, channel, message)
-        //         .await;
-        // }
-    }
-
-    pub async fn update(&mut self, client: &TwitchClient, channel: &ChannelLogin, delta_time: f32) {
-        // for bot in self.active_bots.values_mut() {
-        //     bot.update(client, channel, delta_time).await;
-        // }
-    }
-
-    pub async fn perform_commands(
-        &mut self,
-        client: &TwitchClient,
-        channel: &ChannelLogin,
-        message: CommandMessage,
-    ) {
-        let cli = &self.cli.clone();
-        bot_perform(self, cli, client, channel, &message).await;
-
-        let bots = &mut self.bots;
-        bot_perform(&mut bots.custom, cli, client, channel, &message).await;
-    }
-
-    fn commands() -> Commands<Self> {
-        Commands::new(vec![CommandNode::literal(
-            ["test"],
-            vec![CommandNode::final_node(
-                true,
-                AuthorityLevel::Viewer as _,
-                Arc::new(|_, sender, args| {
-                    Some(format!("Got a message from {sender:?}: {args:?}"))
-                }),
-            )],
-        )])
-    }
-}
-
-async fn bot_perform<T>(
-    bot: &mut impl Bot<T>,
-    cli: &Cli,
-    client: &TwitchClient,
-    channel: &ChannelLogin,
-    message: &CommandMessage,
-) {
-    let message_origin = &message.sender.origin;
-    let commands = bot.commands();
-    let matched = commands.find_commands(message).collect::<Vec<_>>();
-    for (command, args) in matched {
-        if let Some(command_reply) = command(bot.inner(), &message.sender, args) {
-            match message_origin {
-                MessageOrigin::Twitch => {
-                    send_message(cli, client, channel.clone(), command_reply).await;
-                }
-                MessageOrigin::Console => {
-                    log(cli, LogType::Console, &command_reply);
-                }
-            }
-        }
-    }
-}
-
 pub fn log(cli: &Cli, log_type: LogType, message: &str) {
     let mut writer = cli.lock_writer_erase().unwrap();
     writeln!(writer, "{} {}", log_type, message).unwrap();
@@ -350,25 +154,6 @@ pub fn log(cli: &Cli, log_type: LogType, message: &str) {
 pub async fn send_message(cli: &Cli, client: &TwitchClient, channel: String, message: String) {
     log(cli, LogType::Send, &format!("{}: {}", channel, message));
     client.say(channel, message).await.unwrap();
-}
-
-impl<Term: linefeed::Terminal> linefeed::Completer<Term> for MutexBot {
-    fn complete(
-        &self,
-        word: &str,
-        prompter: &linefeed::Prompter<Term>,
-        start: usize,
-        end: usize,
-    ) -> Option<Vec<linefeed::Completion>> {
-        let mut main = futures::executor::block_on(self.0.lock());
-        let main_completetion = main.commands.complete(word, prompter, start, end);
-        let bots = &mut main.bots;
-        let completions = [
-            main_completetion,
-            bots.custom.complete(word, prompter, start, end),
-        ];
-        Some(completions.into_iter().flatten().flatten().collect())
-    }
 }
 
 impl Display for LogType {
