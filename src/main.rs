@@ -32,8 +32,8 @@ async fn main() {
     // Setup CLI
     let cli = Arc::new(linefeed::Interface::new("nertsal-bot").unwrap());
     let main_bot = MainBot::new(&cli, active_bots);
-    let completer = main_bot.commands.clone_handle();
-    cli.set_completer(Arc::new(completer));
+    let completer = main_bot.bots.clone();
+    cli.set_completer(completer);
     let main_bot = Arc::new(Mutex::new(main_bot));
 
     // Initialize twitch handle
@@ -47,7 +47,11 @@ async fn main() {
             //     break;
             // }
         }
-        bot.lock().await.log(LogType::Info, "Chat handle shut down");
+        log(
+            &bot.lock().await.cli,
+            LogType::Info,
+            "Chat handle shut down",
+        );
     });
 
     // Initialize update handle
@@ -68,9 +72,11 @@ async fn main() {
             //     break;
             // }
         }
-        bot.lock()
-            .await
-            .log(LogType::Info, "Update handle shut down");
+        log(
+            &bot.lock().await.cli,
+            LogType::Info,
+            "Update handle shut down",
+        );
     });
 
     // Initialize CLI handle
@@ -100,9 +106,11 @@ async fn main() {
             //     break;
             // }
         }
-        bot.lock()
-            .await
-            .log(LogType::Info, "Console handle shut down");
+        log(
+            &bot.lock().await.cli,
+            LogType::Info,
+            "Console handle shut down",
+        );
     });
 
     // Wait for all threads to finish
@@ -112,10 +120,11 @@ async fn main() {
     update_handle.await.unwrap();
     console_handle.await.unwrap();
 
-    main_bot
-        .lock()
-        .await
-        .log(LogType::Info, "Shut down succefully");
+    log(
+        &main_bot.lock().await.cli,
+        LogType::Info,
+        "Shut down succefully",
+    );
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -140,41 +149,86 @@ pub type ChannelLogin = String;
 pub type ActiveBots = HashSet<BotName>;
 pub type Cli = Arc<linefeed::Interface<linefeed::DefaultTerminal>>;
 
-pub struct BotCommands {
-    inner: Arc<Mutex<Commands<MainBot>>>,
+pub trait Bot<T> {
+    fn inner(&mut self) -> &mut T;
+    fn commands(&self) -> &Commands<T>;
 }
 
-impl BotCommands {
-    pub fn new(commands: Commands<MainBot>) -> Self {
+pub struct MutexBots {
+    pub inner: Mutex<Bots>,
+}
+
+impl std::ops::Deref for MutexBots {
+    type Target = Mutex<Bots>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
+impl MutexBots {
+    pub fn new(bots: Bots) -> Self {
         Self {
-            inner: Arc::new(Mutex::new(commands)),
+            inner: Mutex::new(bots),
         }
     }
+}
 
-    pub fn clone_handle(&self) -> Self {
-        Self {
-            inner: self.inner.clone(),
-        }
+pub struct Bots {
+    pub custom: CustomBot,
+}
+
+pub struct CustomBot {
+    commands: Commands<Self>,
+}
+
+impl Bot<Self> for CustomBot {
+    fn inner(&mut self) -> &mut Self {
+        self
+    }
+
+    fn commands(&self) -> &Commands<Self> {
+        &self.commands
     }
 }
 
 pub struct MainBot {
     cli: Cli,
-    commands: BotCommands,
+    commands: Commands<MainBot>,
+    bots: Arc<MutexBots>,
+}
+
+impl Bot<Self> for MainBot {
+    fn inner(&mut self) -> &mut Self {
+        self
+    }
+
+    fn commands(&self) -> &Commands<Self> {
+        &self.commands
+    }
 }
 
 impl MainBot {
     pub fn new(cli: &Cli, active_bots: ActiveBots) -> Self {
         Self {
             cli: cli.clone(),
-            commands: BotCommands::new(Self::commands()),
+            commands: Self::commands(),
+            bots: Arc::new(MutexBots::new(Bots {
+                custom: CustomBot {
+                    commands: Commands::new(vec![]),
+                },
+            })),
         }
     }
 
     pub async fn handle_server_message(&mut self, client: &TwitchClient, message: ServerMessage) {
         match message {
             ServerMessage::Join(message) => {
-                self.log(LogType::Info, &format!("Joined {}", message.channel_login));
+                log(
+                    &self.cli,
+                    LogType::Info,
+                    &format!("Joined {}", message.channel_login),
+                );
             }
             ServerMessage::Notice(message) => {
                 if message.message_text == "Login authentication failed" {
@@ -191,7 +245,8 @@ impl MainBot {
                         .to_string(),
                     None => message.sender.name.clone(),
                 };
-                self.log(
+                log(
+                    &self.cli,
                     LogType::Chat,
                     &format!("{}: {}", sender_name, message.message_text),
                 );
@@ -235,33 +290,11 @@ impl MainBot {
         channel: &ChannelLogin,
         message: CommandMessage,
     ) {
-        let message_origin = message.sender.origin;
-        let commands = self.commands.inner.lock().await;
-        let matched = commands.find_commands(&message).collect::<Vec<_>>();
-        drop(commands); // Interestingly this line is required to force Rust to drop early
-        for (command, args) in matched {
-            if let Some(command_reply) = command(self, &message.sender, args) {
-                match message_origin {
-                    MessageOrigin::Twitch => {
-                        self.send_message(client, channel.clone(), command_reply)
-                            .await;
-                    }
-                    MessageOrigin::Console => {
-                        self.log(LogType::Console, &command_reply);
-                    }
-                }
-            }
-        }
-    }
+        let cli = &self.cli.clone();
+        bot_perform(self, cli, client, channel, &message).await;
 
-    pub async fn send_message(&self, client: &TwitchClient, channel: String, message: String) {
-        self.log(LogType::Send, &format!("{}: {}", channel, message));
-        client.say(channel, message).await.unwrap();
-    }
-
-    pub fn log(&self, log_type: LogType, message: &str) {
-        let mut writer = self.cli.lock_writer_erase().unwrap();
-        writeln!(writer, "{} {}", log_type, message).unwrap();
+        let mut bots = self.bots.lock().await;
+        bot_perform(&mut bots.custom, cli, client, channel, &message).await;
     }
 
     fn commands() -> Commands<Self> {
@@ -278,7 +311,42 @@ impl MainBot {
     }
 }
 
-impl<Term: linefeed::Terminal> linefeed::Completer<Term> for BotCommands {
+async fn bot_perform<T>(
+    bot: &mut impl Bot<T>,
+    cli: &Cli,
+    client: &TwitchClient,
+    channel: &ChannelLogin,
+    message: &CommandMessage,
+) {
+    let message_origin = &message.sender.origin;
+    let commands = bot.commands();
+    let matched = commands.find_commands(message).collect::<Vec<_>>();
+    // drop(commands); // Interestingly this line is required to force Rust to drop early
+    for (command, args) in matched {
+        if let Some(command_reply) = command(bot.inner(), &message.sender, args) {
+            match message_origin {
+                MessageOrigin::Twitch => {
+                    send_message(cli, client, channel.clone(), command_reply).await;
+                }
+                MessageOrigin::Console => {
+                    log(cli, LogType::Console, &command_reply);
+                }
+            }
+        }
+    }
+}
+
+pub fn log(cli: &Cli, log_type: LogType, message: &str) {
+    let mut writer = cli.lock_writer_erase().unwrap();
+    writeln!(writer, "{} {}", log_type, message).unwrap();
+}
+
+pub async fn send_message(cli: &Cli, client: &TwitchClient, channel: String, message: String) {
+    log(cli, LogType::Send, &format!("{}: {}", channel, message));
+    client.say(channel, message).await.unwrap();
+}
+
+impl<Term: linefeed::Terminal> linefeed::Completer<Term> for MutexBots {
     fn complete(
         &self,
         word: &str,
@@ -286,8 +354,16 @@ impl<Term: linefeed::Terminal> linefeed::Completer<Term> for BotCommands {
         start: usize,
         end: usize,
     ) -> Option<Vec<linefeed::Completion>> {
-        let commands = futures::executor::block_on(self.inner.lock());
-        commands.complete(word, prompter, start, end)
+        // let commands = futures::executor::block_on(self.inner.lock());
+        // Some(
+        //     commands
+        //         .iter_mut()
+        //         .flat_map(|bot| bot.commands().complete(word, prompter, start, end))
+        //         .flatten()
+        //         .collect(),
+        // )
+        // commands.complete(word, prompter, start, end)
+        None // TODO
     }
 }
 
