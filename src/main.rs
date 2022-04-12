@@ -32,8 +32,8 @@ async fn main() {
     // Setup CLI
     let cli = Arc::new(linefeed::Interface::new("nertsal-bot").unwrap());
     let main_bot = MainBot::new(&cli, active_bots);
-    let completer = main_bot.commands.clone();
-    cli.set_completer(completer);
+    let completer = main_bot.commands.clone_handle();
+    cli.set_completer(Arc::new(completer));
     let main_bot = Arc::new(Mutex::new(main_bot));
 
     // Initialize twitch handle
@@ -141,22 +141,33 @@ pub type ActiveBots = HashSet<BotName>;
 pub type Cli = Arc<linefeed::Interface<linefeed::DefaultTerminal>>;
 
 pub struct BotCommands {
-    pub inner: Mutex<Commands<MainBot>>,
+    inner: Arc<Mutex<Commands<MainBot>>>,
 }
 
-#[derive(Clone)]
+impl BotCommands {
+    pub fn new(commands: Commands<MainBot>) -> Self {
+        Self {
+            inner: Arc::new(Mutex::new(commands)),
+        }
+    }
+
+    pub fn clone_handle(&self) -> Self {
+        Self {
+            inner: self.inner.clone(),
+        }
+    }
+}
+
 pub struct MainBot {
     cli: Cli,
-    commands: Arc<BotCommands>,
+    commands: BotCommands,
 }
 
 impl MainBot {
     pub fn new(cli: &Cli, active_bots: ActiveBots) -> Self {
         Self {
             cli: cli.clone(),
-            commands: Arc::new(BotCommands {
-                inner: Mutex::new(Self::commands()),
-            }),
+            commands: BotCommands::new(Self::commands()),
         }
     }
 
