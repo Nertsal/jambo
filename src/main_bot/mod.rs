@@ -1,25 +1,28 @@
 mod commands;
 
+use std::collections::HashMap;
+
 use super::*;
 
 use bots::*;
 
 // -- Modify this section to include a new bot into the main bot
 
-// List all sub-bots in this structure (the fields can be private),
+// List all sub-bots in this enum,
 // then add a line in the constructor,
 // add 2 lines for each bot in the functions below
 // to include it in performance and autocompletion
-pub struct Bots {
-    custom: CustomBot,
+pub enum SubBot {
+    // Insert here
+    Custom(CustomBot),
 }
 
-impl Bots {
-    fn new(cli: &Cli, active_bots: ActiveBots) -> Self {
-        Self {
-            custom: CustomBot::new(cli),
-        }
-    }
+fn constructors() -> impl IntoIterator<Item = (BotName, BotConstructor)> {
+    // Add a line below to make constructing the bot possible
+    [
+        // Insert here
+        (CustomBot::NAME.to_owned(), CustomBot::subbot as _),
+    ]
 }
 
 impl MainBot {
@@ -30,12 +33,15 @@ impl MainBot {
         message: CommandMessage,
     ) {
         let cli = &self.cli.clone();
-        bot_perform(self, cli, client, channel, &message).await;
-        let bots = &mut self.bots;
+        self.perform(cli, client, channel, &message).await;
 
-        // To make the sub-bot perform commands, add a line below of this pattern:
-        // bot_perform(&mut bots.<bot_name>, cli, client, channel, &message).await;
-        bot_perform(&mut bots.custom, cli, client, channel, &message).await;
+        // To make the sub-bot perform commands, add a line in the match below
+        for bot in self.bots.active.values_mut() {
+            match bot {
+                // Insert here
+                SubBot::Custom(bot) => bot.perform(cli, client, channel, &message).await,
+            }
+        }
     }
 }
 
@@ -51,12 +57,12 @@ impl<Term: linefeed::Terminal> linefeed::Completer<Term> for MutexBot {
         let main_completetion = main.commands.complete(word, prompter, start, end);
         let bots = &mut main.bots;
 
-        // To include the sub-bot into auto-completion add a line below of the pattern:
-        // bots.<bot_name>.complete(word, prompter, start, end),
-        let completions = [
-            main_completetion,
-            bots.custom.complete(word, prompter, start, end),
-        ];
+        // To include the sub-bot into auto-completion, add a line in the match below
+        let mut completions = vec![main_completetion];
+        completions.extend(bots.active.values().map(|bot| match bot {
+            // Insert here
+            SubBot::Custom(bot) => bot.complete(word, prompter, start, end),
+        }));
 
         Some(completions.into_iter().flatten().flatten().collect())
     }
@@ -65,6 +71,8 @@ impl<Term: linefeed::Terminal> linefeed::Completer<Term> for MutexBot {
 // -- End of the section, do not modify anything below
 
 pub trait Bot<T> {
+    const NAME: &'static str;
+
     fn inner(&mut self) -> &mut T;
     fn commands(&self) -> &Commands<T>;
 
@@ -95,6 +103,28 @@ impl std::ops::Deref for MutexBot {
     }
 }
 
+type BotConstructor = fn(&Cli) -> SubBot;
+
+struct Bots {
+    constructors: HashMap<BotName, BotConstructor>,
+    active: HashMap<BotName, SubBot>,
+}
+
+impl Bots {
+    fn new(cli: &Cli, active_bots: ActiveBots) -> Self {
+        let constructors = constructors().into_iter().collect::<HashMap<_, _>>();
+        let mut active = HashMap::new();
+        for bot_name in active_bots {
+            let bot = constructors[&bot_name](cli);
+            active.insert(bot_name, bot);
+        }
+        Self {
+            constructors,
+            active,
+        }
+    }
+}
+
 pub struct MainBot {
     cli: Cli,
     commands: Commands<MainBot>,
@@ -102,6 +132,8 @@ pub struct MainBot {
 }
 
 impl Bot<Self> for MainBot {
+    const NAME: &'static str = "MainBot";
+
     fn inner(&mut self) -> &mut Self {
         self
     }
@@ -158,9 +190,6 @@ impl MainBot {
             }
             _ => (),
         }
-        // for bot in self.active_bots.values_mut() {
-        //     bot.handle_server_message(client, &message).await;
-        // }
     }
 
     pub async fn update(&mut self, client: &TwitchClient, channel: &ChannelLogin, delta_time: f32) {
@@ -175,24 +204,38 @@ impl MainBot {
     }
 }
 
-async fn bot_perform<T>(
-    bot: &mut impl Bot<T>,
-    cli: &Cli,
-    client: &TwitchClient,
-    channel: &ChannelLogin,
-    message: &CommandMessage,
-) {
-    let message_origin = &message.sender.origin;
-    let commands = bot.commands();
-    let matched = commands.find_commands(message).collect::<Vec<_>>();
-    for (command, args) in matched {
-        if let Some(command_reply) = command(bot.inner(), &message.sender, args) {
-            match message_origin {
-                MessageOrigin::Twitch => {
-                    send_message(cli, client, channel.clone(), command_reply).await;
-                }
-                MessageOrigin::Console => {
-                    log(cli, LogType::Console, &command_reply);
+#[async_trait]
+trait BotPerformer<T> {
+    async fn perform(
+        &mut self,
+        cli: &Cli,
+        client: &TwitchClient,
+        channel: &ChannelLogin,
+        message: &CommandMessage,
+    );
+}
+
+#[async_trait]
+impl<T: Send, B: Bot<T> + Send> BotPerformer<T> for B {
+    async fn perform(
+        &mut self,
+        cli: &Cli,
+        client: &TwitchClient,
+        channel: &ChannelLogin,
+        message: &CommandMessage,
+    ) {
+        let message_origin = &message.sender.origin;
+        let commands = self.commands();
+        let matched = commands.find_commands(message).collect::<Vec<_>>();
+        for (command, args) in matched {
+            if let Some(command_reply) = command(self.inner(), &message.sender, args) {
+                match message_origin {
+                    MessageOrigin::Twitch => {
+                        send_message(cli, client, channel.clone(), command_reply).await;
+                    }
+                    MessageOrigin::Console => {
+                        log(cli, LogType::Console, &command_reply);
+                    }
                 }
             }
         }

@@ -6,6 +6,8 @@ pub struct CustomBot {
 }
 
 impl Bot<Self> for CustomBot {
+    const NAME: &'static str = "CustomBot";
+
     fn inner(&mut self) -> &mut Self {
         self
     }
@@ -16,10 +18,10 @@ impl Bot<Self> for CustomBot {
 }
 
 impl CustomBot {
-    pub fn new(cli: &Cli) -> Self {
-        Self {
+    pub fn subbot(cli: &Cli) -> SubBot {
+        SubBot::Custom(Self {
             cli: cli.clone(),
             commands: Commands::new(vec![]),
-        }
+        })
     }
 }
