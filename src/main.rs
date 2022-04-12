@@ -1,4 +1,5 @@
 use futures::{lock::Mutex, prelude::*};
+use linefeed::Completer;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashSet, fmt::Display, sync::Arc};
 use tokio_compat_02::FutureExt;
@@ -32,9 +33,9 @@ async fn main() {
     // Setup CLI
     let cli = Arc::new(linefeed::Interface::new("nertsal-bot").unwrap());
     let main_bot = MainBot::new(&cli, active_bots);
-    let completer = main_bot.bots.clone();
+    let main_bot = Arc::new(MutexBot::new(main_bot));
+    let completer = main_bot.clone();
     cli.set_completer(completer);
-    let main_bot = Arc::new(Mutex::new(main_bot));
 
     // Initialize twitch handle
     let bot = Arc::clone(&main_bot);
@@ -152,25 +153,15 @@ pub type Cli = Arc<linefeed::Interface<linefeed::DefaultTerminal>>;
 pub trait Bot<T> {
     fn inner(&mut self) -> &mut T;
     fn commands(&self) -> &Commands<T>;
-}
 
-pub struct MutexBots {
-    pub inner: Mutex<Bots>,
-}
-
-impl std::ops::Deref for MutexBots {
-    type Target = Mutex<Bots>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.inner
-    }
-}
-
-impl MutexBots {
-    pub fn new(bots: Bots) -> Self {
-        Self {
-            inner: Mutex::new(bots),
-        }
+    fn complete<Term: linefeed::Terminal>(
+        &self,
+        word: &str,
+        prompter: &linefeed::Prompter<Term>,
+        start: usize,
+        end: usize,
+    ) -> Option<Vec<linefeed::Completion>> {
+        self.commands().complete(word, prompter, start, end)
     }
 }
 
@@ -192,10 +183,26 @@ impl Bot<Self> for CustomBot {
     }
 }
 
+pub struct MutexBot(Mutex<MainBot>);
+
+impl MutexBot {
+    pub fn new(bot: MainBot) -> Self {
+        Self(Mutex::new(bot))
+    }
+}
+
+impl std::ops::Deref for MutexBot {
+    type Target = Mutex<MainBot>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
 pub struct MainBot {
     cli: Cli,
     commands: Commands<MainBot>,
-    bots: Arc<MutexBots>,
+    bots: Bots,
 }
 
 impl Bot<Self> for MainBot {
@@ -213,11 +220,11 @@ impl MainBot {
         Self {
             cli: cli.clone(),
             commands: Self::commands(),
-            bots: Arc::new(MutexBots::new(Bots {
+            bots: Bots {
                 custom: CustomBot {
                     commands: Commands::new(vec![]),
                 },
-            })),
+            },
         }
     }
 
@@ -293,7 +300,7 @@ impl MainBot {
         let cli = &self.cli.clone();
         bot_perform(self, cli, client, channel, &message).await;
 
-        let mut bots = self.bots.lock().await;
+        let bots = &mut self.bots;
         bot_perform(&mut bots.custom, cli, client, channel, &message).await;
     }
 
@@ -321,7 +328,6 @@ async fn bot_perform<T>(
     let message_origin = &message.sender.origin;
     let commands = bot.commands();
     let matched = commands.find_commands(message).collect::<Vec<_>>();
-    // drop(commands); // Interestingly this line is required to force Rust to drop early
     for (command, args) in matched {
         if let Some(command_reply) = command(bot.inner(), &message.sender, args) {
             match message_origin {
@@ -346,7 +352,7 @@ pub async fn send_message(cli: &Cli, client: &TwitchClient, channel: String, mes
     client.say(channel, message).await.unwrap();
 }
 
-impl<Term: linefeed::Terminal> linefeed::Completer<Term> for MutexBots {
+impl<Term: linefeed::Terminal> linefeed::Completer<Term> for MutexBot {
     fn complete(
         &self,
         word: &str,
@@ -354,16 +360,14 @@ impl<Term: linefeed::Terminal> linefeed::Completer<Term> for MutexBots {
         start: usize,
         end: usize,
     ) -> Option<Vec<linefeed::Completion>> {
-        // let commands = futures::executor::block_on(self.inner.lock());
-        // Some(
-        //     commands
-        //         .iter_mut()
-        //         .flat_map(|bot| bot.commands().complete(word, prompter, start, end))
-        //         .flatten()
-        //         .collect(),
-        // )
-        // commands.complete(word, prompter, start, end)
-        None // TODO
+        let mut main = futures::executor::block_on(self.0.lock());
+        let main_completetion = main.commands.complete(word, prompter, start, end);
+        let bots = &mut main.bots;
+        let completions = [
+            main_completetion,
+            bots.custom.complete(word, prompter, start, end),
+        ];
+        Some(completions.into_iter().flatten().flatten().collect())
     }
 }
 
