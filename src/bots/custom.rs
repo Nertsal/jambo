@@ -5,21 +5,40 @@ pub struct CustomBot {
     commands: Commands<Self>,
 }
 
-impl Bot<Self> for CustomBot {
-    const NAME: &'static str = "CustomBot";
-
-    fn inner(&mut self) -> &mut Self {
-        self
-    }
-
+impl BotPerformer for CustomBot {
     fn commands(&self) -> &Commands<Self> {
         &self.commands
     }
 }
 
+#[async_trait]
+impl Bot for CustomBot {
+    async fn handle_message(
+        &mut self,
+        client: &TwitchClient,
+        channel: &ChannelLogin,
+        message: &CommandMessage,
+    ) {
+        self.perform(&self.cli.clone(), client, channel, message)
+            .await;
+    }
+
+    fn complete(
+        &self,
+        word: &str,
+        prompter: &Prompter,
+        start: usize,
+        end: usize,
+    ) -> Option<Vec<linefeed::Completion>> {
+        self.commands.complete(word, prompter, start, end)
+    }
+}
+
 impl CustomBot {
-    pub fn subbot(cli: &Cli) -> SubBot {
-        SubBot::Custom(Self {
+    pub const NAME: &'static str = "CustomBot";
+
+    pub fn subbot(cli: &Cli) -> Box<dyn Bot> {
+        Box::new(Self {
             cli: cli.clone(),
             commands: Commands::new(vec![]),
         })

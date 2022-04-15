@@ -8,15 +8,6 @@ use bots::*;
 
 // -- Modify this section to include a new bot into the main bot
 
-// List all sub-bots in this enum,
-// then add a line in the constructor,
-// add 2 lines for each bot in the functions below
-// to include it in performance and autocompletion
-pub enum SubBot {
-    // Insert here
-    Custom(CustomBot),
-}
-
 fn constructors() -> impl IntoIterator<Item = (BotName, BotConstructor)> {
     // Add a line below to make constructing the bot possible
     [
@@ -25,31 +16,13 @@ fn constructors() -> impl IntoIterator<Item = (BotName, BotConstructor)> {
     ]
 }
 
-impl MainBot {
-    pub async fn handle_command_message(
-        &mut self,
-        client: &TwitchClient,
-        channel: &ChannelLogin,
-        message: CommandMessage,
-    ) {
-        let cli = &self.cli.clone();
-        self.perform(cli, client, channel, &message).await;
+// -- End of the section, do not modify anything below
 
-        // To make the sub-bot perform commands, add a line in the match below
-        for bot in self.bots.active.values_mut() {
-            match bot {
-                // Insert here
-                SubBot::Custom(bot) => bot.perform(cli, client, channel, &message).await,
-            }
-        }
-    }
-}
-
-impl<Term: linefeed::Terminal> linefeed::Completer<Term> for MutexBot {
+impl linefeed::Completer<linefeed::DefaultTerminal> for MutexBot {
     fn complete(
         &self,
         word: &str,
-        prompter: &linefeed::Prompter<Term>,
+        prompter: &Prompter,
         start: usize,
         end: usize,
     ) -> Option<Vec<linefeed::Completion>> {
@@ -59,32 +32,32 @@ impl<Term: linefeed::Terminal> linefeed::Completer<Term> for MutexBot {
 
         // To include the sub-bot into auto-completion, add a line in the match below
         let mut completions = vec![main_completetion];
-        completions.extend(bots.active.values().map(|bot| match bot {
-            // Insert here
-            SubBot::Custom(bot) => bot.complete(word, prompter, start, end),
-        }));
+        completions.extend(
+            bots.active
+                .values()
+                .map(|bot| bot.complete(word, prompter, start, end)),
+        );
 
         Some(completions.into_iter().flatten().flatten().collect())
     }
 }
 
-// -- End of the section, do not modify anything below
+#[async_trait]
+pub trait Bot: Send {
+    async fn handle_message(
+        &mut self,
+        client: &TwitchClient,
+        channel: &ChannelLogin,
+        message: &CommandMessage,
+    );
 
-pub trait Bot<T> {
-    const NAME: &'static str;
-
-    fn inner(&mut self) -> &mut T;
-    fn commands(&self) -> &Commands<T>;
-
-    fn complete<Term: linefeed::Terminal>(
+    fn complete(
         &self,
         word: &str,
-        prompter: &linefeed::Prompter<Term>,
+        prompter: &Prompter,
         start: usize,
         end: usize,
-    ) -> Option<Vec<linefeed::Completion>> {
-        self.commands().complete(word, prompter, start, end)
-    }
+    ) -> Option<Vec<linefeed::Completion>>;
 }
 
 pub struct MutexBot(Mutex<MainBot>);
@@ -103,11 +76,11 @@ impl std::ops::Deref for MutexBot {
     }
 }
 
-type BotConstructor = fn(&Cli) -> SubBot;
+type BotConstructor = fn(&Cli) -> Box<dyn Bot>;
 
 struct Bots {
     constructors: HashMap<BotName, BotConstructor>,
-    active: HashMap<BotName, SubBot>,
+    active: HashMap<BotName, Box<dyn Bot>>,
 }
 
 impl Bots {
@@ -115,8 +88,20 @@ impl Bots {
         let constructors = constructors().into_iter().collect::<HashMap<_, _>>();
         let mut active = HashMap::new();
         for bot_name in active_bots {
-            let bot = constructors[&bot_name](cli);
-            active.insert(bot_name, bot);
+            match constructors.get(&bot_name) {
+                Some(constructor) => {
+                    let bot = constructor(cli);
+                    log(cli, LogType::Info, &format!("Spawned {bot_name}"));
+                    active.insert(bot_name, bot);
+                }
+                None => {
+                    log(
+                        cli,
+                        LogType::Warn,
+                        &format!("Failed to find a constructor for bot named {bot_name}"),
+                    );
+                }
+            }
         }
         Self {
             constructors,
@@ -131,15 +116,32 @@ pub struct MainBot {
     bots: Bots,
 }
 
-impl Bot<Self> for MainBot {
-    const NAME: &'static str = "MainBot";
-
-    fn inner(&mut self) -> &mut Self {
-        self
-    }
-
+impl BotPerformer for MainBot {
     fn commands(&self) -> &Commands<Self> {
         &self.commands
+    }
+}
+
+#[async_trait]
+impl Bot for MainBot {
+    async fn handle_message(
+        &mut self,
+        client: &TwitchClient,
+        channel: &ChannelLogin,
+        message: &CommandMessage,
+    ) {
+        self.perform(&self.cli.clone(), client, channel, message)
+            .await;
+    }
+
+    fn complete(
+        &self,
+        word: &str,
+        prompter: &Prompter,
+        start: usize,
+        end: usize,
+    ) -> Option<Vec<linefeed::Completion>> {
+        self.commands.complete(word, prompter, start, end)
     }
 }
 
@@ -181,10 +183,10 @@ impl MainBot {
                     LogType::Chat,
                     &format!("{}: {}", sender_name, message.message_text),
                 );
-                self.handle_command_message(
+                self.handle_message(
                     client,
                     &message.channel_login,
-                    private_to_command_message(&message),
+                    &private_to_command_message(&message),
                 )
                 .await;
             }
@@ -205,18 +207,9 @@ impl MainBot {
 }
 
 #[async_trait]
-trait BotPerformer<T> {
-    async fn perform(
-        &mut self,
-        cli: &Cli,
-        client: &TwitchClient,
-        channel: &ChannelLogin,
-        message: &CommandMessage,
-    );
-}
+pub trait BotPerformer: Bot {
+    fn commands(&self) -> &Commands<Self>;
 
-#[async_trait]
-impl<T: Send, B: Bot<T> + Send> BotPerformer<T> for B {
     async fn perform(
         &mut self,
         cli: &Cli,
@@ -228,7 +221,7 @@ impl<T: Send, B: Bot<T> + Send> BotPerformer<T> for B {
         let commands = self.commands();
         let matched = commands.find_commands(message).collect::<Vec<_>>();
         for (command, args) in matched {
-            if let Some(command_reply) = command(self.inner(), &message.sender, args) {
+            if let Some(command_reply) = command(self, &message.sender, args) {
                 match message_origin {
                     MessageOrigin::Twitch => {
                         send_message(cli, client, channel.clone(), command_reply).await;

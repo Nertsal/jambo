@@ -89,10 +89,10 @@ async fn main() {
         while let linefeed::ReadResult::Input(input) = cli.read_line().unwrap() {
             let mut bot_lock = bot.lock().await;
             bot_lock
-                .handle_command_message(
+                .handle_message(
                     &client_clone,
                     &channel_login_clone,
-                    CommandMessage {
+                    &CommandMessage {
                         sender: Sender {
                             name: "Admin".to_owned(),
                             origin: MessageOrigin::Console,
@@ -144,6 +144,7 @@ pub enum LogType {
 pub type BotName = String;
 pub type ChannelLogin = String;
 pub type ActiveBots = HashSet<BotName>;
+pub type Prompter<'a, 'b> = linefeed::Prompter<'a, 'b, linefeed::DefaultTerminal>;
 pub type Cli = Arc<linefeed::Interface<linefeed::DefaultTerminal>>;
 
 pub fn log(cli: &Cli, log_type: LogType, message: &str) {
