@@ -12,7 +12,8 @@ fn constructors() -> impl IntoIterator<Item = (BotName, BotConstructor)> {
     // Add a line below to make constructing the bot possible
     [
         // Insert here
-        (CustomBot::NAME.to_owned(), CustomBot::subbot as _),
+        (CustomBot::NAME.to_owned(), CustomBot::new as _),
+        (TimerBot::NAME.to_owned(), TimerBot::new as _),
     ]
 }
 
@@ -118,6 +119,8 @@ pub struct MainBot {
 }
 
 impl BotPerformer for MainBot {
+    const NAME: &'static str = "MainBot";
+
     fn commands(&self) -> &Commands<Self> {
         &self.commands
     }
@@ -133,6 +136,10 @@ impl Bot for MainBot {
     ) {
         self.perform(&self.cli.clone(), client, channel, message)
             .await;
+
+        for bot in self.bots.active.values_mut() {
+            bot.handle_message(client, channel, message).await;
+        }
     }
 
     fn complete(
@@ -210,6 +217,8 @@ impl MainBot {
 
 #[async_trait]
 pub trait BotPerformer: Bot {
+    const NAME: &'static str;
+
     fn commands(&self) -> &Commands<Self>;
 
     async fn perform(
@@ -234,5 +243,11 @@ pub trait BotPerformer: Bot {
                 }
             }
         }
+    }
+
+    /// Write bot's status into a status file
+    fn update_status(&self, status_text: &str) {
+        let path = format!("status/{}.txt", Self::NAME);
+        std::fs::write(path, status_text).expect("Could not update bot status");
     }
 }
