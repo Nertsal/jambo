@@ -114,6 +114,7 @@ pub struct MainBot {
     cli: Cli,
     commands: Commands<MainBot>,
     bots: Bots,
+    pub queue_shutdown: bool,
 }
 
 impl BotPerformer for MainBot {
@@ -151,6 +152,7 @@ impl MainBot {
             cli: cli.clone(),
             commands: Self::commands(),
             bots: Bots::new(cli, active_bots),
+            queue_shutdown: false,
         }
     }
 

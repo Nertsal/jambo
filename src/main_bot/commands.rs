@@ -56,6 +56,17 @@ impl MainBot {
                     )],
                 )],
             ),
+            CommandNode::literal(
+                ["!shutdown"],
+                vec![CommandNode::final_node(
+                    true,
+                    AuthorityLevel::Broadcaster as _,
+                    Arc::new(|bot, _, _| {
+                        bot.queue_shutdown = true;
+                        Some(format!("Shutting down..."))
+                    })
+                )]
+            )
         ])
     }
 }

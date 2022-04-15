@@ -45,7 +45,7 @@ async fn main() {
     // Initialize twitch handle
     let bot = Arc::clone(&main_bot);
     let client_clone = client.clone();
-    let message_handle = tokio::spawn(async move {
+    let (message_handle, message_abort) = futures::future::abortable(tokio::spawn(async move {
         while let Some(message) = incoming_messages.next().await {
             let mut bot_lock = bot.lock().await;
             bot_lock.handle_server_message(&client_clone, message).await;
@@ -54,36 +54,13 @@ async fn main() {
             // }
         }
         bot.lock().await.log(LogType::Info, "Chat handle shut down");
-    });
-
-    // Initialize update handle
-    let bot = Arc::clone(&main_bot);
-    let client_clone = client.clone();
-    let channel_login_clone = channel_login.clone();
-    let update_handle = tokio::spawn(async move {
-        const FIXED_DELTA_TIME: f32 = 1.0;
-        let mut interval =
-            tokio::time::interval(std::time::Duration::from_secs_f32(FIXED_DELTA_TIME));
-        loop {
-            interval.tick().await;
-            let mut bot_lock = bot.lock().await;
-            bot_lock
-                .update(&client_clone, &channel_login_clone, FIXED_DELTA_TIME)
-                .await;
-            // if bot_lock.queue_shutdown {
-            //     break;
-            // }
-        }
-        bot.lock()
-            .await
-            .log(LogType::Info, "Update handle shut down");
-    });
+    }));
 
     // Initialize CLI handle
     let bot = Arc::clone(&main_bot);
     let client_clone = client.clone();
     let channel_login_clone = channel_login.clone();
-    let console_handle = tokio::spawn(async move {
+    let (console_handle, console_abort) = futures::future::abortable(tokio::spawn(async move {
         cli.set_prompt(&format!("{:w$} > ", " ", w = CONSOLE_PREFIX_LENGTH))
             .unwrap();
         while let linefeed::ReadResult::Input(input) = cli.read_line().unwrap() {
@@ -102,21 +79,44 @@ async fn main() {
                     },
                 )
                 .await;
-            // if bot_lock.queue_shutdown {
-            //     break;
-            // }
+
+            if bot_lock.queue_shutdown {
+                break;
+            }
         }
-        bot.lock()
-            .await
-            .log(LogType::Info, "Console handle shut down");
+    }));
+
+    // Initialize update handle
+    let bot = Arc::clone(&main_bot);
+    let client_clone = client.clone();
+    let channel_login_clone = channel_login.clone();
+    let update_handle = tokio::spawn(async move {
+        const FIXED_DELTA_TIME: f32 = 1.0;
+        let mut interval =
+            tokio::time::interval(std::time::Duration::from_secs_f32(FIXED_DELTA_TIME));
+        loop {
+            interval.tick().await;
+            let mut bot_lock = bot.lock().await;
+            bot_lock
+                .update(&client_clone, &channel_login_clone, FIXED_DELTA_TIME)
+                .await;
+
+            if bot_lock.queue_shutdown {
+                console_abort.abort();
+                message_abort.abort();
+                break;
+            }
+        }
     });
 
     // Wait for all threads to finish
     client.join(channel_login);
-
-    message_handle.await.unwrap();
     update_handle.await.unwrap();
-    console_handle.await.unwrap();
+    {
+        #![allow(unused_must_use)]
+        message_handle.await;
+        console_handle.await;
+    }
 
     main_bot
         .lock()
