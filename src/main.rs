@@ -112,11 +112,8 @@ async fn main() {
     // Wait for all threads to finish
     client.join(channel_login);
     update_handle.await.unwrap();
-    {
-        #![allow(unused_must_use)]
-        message_handle.await;
-        console_handle.await;
-    }
+    message_handle.await.unwrap_err();
+    console_handle.await.unwrap_err();
 
     main_bot
         .lock()
