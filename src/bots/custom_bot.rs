@@ -5,7 +5,18 @@ pub struct CustomBot {
     commands: Commands<Self>,
 }
 
+impl CustomBot {
+    pub fn new(cli: &Cli) -> Box<dyn Bot> {
+        Box::new(Self {
+            cli: cli.clone(),
+            commands: Commands::new(vec![]),
+        })
+    }
+}
+
 impl BotPerformer for CustomBot {
+    const NAME: &'static str = "CustomBot";
+
     fn commands(&self) -> &Commands<Self> {
         &self.commands
     }
@@ -31,16 +42,5 @@ impl Bot for CustomBot {
         end: usize,
     ) -> Option<Vec<linefeed::Completion>> {
         self.commands.complete(word, prompter, start, end)
-    }
-}
-
-impl CustomBot {
-    pub const NAME: &'static str = "CustomBot";
-
-    pub fn subbot(cli: &Cli) -> Box<dyn Bot> {
-        Box::new(Self {
-            cli: cli.clone(),
-            commands: Commands::new(vec![]),
-        })
     }
 }
