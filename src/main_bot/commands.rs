@@ -37,9 +37,7 @@ impl MainBot {
                     vec![CommandNode::final_node(
                         true,
                         AuthorityLevel::Viewer as _,
-                        Arc::new(|bot, _, args| {
-                            args.first().and_then(|bot_name| bot.enable(bot_name))
-                        }),
+                        Arc::new(|bot, _, args| bot.enable(&args[0])),
                     )],
                 )],
             ),
@@ -50,9 +48,7 @@ impl MainBot {
                     vec![CommandNode::final_node(
                         true,
                         AuthorityLevel::Viewer as _,
-                        Arc::new(|bot, _, args| {
-                            args.first().and_then(|bot_name| bot.disable(bot_name))
-                        }),
+                        Arc::new(|bot, _, args| bot.disable(&args[0])),
                     )],
                 )],
             ),
@@ -64,9 +60,9 @@ impl MainBot {
                     Arc::new(|bot, _, _| {
                         bot.queue_shutdown = true;
                         Some(format!("Shutting down..."))
-                    })
-                )]
-            )
+                    }),
+                )],
+            ),
         ])
     }
 }
