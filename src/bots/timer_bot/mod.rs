@@ -20,10 +20,6 @@ impl TimerBot {
         })
     }
 
-    async fn update(&mut self, _client: &TwitchClient, _channel: &String, delta_time: f32) {
-        self.update_timer(delta_time);
-    }
-
     fn update_timer(&mut self, delta_time: f32) {
         self.timer.update(delta_time);
         self.update_status(&self.timer.time_status());
@@ -48,6 +44,10 @@ impl Bot for TimerBot {
     ) {
         self.perform(&self.cli.clone(), client, channel, message)
             .await;
+    }
+
+    async fn update(&mut self, _client: &TwitchClient, _channel: &String, delta_time: f32) {
+        self.update_timer(delta_time);
     }
 
     fn complete(

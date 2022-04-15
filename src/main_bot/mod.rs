@@ -78,12 +78,6 @@ impl MainBot {
         }
     }
 
-    pub async fn update(&mut self, client: &TwitchClient, channel: &ChannelLogin, delta_time: f32) {
-        // for bot in self.active_bots.values_mut() {
-        //     bot.update(client, channel, delta_time).await;
-        // }
-    }
-
     pub fn log(&self, log_type: LogType, message: &str) {
         let mut writer = self.cli.lock_writer_erase().unwrap();
         writeln!(writer, "{} {}", log_type, message).unwrap();
@@ -99,6 +93,10 @@ pub trait Bot: Send {
         message: &CommandMessage,
     );
 
+    async fn update(&mut self, client: &TwitchClient, channel: &ChannelLogin, delta_time: f32) {
+        #![allow(unused_variables)]
+    }
+
     fn complete(
         &self,
         word: &str,
@@ -106,6 +104,43 @@ pub trait Bot: Send {
         start: usize,
         end: usize,
     ) -> Option<Vec<linefeed::Completion>>;
+}
+
+#[async_trait]
+pub trait BotPerformer {
+    const NAME: &'static str;
+
+    fn commands(&self) -> &Commands<Self>;
+
+    async fn perform(
+        &mut self,
+        cli: &Cli,
+        client: &TwitchClient,
+        channel: &ChannelLogin,
+        message: &CommandMessage,
+    ) {
+        let message_origin = &message.sender.origin;
+        let commands = self.commands();
+        let matched = commands.find_commands(message).collect::<Vec<_>>();
+        for (command, args) in matched {
+            if let Some(command_reply) = command(self, &message.sender, args) {
+                match message_origin {
+                    MessageOrigin::Twitch => {
+                        send_message(cli, client, channel.clone(), command_reply).await;
+                    }
+                    MessageOrigin::Console => {
+                        log(cli, LogType::Console, &command_reply);
+                    }
+                }
+            }
+        }
+    }
+
+    /// Write bot's status into a status file
+    fn update_status(&self, status_text: &str) {
+        let path = format!("status/{}.txt", Self::NAME);
+        std::fs::write(path, status_text).expect("Could not update bot status");
+    }
 }
 
 impl MutexBot {
@@ -180,6 +215,12 @@ impl Bot for MainBot {
         }
     }
 
+    async fn update(&mut self, client: &TwitchClient, channel: &ChannelLogin, delta_time: f32) {
+        for bot in self.bots.active.values_mut() {
+            bot.update(client, channel, delta_time).await;
+        }
+    }
+
     fn complete(
         &self,
         word: &str,
@@ -188,43 +229,6 @@ impl Bot for MainBot {
         end: usize,
     ) -> Option<Vec<linefeed::Completion>> {
         self.commands.complete(word, prompter, start, end)
-    }
-}
-
-#[async_trait]
-pub trait BotPerformer: Bot {
-    const NAME: &'static str;
-
-    fn commands(&self) -> &Commands<Self>;
-
-    async fn perform(
-        &mut self,
-        cli: &Cli,
-        client: &TwitchClient,
-        channel: &ChannelLogin,
-        message: &CommandMessage,
-    ) {
-        let message_origin = &message.sender.origin;
-        let commands = self.commands();
-        let matched = commands.find_commands(message).collect::<Vec<_>>();
-        for (command, args) in matched {
-            if let Some(command_reply) = command(self, &message.sender, args) {
-                match message_origin {
-                    MessageOrigin::Twitch => {
-                        send_message(cli, client, channel.clone(), command_reply).await;
-                    }
-                    MessageOrigin::Console => {
-                        log(cli, LogType::Console, &command_reply);
-                    }
-                }
-            }
-        }
-    }
-
-    /// Write bot's status into a status file
-    fn update_status(&self, status_text: &str) {
-        let path = format!("status/{}.txt", Self::NAME);
-        std::fs::write(path, status_text).expect("Could not update bot status");
     }
 }
 

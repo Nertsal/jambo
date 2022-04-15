@@ -28,22 +28,6 @@ impl Timer {
         })
     }
 
-    pub fn new_str(time: std::time::Duration, mode: &str) -> Result<Self, ()> {
-        let (paused, timer_mode) = match mode {
-            "set" => (true, TimerMode::Idle),
-            "countdown" => (false, TimerMode::Countdown),
-            "countup" => (false, TimerMode::Countup),
-            _ => {
-                return Err(());
-            }
-        };
-        Ok(Self {
-            time,
-            paused,
-            mode: timer_mode,
-        })
-    }
-
     pub fn update(&mut self, delta_time: f32) {
         if !self.paused {
             let delta = std::time::Duration::from_secs_f32(delta_time);
