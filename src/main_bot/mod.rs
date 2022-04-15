@@ -6,7 +6,7 @@ use super::*;
 
 use bots::*;
 
-// -- Modify this section to include a new bot into the main bot
+// -- Modify this section to include a new bot into the main bot --
 
 fn constructors() -> impl IntoIterator<Item = (BotName, BotConstructor)> {
     // Add a line below to make constructing the bot possible
@@ -16,7 +16,7 @@ fn constructors() -> impl IntoIterator<Item = (BotName, BotConstructor)> {
     ]
 }
 
-// -- End of the section, do not modify anything below
+// -- End of the section, do not modify anything below --
 
 impl linefeed::Completer<linefeed::DefaultTerminal> for MutexBot {
     fn complete(
@@ -98,7 +98,7 @@ impl Bots {
                     log(
                         cli,
                         LogType::Warn,
-                        &format!("Failed to find a constructor for bot named {bot_name}"),
+                        &format!("Failed to find a constructor for {bot_name}"),
                     );
                 }
             }
