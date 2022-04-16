@@ -1,21 +1,54 @@
 use super::*;
 
 impl CustomBot {
-    fn new_command(&mut self, command_name: String, command_response: String) -> bool {
+    fn command_new(&mut self, command_name: String, command_response: String) -> Response {
         if self.config.commands.contains_key(&command_name) {
-            false
+            Some(format!(
+                "A command with that name already exists. Try !edit {command_name} <new response>"
+            ))
         } else {
-            self.update_command(command_name, command_response);
-            true
+            let response = Some(format!(
+                "Added new command: {command_name}: {command_response}"
+            ));
+            self.command_edit(command_name, command_response);
+            self.config.save().unwrap();
+            response
         }
     }
 
-    fn update_command(&mut self, command_name: String, command_response: String) {
+    fn command_delete(&mut self, command_name: &str) -> Response {
+        match self.config.commands.remove(command_name) {
+            Some(command_response) => {
+                self.remove_command(command_name);
+                self.config.save().unwrap();
+                Some(format!(
+                    "Removed the command: {command_name}: {command_response}"
+                ))
+            }
+            None => Some(format!("A command with that name does not exist")),
+        }
+    }
+
+    fn command_edit(&mut self, command_name: String, command_response: String) -> Response {
+        let response = Some(format!(
+            "Updated command to {command_name}: {command_response}"
+        ));
         self.config
             .commands
-            .insert(command_name.clone(), command_response.clone());
+            .insert(command_name.clone(), command_response);
+        self.remove_command(&command_name);
         self.push_command(command_name);
         self.config.save().unwrap();
+        response
+    }
+
+    fn remove_command(&mut self, command_name: &str) {
+        self.commands.commands.retain(|command| match command {
+            CommandNode::Literal { literals, .. } => {
+                !literals.iter().any(|literal| *literal == *command_name)
+            }
+            _ => true,
+        })
     }
 
     pub fn push_command(&mut self, command_name: String) {
@@ -30,107 +63,54 @@ impl CustomBot {
     }
 
     pub fn commands() -> Commands<Self> {
+        let new = CommandNode::<Self, _>::literal(
+            ["new"],
+            vec![CommandNode::argument(
+                ArgumentType::Word,
+                vec![CommandNode::argument(
+                    ArgumentType::Line,
+                    vec![CommandNode::final_node(
+                        true,
+                        AuthorityLevel::Moderator as _,
+                        Arc::new(|bot, _, args| {
+                            bot.command_new(args[0].to_owned(), args[1].to_owned())
+                        }),
+                    )],
+                )],
+            )],
+        );
+
+        let delete = CommandNode::<Self, _>::literal(
+            ["delete", "remove"],
+            vec![CommandNode::argument(
+                ArgumentType::Word,
+                vec![CommandNode::final_node(
+                    true,
+                    AuthorityLevel::Moderator as _,
+                    Arc::new(|bot, _, args| bot.command_delete(&args[0])),
+                )],
+            )],
+        );
+
+        let edit = CommandNode::<Self, _>::literal(
+            ["edit"],
+            vec![CommandNode::argument(
+                ArgumentType::Word,
+                vec![CommandNode::argument(
+                    ArgumentType::Line,
+                    vec![CommandNode::final_node(
+                        true,
+                        AuthorityLevel::Moderator as _,
+                        Arc::new(|bot, _, args| {
+                            bot.command_edit(args[0].to_owned(), args[1].to_owned())
+                        }),
+                    )],
+                )],
+            )],
+        );
+
         Commands {
-            commands: vec![CommandNode::Literal {
-                literals: vec!["!command".to_owned()],
-                child_nodes: vec![
-                    CommandNode::Literal {
-                        literals: vec!["new".to_owned()],
-                        child_nodes: vec![CommandNode::Argument {
-                            argument_type: ArgumentType::Word,
-                            child_nodes: vec![CommandNode::Argument {
-                                argument_type: ArgumentType::Line,
-                                child_nodes: vec![CommandNode::final_node(
-                                    true,
-                                    AuthorityLevel::Moderator as usize,
-                                    Arc::new(|bot, _, args| {
-                                        if let [command_name, command_response] = args.as_slice() {
-                                            let response = Some(format!(
-                                                "Added new command {}: {}",
-                                                command_name, command_response
-                                            ));
-                                            if bot.new_command(
-                                                command_name.to_owned(),
-                                                command_response.to_owned(),
-                                            ) {
-                                                return response;
-                                            }
-                                        }
-                                        None
-                                    }),
-                                )],
-                            }],
-                        }],
-                    },
-                    CommandNode::Literal {
-                        literals: vec!["delete".to_owned()],
-                        child_nodes: vec![CommandNode::Argument {
-                            argument_type: ArgumentType::Word,
-                            child_nodes: vec![CommandNode::final_node(
-                                true,
-                                AuthorityLevel::Moderator as usize,
-                                Arc::new(|bot, _, mut args| {
-                                    let command_name = args.remove(0);
-                                    if let Some(command_response) =
-                                        bot.config.commands.remove(&command_name)
-                                    {
-                                        let response = Some(format!(
-                                            "Deleted command {}: {}",
-                                            command_name, command_response
-                                        ));
-                                        let com_index = bot
-                                            .commands
-                                            .commands
-                                            .iter()
-                                            .position(|command| match command {
-                                                CommandNode::Literal { literals, .. } => {
-                                                    literals.contains(&command_name)
-                                                }
-                                                _ => false,
-                                            })
-                                            .unwrap();
-                                        bot.commands.commands.remove(com_index);
-                                        bot.config.save().unwrap();
-                                        return response;
-                                    }
-                                    None
-                                }),
-                            )],
-                        }],
-                    },
-                    CommandNode::Literal {
-                        literals: vec!["edit".to_owned()],
-                        child_nodes: vec![CommandNode::Argument {
-                            argument_type: ArgumentType::Word,
-                            child_nodes: vec![CommandNode::Argument {
-                                argument_type: ArgumentType::Line,
-                                child_nodes: vec![CommandNode::final_node(
-                                    true,
-                                    AuthorityLevel::Moderator as usize,
-                                    Arc::new(|bot, _, args| {
-                                        if let [command_name, command_response] = args.as_slice() {
-                                            if let Some(old_response) =
-                                                bot.config.commands.get_mut(command_name)
-                                            {
-                                                let response = Some(format!(
-                                                    "Edited command {}: {}. New command: {}",
-                                                    command_name, old_response, command_response
-                                                ));
-                                                bot.update_command(
-                                                    command_name.to_owned(),
-                                                    command_response.to_owned(),
-                                                );
-                                                return response;
-                                            }
-                                        }
-                                        None
-                                    }),
-                                )],
-                            }],
-                        }],
-                    },
-                ],
-            }],
+            commands: vec![CommandNode::literal(["!command"], vec![new, delete, edit])],
         }
     }
 }
