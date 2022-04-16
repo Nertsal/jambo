@@ -14,6 +14,7 @@ fn constructors() -> impl IntoIterator<Item = (BotName, BotConstructor)> {
         // Insert here
         (CustomBot::NAME.to_owned(), CustomBot::new as _),
         (TimerBot::NAME.to_owned(), TimerBot::new as _),
+        (VoteBot::NAME.to_owned(), VoteBot::new as _),
     ]
 }
 
