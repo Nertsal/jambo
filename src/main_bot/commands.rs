@@ -54,6 +54,45 @@ impl MainBot {
         Some(res)
     }
 
+    fn backup_create(&self, backup_path: impl AsRef<std::path::Path>) -> std::io::Result<Response> {
+        let path: &std::path::Path = "backups/".as_ref();
+        let path = &path.join(backup_path.as_ref());
+        clear_dir(path)?;
+        copy_dir::copy_dir("config", path.join("config"))?;
+        copy_dir::copy_dir("status", path.join("status"))?;
+        Ok(Some(format!("Backup created")))
+    }
+
+    fn backup_load(
+        &mut self,
+        backup_path: impl AsRef<std::path::Path>,
+    ) -> std::io::Result<Response> {
+        // Backup current state
+        self.backup_create("temp")?;
+        // Try loading backup
+        fn load(backup_path: impl AsRef<std::path::Path>) -> std::io::Result<()> {
+            let path: &std::path::Path = "backups/".as_ref();
+            let path = &path.join(backup_path.as_ref());
+            std::fs::remove_dir_all("config").unwrap_or(());
+            copy_dir::copy_dir(path.join("config"), "config")?;
+            std::fs::remove_dir_all("status").unwrap_or(());
+            copy_dir::copy_dir(path.join("status"), "status")?;
+            Ok(())
+        }
+        match load(backup_path) {
+            Ok(_) => {
+                self.reset_all();
+                std::fs::remove_dir_all("backups/temp")?;
+                Ok(Some(format!("Backup loaded")))
+            }
+            Err(err) => {
+                self.log(LogType::Error, &format!("Failed to load backup: {err}"));
+                load("temp")?;
+                Ok(Some(format!("Failed to load backup")))
+            }
+        }
+    }
+
     pub fn commands() -> Commands<Self> {
         let reset = CommandBuilder::<Self, _>::new().word().finalize(
             true,
@@ -66,6 +105,50 @@ impl MainBot {
             AuthorityLevel::Moderator as _,
             Arc::new(|bot, _, _| bot.reset_all()),
         );
+
+        let backup_create = CommandBuilder::<Self, _>::new()
+            .literal(["create"])
+            .word()
+            .finalize(
+                true,
+                AuthorityLevel::Moderator as _,
+                Arc::new(|bot, _, args| match bot.backup_create(args[0].to_owned()) {
+                    Ok(response) => response,
+                    Err(err) => {
+                        bot.log(LogType::Error, &format!("Failed to create backup: {err}"));
+                        Some(format!("Failed to create backup"))
+                    }
+                }),
+            );
+
+        let backup = CommandBuilder::<Self, _>::new()
+            .literal(["create"])
+            .finalize(
+                true,
+                AuthorityLevel::Moderator as _,
+                Arc::new(|bot, _, _| match bot.backup_create("default") {
+                    Ok(response) => response,
+                    Err(err) => {
+                        bot.log(LogType::Error, &format!("Failed to create backup: {err}"));
+                        Some(format!("Failed to create backup"))
+                    }
+                }),
+            );
+
+        let backup_load = CommandBuilder::<Self, _>::new()
+            .literal(["load"])
+            .word()
+            .finalize(
+                true,
+                AuthorityLevel::Moderator as _,
+                Arc::new(|bot, _, args| match bot.backup_load(args[0].to_owned()) {
+                    Ok(response) => response,
+                    Err(err) => {
+                        bot.log(LogType::Error, &format!("Failed to load backup: {err}"));
+                        Some(format!("Failed to load backup"))
+                    }
+                }),
+            );
 
         Commands::new(vec![
             CommandBuilder::new().literal(["!enable"]).word().finalize(
@@ -89,6 +172,16 @@ impl MainBot {
             CommandBuilder::new()
                 .literal(["!reset"])
                 .split([reset, reset_all]),
+            CommandBuilder::new()
+                .literal(["!backup"])
+                .split([backup_create, backup_load, backup]),
         ])
     }
+}
+
+fn clear_dir(path: impl AsRef<std::path::Path>) -> std::io::Result<()> {
+    let path = path.as_ref();
+    std::fs::remove_dir_all(path).unwrap_or(());
+    std::fs::create_dir_all(path)?;
+    Ok(())
 }
