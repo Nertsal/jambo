@@ -9,6 +9,7 @@ impl MainBot {
             Some(constructor) => {
                 let bot = constructor(&self.cli);
                 self.bots.active.insert(bot_name.to_owned(), bot);
+                self.save_bots().expect("Failed to save state");
                 Some(format!("{bot_name} is now active"))
             }
             None => Some(format!("I don't know about {bot_name}")),
@@ -17,7 +18,10 @@ impl MainBot {
 
     fn disable(&mut self, bot_name: &str) -> Response {
         match self.bots.active.remove(bot_name) {
-            Some(_) => Some(format!("{bot_name} is now resting")),
+            Some(_) => {
+                self.save_bots().expect("Failed to save state");
+                Some(format!("{bot_name} is now resting"))
+            }
             None => {
                 if self.bots.constructors.contains_key(bot_name) {
                     Some(format!("{bot_name} is already off"))

@@ -80,6 +80,17 @@ impl MainBot {
         }
     }
 
+    fn save_bots(&self) -> std::io::Result<()> {
+        let active_bots = self.active_bots();
+        let file = std::io::BufWriter::new(std::fs::File::create("config/active_bots.json")?);
+        serde_json::to_writer(file, &active_bots)?;
+        Ok(())
+    }
+
+    fn active_bots(&self) -> ActiveBots {
+        self.bots.active.keys().cloned().collect::<HashSet<_>>()
+    }
+
     pub fn log(&self, log_type: LogType, message: &str) {
         let mut writer = self.cli.lock_writer_erase().unwrap();
         writeln!(writer, "{} {}", log_type, message).unwrap();
