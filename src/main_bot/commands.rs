@@ -28,16 +28,50 @@ impl MainBot {
         }
     }
 
+    fn reset(&mut self, bot_name: &str) -> Response {
+        self.disable(bot_name);
+        self.enable(bot_name)
+    }
+
+    fn reset_all(&mut self) -> Response {
+        let active = self
+            .bots
+            .active
+            .drain()
+            .map(|(name, _)| name)
+            .collect::<Vec<_>>();
+        let mut res = String::new();
+        for bot_name in active {
+            if let Some(ans) = self.enable(&bot_name) {
+                res += ans.as_str();
+                res += ". ";
+            }
+        }
+        Some(res)
+    }
+
     pub fn commands() -> Commands<Self> {
+        let reset = CommandBuilder::<Self, _>::new().word().finalize(
+            true,
+            AuthorityLevel::Moderator as _,
+            Arc::new(|bot, _, args| bot.reset(&args[0])),
+        );
+
+        let reset_all = CommandBuilder::<Self, _>::new().literal(["all"]).finalize(
+            true,
+            AuthorityLevel::Moderator as _,
+            Arc::new(|bot, _, _| bot.reset_all()),
+        );
+
         Commands::new(vec![
             CommandBuilder::new().literal(["!enable"]).word().finalize(
                 true,
-                AuthorityLevel::Viewer as _,
+                AuthorityLevel::Moderator as _,
                 Arc::new(|bot, _, args| bot.enable(&args[0])),
             ),
             CommandBuilder::new().literal(["!disable"]).word().finalize(
                 true,
-                AuthorityLevel::Viewer as _,
+                AuthorityLevel::Moderator as _,
                 Arc::new(|bot, _, args| bot.disable(&args[0])),
             ),
             CommandBuilder::new().literal(["!shutdown"]).finalize(
@@ -48,6 +82,9 @@ impl MainBot {
                     Some(format!("Shutting down..."))
                 }),
             ),
+            CommandBuilder::new()
+                .literal(["!reset"])
+                .split([reset, reset_all]),
         ])
     }
 }
