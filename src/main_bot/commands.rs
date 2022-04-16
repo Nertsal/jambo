@@ -30,38 +30,23 @@ impl MainBot {
 
     pub fn commands() -> Commands<Self> {
         Commands::new(vec![
-            CommandNode::literal(
-                ["!enable"],
-                vec![CommandNode::argument(
-                    ArgumentType::Word,
-                    vec![CommandNode::final_node(
-                        true,
-                        AuthorityLevel::Viewer as _,
-                        Arc::new(|bot, _, args| bot.enable(&args[0])),
-                    )],
-                )],
+            CommandBuilder::new().literal(["!enable"]).word().finalize(
+                true,
+                AuthorityLevel::Viewer as _,
+                Arc::new(|bot, _, args| bot.enable(&args[0])),
             ),
-            CommandNode::literal(
-                ["!disable"],
-                vec![CommandNode::argument(
-                    ArgumentType::Word,
-                    vec![CommandNode::final_node(
-                        true,
-                        AuthorityLevel::Viewer as _,
-                        Arc::new(|bot, _, args| bot.disable(&args[0])),
-                    )],
-                )],
+            CommandBuilder::new().literal(["!disable"]).word().finalize(
+                true,
+                AuthorityLevel::Viewer as _,
+                Arc::new(|bot, _, args| bot.disable(&args[0])),
             ),
-            CommandNode::literal(
-                ["!shutdown"],
-                vec![CommandNode::final_node(
-                    true,
-                    AuthorityLevel::Broadcaster as _,
-                    Arc::new(|bot, _, _| {
-                        bot.queue_shutdown = true;
-                        Some(format!("Shutting down..."))
-                    }),
-                )],
+            CommandBuilder::new().literal(["!shutdown"]).finalize(
+                true,
+                AuthorityLevel::Broadcaster as _,
+                Arc::new(|bot, _, _| {
+                    bot.queue_shutdown = true;
+                    Some(format!("Shutting down..."))
+                }),
             ),
         ])
     }
