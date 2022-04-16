@@ -63,54 +63,39 @@ impl CustomBot {
     }
 
     pub fn commands() -> Commands<Self> {
-        let new = CommandNode::<Self, _>::literal(
-            ["new"],
-            vec![CommandNode::argument(
-                ArgumentType::Word,
-                vec![CommandNode::argument(
-                    ArgumentType::Line,
-                    vec![CommandNode::final_node(
-                        true,
-                        AuthorityLevel::Moderator as _,
-                        Arc::new(|bot, _, args| {
-                            bot.command_new(args[0].to_owned(), args[1].to_owned())
-                        }),
-                    )],
-                )],
-            )],
-        );
+        let new = CommandBuilder::<Self, _>::new()
+            .literal(["new"])
+            .word()
+            .line()
+            .finalize(
+                true,
+                AuthorityLevel::Moderator as _,
+                Arc::new(|bot, _, args| bot.command_new(args[0].to_owned(), args[1].to_owned())),
+            );
 
-        let delete = CommandNode::<Self, _>::literal(
-            ["delete", "remove"],
-            vec![CommandNode::argument(
-                ArgumentType::Word,
-                vec![CommandNode::final_node(
-                    true,
-                    AuthorityLevel::Moderator as _,
-                    Arc::new(|bot, _, args| bot.command_delete(&args[0])),
-                )],
-            )],
-        );
+        let delete = CommandBuilder::<Self, _>::new()
+            .literal(["delete", "remove"])
+            .word()
+            .finalize(
+                true,
+                AuthorityLevel::Moderator as _,
+                Arc::new(|bot, _, args| bot.command_delete(&args[0])),
+            );
 
-        let edit = CommandNode::<Self, _>::literal(
-            ["edit"],
-            vec![CommandNode::argument(
-                ArgumentType::Word,
-                vec![CommandNode::argument(
-                    ArgumentType::Line,
-                    vec![CommandNode::final_node(
-                        true,
-                        AuthorityLevel::Moderator as _,
-                        Arc::new(|bot, _, args| {
-                            bot.command_edit(args[0].to_owned(), args[1].to_owned())
-                        }),
-                    )],
-                )],
-            )],
-        );
+        let edit = CommandBuilder::<Self, _>::new()
+            .literal(["edit"])
+            .word()
+            .line()
+            .finalize(
+                true,
+                AuthorityLevel::Moderator as _,
+                Arc::new(|bot, _, args| bot.command_edit(args[0].to_owned(), args[1].to_owned())),
+            );
 
         Commands {
-            commands: vec![CommandNode::literal(["!command"], vec![new, delete, edit])],
+            commands: vec![CommandBuilder::new()
+                .literal(["!command"])
+                .split(vec![new, delete, edit])],
         }
     }
 }
