@@ -1,5 +1,6 @@
 use futures::{lock::Mutex, prelude::*};
 use linefeed::Completer;
+use rocket::{get, routes};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashSet, fmt::Display, sync::Arc};
 use tokio_compat_02::FutureExt;
@@ -13,6 +14,11 @@ mod main_bot;
 use main_bot::*;
 
 const CONSOLE_PREFIX_LENGTH: usize = 7;
+
+#[get("/")]
+fn index() -> &'static str {
+    "This is a twitch bot made by Nertsal (https://github.com/Nertsal/jambo)"
+}
 
 #[tokio::main]
 async fn main() {
@@ -49,9 +55,6 @@ async fn main() {
         while let Some(message) = incoming_messages.next().await {
             let mut bot_lock = bot.lock().await;
             bot_lock.handle_server_message(&client_clone, message).await;
-            // if bot_lock.queue_shutdown {
-            //     break;
-            // }
         }
         bot.lock().await.log(LogType::Info, "Chat handle shut down");
     }));
@@ -86,6 +89,27 @@ async fn main() {
         }
     }));
 
+    // Launch server
+    let bot = Arc::clone(&main_bot);
+    let (server_handle, server_abort) = futures::future::abortable(tokio::spawn(async move {
+        let config = rocket::Config {
+            log_level: rocket::log::LogLevel::Off,
+            ..Default::default()
+        };
+        let result = rocket::custom(config)
+            .mount("/", routes![index])
+            .launch()
+            .await;
+        let bot_lock = bot.lock().await;
+        match result {
+            Ok(()) => bot_lock.log(LogType::Info, &format!("Server shutdown succesfully")),
+            Err(error) => bot_lock.log(
+                LogType::Error,
+                &format!("Server failed with error: {error}"),
+            ),
+        }
+    }));
+
     // Initialize update handle
     let bot = Arc::clone(&main_bot);
     let client_clone = client.clone();
@@ -104,6 +128,7 @@ async fn main() {
             if bot_lock.queue_shutdown {
                 console_abort.abort();
                 message_abort.abort();
+                server_abort.abort();
                 break;
             }
         }
@@ -114,6 +139,7 @@ async fn main() {
     update_handle.await.unwrap();
     message_handle.await.unwrap_err();
     console_handle.await.unwrap_err();
+    server_handle.await.unwrap_err();
 
     main_bot
         .lock()
