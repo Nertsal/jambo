@@ -12,7 +12,7 @@ use bots::*;
 pub enum SerializedBot {
     // Insert here
     Custom(CustomSerialized),
-    // Quote(QuoteSerialized),
+    Quote(QuoteSerialized),
     // Timer(TimerSerialized),
     // Vote(VoteSerialized),
 }
@@ -22,9 +22,9 @@ fn constructors() -> impl IntoIterator<Item = (BotName, BotConstructor)> {
     [
         // Insert here
         (CustomBot::NAME.to_owned(), CustomBot::new as _),
+        (QuoteBot::NAME.to_owned(), QuoteBot::new as _),
         // (TimerBot::NAME.to_owned(), TimerBot::new as _),
         // (VoteBot::NAME.to_owned(), VoteBot::new as _),
-        // (QuoteBot::NAME.to_owned(), QuoteBot::new as _),
     ]
 }
 
@@ -124,12 +124,6 @@ impl MainBot {
     pub fn serialize<'a>(&'a self) -> impl Iterator<Item = SerializedBot> + 'a {
         self.bots.active.values().map(|bot| bot.serialize())
     }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SerializableBot<C, S> {
-    pub config: C,
-    pub state: S,
 }
 
 #[async_trait]

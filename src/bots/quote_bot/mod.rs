@@ -4,7 +4,7 @@ use super::*;
 
 mod commands;
 
-#[derive(Serialize, Deserialize, Default)]
+#[derive(Debug, Serialize, Deserialize, Default, Clone)]
 struct QuoteConfig {
     quotes: HashMap<String, String>,
 }
@@ -13,6 +13,11 @@ pub struct QuoteBot {
     cli: Cli,
     config: QuoteConfig,
     commands: Commands<Self>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct QuoteSerialized {
+    config: QuoteConfig,
 }
 
 impl QuoteBot {
@@ -79,5 +84,11 @@ impl Bot for QuoteBot {
         end: usize,
     ) -> Option<Vec<linefeed::Completion>> {
         self.commands.complete(word, prompter, start, end)
+    }
+
+    fn serialize(&self) -> SerializedBot {
+        SerializedBot::Quote(QuoteSerialized {
+            config: self.config.clone(),
+        })
     }
 }
