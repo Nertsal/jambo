@@ -10,6 +10,11 @@ pub struct CustomBot {
     commands: Commands<Self>,
 }
 
+#[derive(Debug, Serialize)]
+pub struct CustomSerialized {
+    config: CustomConfig,
+}
+
 impl CustomBot {
     pub fn new(cli: &Cli) -> Box<dyn Bot> {
         let config = match CustomConfig::load() {
@@ -37,7 +42,7 @@ impl CustomBot {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct CustomConfig {
     commands: HashMap<String, String>,
 }
@@ -85,5 +90,11 @@ impl Bot for CustomBot {
         end: usize,
     ) -> Option<Vec<linefeed::Completion>> {
         self.commands.complete(word, prompter, start, end)
+    }
+
+    fn serialize(&self) -> SerializedBot {
+        SerializedBot::Custom(CustomSerialized {
+            config: self.config.clone(),
+        })
     }
 }

@@ -10,15 +10,11 @@ use twitch_bot::prelude::*;
 
 mod bots;
 mod main_bot;
+mod server;
 
 use main_bot::*;
 
 const CONSOLE_PREFIX_LENGTH: usize = 7;
-
-#[get("/")]
-fn index() -> &'static str {
-    "This is a twitch bot made by Nertsal (https://github.com/Nertsal/jambo)"
-}
 
 #[tokio::main]
 async fn main() {
@@ -92,14 +88,29 @@ async fn main() {
     // Launch server
     let bot = Arc::clone(&main_bot);
     let (server_handle, server_abort) = futures::future::abortable(tokio::spawn(async move {
+        use server::*;
+
         let config = rocket::Config {
             log_level: rocket::log::LogLevel::Off,
+            address: std::net::Ipv4Addr::new(127, 0, 0, 1).into(),
+            port: 8000,
             ..Default::default()
         };
+
+        {
+            let bot_lock = bot.lock().await;
+            bot_lock.log(
+                LogType::Info,
+                &format!("Starting the server on {}:{}", config.address, config.port),
+            );
+        }
+
         let result = rocket::custom(config)
-            .mount("/", routes![index])
+            .manage(Arc::clone(&bot))
+            .mount("/", routes![index, get_state])
             .launch()
             .await;
+
         let bot_lock = bot.lock().await;
         match result {
             Ok(()) => bot_lock.log(LogType::Info, &format!("Server shutdown succesfully")),

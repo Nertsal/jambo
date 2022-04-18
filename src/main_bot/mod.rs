@@ -8,14 +8,23 @@ use bots::*;
 
 // -- Modify this section to include a new bot into the main bot --
 
+#[derive(Debug, Serialize)]
+pub enum SerializedBot {
+    // Insert here
+    Custom(CustomSerialized),
+    // Quote(QuoteSerialized),
+    // Timer(TimerSerialized),
+    // Vote(VoteSerialized),
+}
+
 fn constructors() -> impl IntoIterator<Item = (BotName, BotConstructor)> {
     // Add a line below to make constructing the bot possible
     [
         // Insert here
         (CustomBot::NAME.to_owned(), CustomBot::new as _),
-        (TimerBot::NAME.to_owned(), TimerBot::new as _),
-        (VoteBot::NAME.to_owned(), VoteBot::new as _),
-        (QuoteBot::NAME.to_owned(), QuoteBot::new as _),
+        // (TimerBot::NAME.to_owned(), TimerBot::new as _),
+        // (VoteBot::NAME.to_owned(), VoteBot::new as _),
+        // (QuoteBot::NAME.to_owned(), QuoteBot::new as _),
     ]
 }
 
@@ -81,20 +90,46 @@ impl MainBot {
     }
 
     fn save_bots(&self) -> std::io::Result<()> {
-        let active_bots = self.active_bots();
+        let active_bots = self.bots.active.keys().cloned().collect::<HashSet<_>>();
         let file = std::io::BufWriter::new(std::fs::File::create("config/active_bots.json")?);
         serde_json::to_writer(file, &active_bots)?;
         Ok(())
-    }
-
-    fn active_bots(&self) -> ActiveBots {
-        self.bots.active.keys().cloned().collect::<HashSet<_>>()
     }
 
     pub fn log(&self, log_type: LogType, message: &str) {
         let mut writer = self.cli.lock_writer_erase().unwrap();
         writeln!(writer, "{} {}", log_type, message).unwrap();
     }
+
+    pub async fn handle_message(
+        &mut self,
+        client: &TwitchClient,
+        channel: &ChannelLogin,
+        message: &CommandMessage,
+    ) {
+        self.perform(&self.cli.clone(), client, channel, message)
+            .await;
+
+        for bot in self.bots.active.values_mut() {
+            bot.handle_message(client, channel, message).await;
+        }
+    }
+
+    pub async fn update(&mut self, client: &TwitchClient, channel: &ChannelLogin, delta_time: f32) {
+        for bot in self.bots.active.values_mut() {
+            bot.update(client, channel, delta_time).await;
+        }
+    }
+
+    pub fn serialize<'a>(&'a self) -> impl Iterator<Item = SerializedBot> + 'a {
+        self.bots.active.values().map(|bot| bot.serialize())
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SerializableBot<C, S> {
+    pub config: C,
+    pub state: S,
 }
 
 #[async_trait]
@@ -117,6 +152,8 @@ pub trait Bot: Send {
         start: usize,
         end: usize,
     ) -> Option<Vec<linefeed::Completion>>;
+
+    fn serialize(&self) -> SerializedBot;
 }
 
 #[async_trait]
@@ -212,39 +249,6 @@ impl BotPerformer for MainBot {
     }
 }
 
-#[async_trait]
-impl Bot for MainBot {
-    async fn handle_message(
-        &mut self,
-        client: &TwitchClient,
-        channel: &ChannelLogin,
-        message: &CommandMessage,
-    ) {
-        self.perform(&self.cli.clone(), client, channel, message)
-            .await;
-
-        for bot in self.bots.active.values_mut() {
-            bot.handle_message(client, channel, message).await;
-        }
-    }
-
-    async fn update(&mut self, client: &TwitchClient, channel: &ChannelLogin, delta_time: f32) {
-        for bot in self.bots.active.values_mut() {
-            bot.update(client, channel, delta_time).await;
-        }
-    }
-
-    fn complete(
-        &self,
-        word: &str,
-        prompter: &Prompter,
-        start: usize,
-        end: usize,
-    ) -> Option<Vec<linefeed::Completion>> {
-        self.commands.complete(word, prompter, start, end)
-    }
-}
-
 impl linefeed::Completer<linefeed::DefaultTerminal> for MutexBot {
     fn complete(
         &self,
@@ -257,7 +261,6 @@ impl linefeed::Completer<linefeed::DefaultTerminal> for MutexBot {
         let main_completetion = main.commands.complete(word, prompter, start, end);
         let bots = &mut main.bots;
 
-        // To include the sub-bot into auto-completion, add a line in the match below
         let mut completions = vec![main_completetion];
         completions.extend(
             bots.active

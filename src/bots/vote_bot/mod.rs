@@ -55,3 +55,12 @@ impl Bot for VoteBot {
         self.commands.complete(word, prompter, start, end)
     }
 }
+
+impl Serialize for VoteBot {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        ().serialize(serializer)
+    }
+}

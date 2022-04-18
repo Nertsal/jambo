@@ -18,3 +18,4 @@ linefeed = "0.6.0"
 colored = "2"
 rand = "0.8.5"
 rocket = { version = "0.5.0-rc.1", features = ["json"] }
+enum_derive = "0.1.7"
