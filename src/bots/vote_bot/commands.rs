@@ -59,7 +59,7 @@ impl VoteBot {
             );
 
         let finish = CommandBuilder::<Self, _>::new()
-            .literal(["start"])
+            .literal(["finish"])
             .finalize(
                 true,
                 AuthorityLevel::Broadcaster as _,

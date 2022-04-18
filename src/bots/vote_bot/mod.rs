@@ -10,6 +10,12 @@ pub struct VoteBot {
     vote_mode: VoteMode,
 }
 
+#[derive(Debug, Serialize)]
+pub struct VoteSerialized {
+    state: VoteMode,
+}
+
+#[derive(Clone, Debug, Serialize)]
 enum VoteMode {
     Inactive,
     Active { votes: HashMap<String, String> },
@@ -54,13 +60,10 @@ impl Bot for VoteBot {
     ) -> Option<Vec<linefeed::Completion>> {
         self.commands.complete(word, prompter, start, end)
     }
-}
 
-impl Serialize for VoteBot {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        ().serialize(serializer)
+    fn serialize(&self) -> SerializedBot {
+        SerializedBot::Vote(VoteSerialized {
+            state: self.vote_mode.clone(),
+        })
     }
 }

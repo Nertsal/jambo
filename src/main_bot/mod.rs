@@ -14,7 +14,7 @@ pub enum SerializedBot {
     Custom(CustomSerialized),
     Quote(QuoteSerialized),
     Timer(TimerSerialized),
-    // Vote(VoteSerialized),
+    Vote(VoteSerialized),
 }
 
 fn constructors() -> impl IntoIterator<Item = (BotName, BotConstructor)> {
@@ -24,7 +24,7 @@ fn constructors() -> impl IntoIterator<Item = (BotName, BotConstructor)> {
         (CustomBot::NAME.to_owned(), CustomBot::new as _),
         (QuoteBot::NAME.to_owned(), QuoteBot::new as _),
         (TimerBot::NAME.to_owned(), TimerBot::new as _),
-        // (VoteBot::NAME.to_owned(), VoteBot::new as _),
+        (VoteBot::NAME.to_owned(), VoteBot::new as _),
     ]
 }
 
