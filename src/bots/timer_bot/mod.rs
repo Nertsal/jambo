@@ -11,6 +11,11 @@ pub struct TimerBot {
     timer: Timer,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TimerSerialized {
+    state: Timer,
+}
+
 impl TimerBot {
     pub fn new(cli: &Cli) -> Box<dyn Bot> {
         Box::new(Self {
@@ -58,5 +63,11 @@ impl Bot for TimerBot {
         end: usize,
     ) -> Option<Vec<linefeed::Completion>> {
         self.commands.complete(word, prompter, start, end)
+    }
+
+    fn serialize(&self) -> SerializedBot {
+        SerializedBot::Timer(TimerSerialized {
+            state: self.timer.clone(),
+        })
     }
 }

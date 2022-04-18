@@ -2,13 +2,14 @@ use super::*;
 
 pub type Time = std::time::Duration;
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Timer {
     pub time: Time,
     pub paused: bool,
     pub mode: TimerMode,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub enum TimerMode {
     Idle,
     Countdown,
