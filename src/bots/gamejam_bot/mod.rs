@@ -35,10 +35,6 @@ pub struct GamejamSerialized {
 }
 
 impl GamejamBot {
-    pub fn name() -> &'static str {
-        "GamejamBot"
-    }
-
     fn check_message(&mut self, message: &CommandMessage) -> Response {
         // Check if waiting for reply
         let state = std::mem::take(&mut self.state.current_state);

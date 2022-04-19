@@ -16,6 +16,9 @@ impl Bot for GamejamBot {
         channel: &ChannelLogin,
         message: &CommandMessage,
     ) {
+        if let Some(reply) = self.check_message(message) {
+            send_message(&self.cli, client, channel.to_owned(), reply).await;
+        }
         self.perform(&self.cli.clone(), client, channel, message)
             .await;
     }
