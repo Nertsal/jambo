@@ -3,7 +3,7 @@ mod types;
 pub use types::*;
 
 pub mod prelude {
-    pub use crate::types::{AuthorityLevel, CommandMessage, Commands, *};
+    pub use crate::types::{AuthorityLevel, CommandBuilder, CommandMessage, Commands, *};
     pub use async_trait::async_trait;
     pub use futures;
     pub use nertsal_commands::*;

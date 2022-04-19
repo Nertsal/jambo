@@ -91,13 +91,13 @@ impl QuoteBot {
     }
 
     pub fn commands() -> Commands<Self> {
-        let random = CommandBuilder::<Self, _>::new().finalize(
+        let random = CommandBuilder::<Self>::new().finalize(
             true,
             AuthorityLevel::Viewer as _,
             Arc::new(|bot, _, _| bot.quote_random()),
         );
 
-        let new = CommandBuilder::<Self, _>::new()
+        let new = CommandBuilder::<Self>::new()
             .literal(["new", "add"])
             .word()
             .line()
@@ -107,7 +107,7 @@ impl QuoteBot {
                 Arc::new(|bot, _, args| bot.quote_new(args[0].to_owned(), args[1].to_owned())),
             );
 
-        let remove = CommandBuilder::<Self, _>::new()
+        let remove = CommandBuilder::<Self>::new()
             .literal(["delete", "remove"])
             .word()
             .finalize(
@@ -116,7 +116,7 @@ impl QuoteBot {
                 Arc::new(|bot, _, args| bot.quote_remove(&args[0])),
             );
 
-        let edit = CommandBuilder::<Self, _>::new()
+        let edit = CommandBuilder::<Self>::new()
             .literal(["edit"])
             .word()
             .line()
@@ -126,7 +126,7 @@ impl QuoteBot {
                 Arc::new(|bot, _, args| bot.quote_edit(&args[0], args[1].to_owned())),
             );
 
-        let rename = CommandBuilder::<Self, _>::new()
+        let rename = CommandBuilder::<Self>::new()
             .literal(["rename"])
             .word()
             .word()
@@ -136,7 +136,7 @@ impl QuoteBot {
                 Arc::new(|bot, _, args| bot.quote_rename(&args[0], args[1].to_owned())),
             );
 
-        let get = CommandBuilder::<Self, _>::new().word().line().finalize(
+        let get = CommandBuilder::<Self>::new().word().line().finalize(
             true,
             AuthorityLevel::Viewer as _,
             Arc::new(|bot, _, args| bot.quote_get(&args[0])),

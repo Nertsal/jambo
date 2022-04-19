@@ -6,6 +6,7 @@ use twitch_irc::{
 pub type TwitchClient = TwitchIRCClient<TCPTransport, StaticLoginCredentials>;
 pub type CommandMessage = nertsal_commands::CommandMessage<Sender>;
 pub type Commands<T> = nertsal_commands::Commands<T, Sender>;
+pub type CommandBuilder<T> = nertsal_commands::CommandBuilder<T, Sender>;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Sender {

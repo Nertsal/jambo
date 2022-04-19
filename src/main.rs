@@ -14,6 +14,12 @@ mod server;
 
 use main_bot::*;
 
+pub type BotName = String;
+pub type ChannelLogin = String;
+pub type ActiveBots = HashSet<BotName>;
+pub type Prompter<'a, 'b> = linefeed::Prompter<'a, 'b, linefeed::DefaultTerminal>;
+pub type Cli = Arc<linefeed::Interface<linefeed::DefaultTerminal>>;
+
 const CONSOLE_PREFIX_LENGTH: usize = 7;
 
 #[tokio::main]
@@ -174,12 +180,6 @@ pub enum LogType {
     Send,
     Console,
 }
-
-pub type BotName = String;
-pub type ChannelLogin = String;
-pub type ActiveBots = HashSet<BotName>;
-pub type Prompter<'a, 'b> = linefeed::Prompter<'a, 'b, linefeed::DefaultTerminal>;
-pub type Cli = Arc<linefeed::Interface<linefeed::DefaultTerminal>>;
 
 pub fn log(cli: &Cli, log_type: LogType, message: &str) {
     let mut writer = cli.lock_writer_erase().unwrap();

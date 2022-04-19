@@ -47,7 +47,7 @@ impl TimerBot {
     }
 
     pub fn commands() -> Commands<Self> {
-        let pause = CommandBuilder::<Self, _>::new()
+        let pause = CommandBuilder::<Self>::new()
             .choice(["pause", "continue"])
             .finalize(
                 true,
@@ -62,13 +62,13 @@ impl TimerBot {
                 }),
             );
 
-        let set_time = CommandBuilder::<Self, _>::new().word().finalize(
+        let set_time = CommandBuilder::<Self>::new().word().finalize(
             true,
             AuthorityLevel::Moderator as _,
             Arc::new(|bot, _, args| bot.timer_from_str(&args[0], Some(&args[1]))),
         );
 
-        let set_no_time = CommandBuilder::<Self, _>::new().finalize(
+        let set_no_time = CommandBuilder::<Self>::new().finalize(
             true,
             AuthorityLevel::Moderator as _,
             Arc::new(|bot, _, args| bot.timer_from_str(&args[0], None)),

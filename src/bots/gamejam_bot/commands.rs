@@ -629,25 +629,24 @@ impl GamejamBot {
     }
 
     pub fn commands() -> Commands<Self> {
+        let direct_submit = CommandBuilder::<Self>::new().word().finalize(
+            true,
+            AuthorityLevel::Viewer as usize,
+            Arc::new(|bot, sender, mut args| {
+                let game_link = args.remove(0);
+                if bot.config.allow_direct_link_submit
+                    && bot.config.link_start.is_some()
+                    && bot.check_link(&game_link)
+                {
+                    return bot.submit(game_link, sender.name.clone());
+                }
+                None
+            }),
+        );
+
         Commands {
             commands: vec![
-                CommandNode::Argument {
-                    argument_type: ArgumentType::Word,
-                    child_nodes: vec![CommandNode::final_node(
-                        true,
-                        AuthorityLevel::Viewer as usize,
-                        Arc::new(|bot, sender, mut args| {
-                            let game_link = args.remove(0);
-                            if bot.config.allow_direct_link_submit
-                                && bot.config.link_start.is_some()
-                                && bot.check_link(&game_link)
-                            {
-                                return bot.submit(game_link, sender.name.clone());
-                            }
-                            None
-                        }),
-                    )],
-                },
+                direct_submit,
                 CommandNode::Literal {
                     literals: vec!["!submit".to_owned()],
                     child_nodes: vec![CommandNode::Argument {

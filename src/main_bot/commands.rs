@@ -94,19 +94,19 @@ impl MainBot {
     }
 
     pub fn commands() -> Commands<Self> {
-        let reset = CommandBuilder::<Self, _>::new().word().finalize(
+        let reset = CommandBuilder::<Self>::new().word().finalize(
             true,
             AuthorityLevel::Moderator as _,
             Arc::new(|bot, _, args| bot.reset(&args[0])),
         );
 
-        let reset_all = CommandBuilder::<Self, _>::new().literal(["all"]).finalize(
+        let reset_all = CommandBuilder::<Self>::new().literal(["all"]).finalize(
             true,
             AuthorityLevel::Moderator as _,
             Arc::new(|bot, _, _| bot.reset_all()),
         );
 
-        let backup_create = CommandBuilder::<Self, _>::new()
+        let backup_create = CommandBuilder::<Self>::new()
             .literal(["create"])
             .word()
             .finalize(
@@ -121,21 +121,19 @@ impl MainBot {
                 }),
             );
 
-        let backup = CommandBuilder::<Self, _>::new()
-            .literal(["create"])
-            .finalize(
-                true,
-                AuthorityLevel::Moderator as _,
-                Arc::new(|bot, _, _| match bot.backup_create("default") {
-                    Ok(response) => response,
-                    Err(err) => {
-                        bot.log(LogType::Error, &format!("Failed to create backup: {err}"));
-                        Some(format!("Failed to create backup"))
-                    }
-                }),
-            );
+        let backup = CommandBuilder::<Self>::new().literal(["create"]).finalize(
+            true,
+            AuthorityLevel::Moderator as _,
+            Arc::new(|bot, _, _| match bot.backup_create("default") {
+                Ok(response) => response,
+                Err(err) => {
+                    bot.log(LogType::Error, &format!("Failed to create backup: {err}"));
+                    Some(format!("Failed to create backup"))
+                }
+            }),
+        );
 
-        let backup_load = CommandBuilder::<Self, _>::new()
+        let backup_load = CommandBuilder::<Self>::new()
             .literal(["load"])
             .word()
             .finalize(

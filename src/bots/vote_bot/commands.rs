@@ -52,23 +52,19 @@ impl VoteBot {
     }
 
     pub fn commands() -> Commands<Self> {
-        let start = CommandBuilder::<Self, _>::new()
-            .literal(["start"])
-            .finalize(
-                true,
-                AuthorityLevel::Broadcaster as _,
-                Arc::new(|bot, _, _| bot.vote_start()),
-            );
+        let start = CommandBuilder::<Self>::new().literal(["start"]).finalize(
+            true,
+            AuthorityLevel::Broadcaster as _,
+            Arc::new(|bot, _, _| bot.vote_start()),
+        );
 
-        let finish = CommandBuilder::<Self, _>::new()
-            .literal(["finish"])
-            .finalize(
-                true,
-                AuthorityLevel::Broadcaster as _,
-                Arc::new(|bot, _, _| bot.vote_finish()),
-            );
+        let finish = CommandBuilder::<Self>::new().literal(["finish"]).finalize(
+            true,
+            AuthorityLevel::Broadcaster as _,
+            Arc::new(|bot, _, _| bot.vote_finish()),
+        );
 
-        let vote = CommandBuilder::<Self, Sender>::new().line().finalize(
+        let vote = CommandBuilder::<Self>::new().line().finalize(
             true,
             AuthorityLevel::Broadcaster as _,
             Arc::new(|bot, sender, args| bot.vote(sender.name.to_owned(), args[0].to_owned())),

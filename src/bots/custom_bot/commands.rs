@@ -63,7 +63,7 @@ impl CustomBot {
     }
 
     pub fn commands() -> Commands<Self> {
-        let new = CommandBuilder::<Self, _>::new()
+        let new = CommandBuilder::<Self>::new()
             .literal(["new"])
             .word()
             .line()
@@ -73,7 +73,7 @@ impl CustomBot {
                 Arc::new(|bot, _, args| bot.command_new(args[0].to_owned(), args[1].to_owned())),
             );
 
-        let delete = CommandBuilder::<Self, _>::new()
+        let delete = CommandBuilder::<Self>::new()
             .literal(["delete", "remove"])
             .word()
             .finalize(
@@ -82,7 +82,7 @@ impl CustomBot {
                 Arc::new(|bot, _, args| bot.command_delete(&args[0])),
             );
 
-        let edit = CommandBuilder::<Self, _>::new()
+        let edit = CommandBuilder::<Self>::new()
             .literal(["edit"])
             .word()
             .line()
