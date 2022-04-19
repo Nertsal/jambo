@@ -7,12 +7,18 @@ mod commands;
 pub struct VoteBot {
     cli: Cli,
     commands: Commands<Self>,
+    state: VoteState,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct VoteState {
     vote_mode: VoteMode,
+    last_vote: Vec<(String, usize)>,
 }
 
 #[derive(Debug, Serialize)]
 pub struct VoteSerialized {
-    state: VoteMode,
+    state: VoteState,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -26,7 +32,10 @@ impl VoteBot {
         Box::new(Self {
             cli: Arc::clone(cli),
             commands: Self::commands(),
-            vote_mode: VoteMode::Inactive,
+            state: VoteState {
+                vote_mode: VoteMode::Inactive,
+                last_vote: Vec::new(),
+            },
         })
     }
 }
@@ -63,7 +72,7 @@ impl Bot for VoteBot {
 
     fn serialize(&self) -> SerializedBot {
         SerializedBot::Vote(VoteSerialized {
-            state: self.vote_mode.clone(),
+            state: self.state.clone(),
         })
     }
 }

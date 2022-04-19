@@ -2,10 +2,10 @@ use super::*;
 
 impl VoteBot {
     pub fn vote_start(&mut self) -> Response {
-        match &self.vote_mode {
+        match &self.state.vote_mode {
             VoteMode::Active { .. } => Some(format!("The voting is in progress.")),
             VoteMode::Inactive => {
-                self.vote_mode = VoteMode::Active {
+                self.state.vote_mode = VoteMode::Active {
                     votes: HashMap::new(),
                 };
                 self.update_status("The voting is in progress");
@@ -15,7 +15,7 @@ impl VoteBot {
     }
 
     pub fn vote_finish(&mut self) -> Response {
-        let vote_mode = std::mem::replace(&mut self.vote_mode, VoteMode::Inactive);
+        let vote_mode = std::mem::replace(&mut self.state.vote_mode, VoteMode::Inactive);
         match vote_mode {
             VoteMode::Active { votes } => {
                 let voters = votes.len();
@@ -29,18 +29,20 @@ impl VoteBot {
                     votes_count
                 };
                 self.update_status(&serde_json::to_string(&votes_count).unwrap());
-                Some(format!(
+                let response = Some(format!(
                     "The voting has finished with the total of {} votes and {} unique ones.",
                     voters,
                     votes_count.len(),
-                ))
+                ));
+                self.state.last_vote = votes_count;
+                response
             }
             VoteMode::Inactive => Some(format!("The voting should be started first: !vote start")),
         }
     }
 
     pub fn vote(&mut self, voter: String, vote: String) -> Response {
-        match &mut self.vote_mode {
+        match &mut self.state.vote_mode {
             VoteMode::Active { votes } => {
                 votes.insert(voter, vote.to_lowercase());
             }
