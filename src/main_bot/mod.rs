@@ -8,13 +8,14 @@ use bots::*;
 
 // -- Modify this section to include a new bot into the main bot --
 
-#[derive(Debug, Serialize)]
+#[derive(Serialize)]
 pub enum SerializedBot {
     // Insert here
     Custom(CustomSerialized),
     Quote(QuoteSerialized),
     Timer(TimerSerialized),
     Vote(VoteSerialized),
+    Gamejam(GamejamSerialized),
 }
 
 fn constructors() -> impl IntoIterator<Item = (BotName, BotConstructor)> {
@@ -25,6 +26,7 @@ fn constructors() -> impl IntoIterator<Item = (BotName, BotConstructor)> {
         (QuoteBot::NAME.to_owned(), QuoteBot::new as _),
         (TimerBot::NAME.to_owned(), TimerBot::new as _),
         (VoteBot::NAME.to_owned(), VoteBot::new as _),
+        (GamejamBot::NAME.to_owned(), GamejamBot::new as _),
     ]
 }
 

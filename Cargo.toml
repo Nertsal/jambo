@@ -19,3 +19,5 @@ colored = "2"
 rand = "0.8.5"
 rocket = { version = "0.5.0-rc.1", features = ["json"] }
 enum_derive = "0.1.7"
+google-sheets4 = "3.0"
+yup-oauth2 = "=6.5.1" # used to fix two versions of crate hyper-rustls (introduced by yup-oauth2-6.6 and google-sheets4)
