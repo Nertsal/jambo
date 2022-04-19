@@ -644,307 +644,267 @@ impl GamejamBot {
             }),
         );
 
+        let submit = CommandBuilder::<Self>::new()
+            .literal(["!submit"])
+            .word()
+            .finalize(
+                true,
+                AuthorityLevel::Viewer as usize,
+                Arc::new(|bot, sender, mut args| {
+                    let game_link = args.remove(0);
+                    bot.submit(game_link, sender.name.clone())
+                }),
+            );
+
+        let retur = CommandBuilder::<Self>::new().literal(["!return"]).finalize(
+            true,
+            AuthorityLevel::Viewer as usize,
+            Arc::new(|bot, sender, _| bot.return_game(&sender.name)),
+        );
+
+        let next_queue = CommandBuilder::<Self>::new().finalize(
+            true,
+            AuthorityLevel::Broadcaster as usize,
+            Arc::new(|bot, _, _| bot.next(None, true)),
+        );
+
+        let next_author = CommandBuilder::<Self>::new().word().finalize(
+            true,
+            AuthorityLevel::Broadcaster as usize,
+            Arc::new(|bot, _, mut args| {
+                let author_name = args.remove(0);
+                bot.next(Some(&author_name), false)
+            }),
+        );
+
+        let next = CommandBuilder::new()
+            .literal(["!next"])
+            .split([next_queue, next_author]);
+
+        let cancel_sender = CommandBuilder::<Self>::new().finalize(
+            true,
+            AuthorityLevel::Viewer as usize,
+            Arc::new(|bot, sender, _| bot.remove_game_response(&sender.name, true)),
+        );
+
+        let cancel_author = CommandBuilder::<Self>::new().word().finalize(
+            true,
+            AuthorityLevel::Moderator as usize,
+            Arc::new(|bot, _, mut args| {
+                let author_name = args.remove(0);
+                bot.remove_game_response(&author_name, false)
+            }),
+        );
+
+        let cancel = CommandBuilder::new()
+            .literal(["!cancel"])
+            .split([cancel_sender, cancel_author]);
+
+        let list = CommandBuilder::<Self>::new()
+            .literal(["!queue", "!list"])
+            .finalize(
+                true,
+                AuthorityLevel::Viewer as usize,
+                Arc::new(|bot, sender, _| bot.queue(&sender.name)),
+            );
+
+        let current = CommandBuilder::<Self>::new()
+            .literal(["!current"])
+            .finalize(
+                true,
+                AuthorityLevel::Viewer as usize,
+                Arc::new(|bot, _, _| match &bot.state.current_state {
+                    GameJamState::Playing { game } => {
+                        Some(format!("Current game is: {}", game.to_string_link(false)))
+                    }
+                    _ => Some("Not playing any game at the moment".to_owned()),
+                }),
+            );
+
+        let skip_next = CommandBuilder::<Self>::new().literal(["next"]).finalize(
+            true,
+            AuthorityLevel::Broadcaster as usize,
+            Arc::new(|bot, _, _| bot.skip(true)),
+        );
+
+        let skip_all = CommandBuilder::<Self>::new().literal(["all"]).finalize(
+            true,
+            AuthorityLevel::Broadcaster as usize,
+            Arc::new(|bot, _, _| bot.skip_all()),
+        );
+
+        let skip_current = CommandBuilder::<Self>::new().finalize(
+            true,
+            AuthorityLevel::Broadcaster as usize,
+            Arc::new(|bot, _, _| bot.skip(false)),
+        );
+
+        let skip =
+            CommandBuilder::new()
+                .literal(["!skip"])
+                .split([skip_next, skip_all, skip_current]);
+
+        let unskip_last = CommandBuilder::<Self>::new().finalize(
+            true,
+            AuthorityLevel::Broadcaster as usize,
+            Arc::new(|bot, _, _| bot.unskip(None)),
+        );
+
+        let unskip_author = CommandBuilder::<Self>::new().word().finalize(
+            true,
+            AuthorityLevel::Broadcaster as usize,
+            Arc::new(|bot, _, mut args| {
+                let author_name = args.remove(0);
+                bot.unskip(Some(&author_name))
+            }),
+        );
+
+        let unskip = CommandBuilder::new()
+            .literal(["!unskip"])
+            .split([unskip_last, unskip_author]);
+
+        let stop = CommandBuilder::<Self>::new().literal(["!stop"]).finalize(
+            true,
+            AuthorityLevel::Broadcaster as usize,
+            Arc::new(|bot, _, _| {
+                bot.set_current(None);
+                Some("Current game set to None".to_owned())
+            }),
+        );
+
+        let force = CommandBuilder::<Self>::new().literal(["!force"]).finalize(
+            true,
+            AuthorityLevel::Moderator as usize,
+            Arc::new(|bot, _, _| bot.force()),
+        );
+
+        let close = CommandBuilder::<Self>::new().literal(["!close"]).finalize(
+            true,
+            AuthorityLevel::Moderator as usize,
+            Arc::new(|bot, _, _| {
+                bot.state.is_queue_open = false;
+                bot.save_games().unwrap();
+                Some("The queue is now closed".to_owned())
+            }),
+        );
+
+        let open = CommandBuilder::<Self>::new().literal(["!open"]).finalize(
+            true,
+            AuthorityLevel::Moderator as usize,
+            Arc::new(|bot, _, _| {
+                bot.state.is_queue_open = true;
+                bot.save_games().unwrap();
+                Some("The queue is now open".to_owned())
+            }),
+        );
+
+        let raffle_start = CommandBuilder::<Self>::new().finalize(
+            true,
+            AuthorityLevel::Broadcaster as usize,
+            Arc::new(|bot, _, _| bot.raffle_start()),
+        );
+
+        let raffle_finish = CommandBuilder::<Self>::new().literal(["finish"]).finalize(
+            true,
+            AuthorityLevel::Broadcaster as usize,
+            Arc::new(|bot, _, _| bot.raffle_finish()),
+        );
+
+        let raffle_cancel = CommandBuilder::<Self>::new().literal(["cancel"]).finalize(
+            true,
+            AuthorityLevel::Broadcaster as usize,
+            Arc::new(|bot, _, _| bot.raffle_cancel()),
+        );
+
+        let raffle = CommandBuilder::new().literal(["!raffle"]).split([
+            raffle_start,
+            raffle_finish,
+            raffle_cancel,
+        ]);
+
+        let join = CommandBuilder::<Self>::new().literal(["!join"]).finalize(
+            true,
+            AuthorityLevel::Viewer as usize,
+            Arc::new(|bot, sender, _| bot.raffle_join(sender.name.clone())),
+        );
+
+        let luck = CommandBuilder::<Self>::new().literal(["!luck"]).finalize(
+            true,
+            AuthorityLevel::Viewer as usize,
+            Arc::new(|bot, sender, _| bot.luck(&sender.name)),
+        );
+
+        let authors_add = CommandBuilder::new().literal(["add"]).word().split([
+            CommandBuilder::<Self>::new().word().finalize(
+                true,
+                AuthorityLevel::Moderator as usize,
+                Arc::new(|bot, sender, mut args| {
+                    let game_link = args.remove(0);
+                    let other_author = args.remove(0);
+                    bot.authors_add(&sender.name, other_author, false, |game| {
+                        game.link == game_link
+                    })
+                }),
+            ),
+            CommandBuilder::new().finalize(
+                true,
+                AuthorityLevel::Viewer as usize,
+                Arc::new(|bot, sender, mut args| {
+                    let other_author = args.remove(0);
+                    bot.authors_add(&sender.name, other_author, true, |game| {
+                        game.authors.contains(&sender.name)
+                    })
+                }),
+            ),
+        ]);
+
+        let authors_remove = CommandBuilder::new().literal(["remove"]).word().split([
+            CommandBuilder::<Self>::new().word().finalize(
+                true,
+                AuthorityLevel::Moderator as usize,
+                Arc::new(|bot, sender, mut args| {
+                    let game_link = args.remove(0);
+                    let other_author = args.remove(0);
+                    bot.authors_remove(&sender.name, &other_author, false, |game| {
+                        game.link == game_link
+                    })
+                }),
+            ),
+            CommandBuilder::new().finalize(
+                true,
+                AuthorityLevel::Viewer as usize,
+                Arc::new(|bot, sender, mut args| {
+                    let other_author = args.remove(0);
+                    bot.authors_remove(&sender.name, &other_author, true, |game| {
+                        game.authors.contains(&sender.name)
+                    })
+                }),
+            ),
+        ]);
+
+        let authors = CommandBuilder::new()
+            .literal(["!authors"])
+            .split([authors_add, authors_remove]);
+
         Commands {
             commands: vec![
                 direct_submit,
-                CommandNode::Literal {
-                    literals: vec!["!submit".to_owned()],
-                    child_nodes: vec![CommandNode::Argument {
-                        argument_type: ArgumentType::Word,
-                        child_nodes: vec![CommandNode::final_node(
-                            true,
-                            AuthorityLevel::Viewer as usize,
-                            Arc::new(|bot, sender, mut args| {
-                                let game_link = args.remove(0);
-                                bot.submit(game_link, sender.name.clone())
-                            }),
-                        )],
-                    }],
-                },
-                CommandNode::Literal {
-                    literals: vec!["!return".to_owned()],
-                    child_nodes: vec![CommandNode::final_node(
-                        true,
-                        AuthorityLevel::Viewer as usize,
-                        Arc::new(|bot, sender, _| bot.return_game(&sender.name)),
-                    )],
-                },
-                CommandNode::Literal {
-                    literals: vec!["!next".to_owned()],
-                    child_nodes: vec![
-                        CommandNode::final_node(
-                            true,
-                            AuthorityLevel::Broadcaster as usize,
-                            Arc::new(|bot, _, _| bot.next(None, true)),
-                        ),
-                        CommandNode::Argument {
-                            argument_type: ArgumentType::Word,
-                            child_nodes: vec![CommandNode::final_node(
-                                true,
-                                AuthorityLevel::Broadcaster as usize,
-                                Arc::new(|bot, _, mut args| {
-                                    let author_name = args.remove(0);
-                                    bot.next(Some(&author_name), false)
-                                }),
-                            )],
-                        },
-                    ],
-                },
-                CommandNode::Literal {
-                    literals: vec!["!cancel".to_owned()],
-                    child_nodes: vec![
-                        CommandNode::final_node(
-                            true,
-                            AuthorityLevel::Viewer as usize,
-                            Arc::new(|bot, sender, _| bot.remove_game_response(&sender.name, true)),
-                        ),
-                        CommandNode::Argument {
-                            argument_type: ArgumentType::Word,
-                            child_nodes: vec![CommandNode::final_node(
-                                true,
-                                AuthorityLevel::Moderator as usize,
-                                Arc::new(|bot, _, mut args| {
-                                    let author_name = args.remove(0);
-                                    bot.remove_game_response(&author_name, false)
-                                }),
-                            )],
-                        },
-                    ],
-                },
-                CommandNode::Literal {
-                    literals: vec!["!queue".to_owned(), "!list".to_owned()],
-                    child_nodes: vec![CommandNode::final_node(
-                        true,
-                        AuthorityLevel::Viewer as usize,
-                        Arc::new(|bot, sender, _| bot.queue(&sender.name)),
-                    )],
-                },
-                CommandNode::Literal {
-                    literals: vec!["!current".to_owned()],
-                    child_nodes: vec![CommandNode::final_node(
-                        true,
-                        AuthorityLevel::Viewer as usize,
-                        Arc::new(|bot, _, _| match &bot.state.current_state {
-                            GameJamState::Playing { game } => {
-                                Some(format!("Current game is: {}", game.to_string_link(false)))
-                            }
-                            _ => Some("Not playing any game at the moment".to_owned()),
-                        }),
-                    )],
-                },
-                CommandNode::Literal {
-                    literals: vec!["!skip".to_owned()],
-                    child_nodes: vec![
-                        CommandNode::Literal {
-                            literals: vec!["next".to_owned()],
-                            child_nodes: vec![CommandNode::final_node(
-                                true,
-                                AuthorityLevel::Broadcaster as usize,
-                                Arc::new(|bot, _, _| bot.skip(true)),
-                            )],
-                        },
-                        CommandNode::Literal {
-                            literals: vec!["all".to_owned()],
-                            child_nodes: vec![CommandNode::final_node(
-                                true,
-                                AuthorityLevel::Broadcaster as usize,
-                                Arc::new(|bot, _, _| bot.skip_all()),
-                            )],
-                        },
-                        CommandNode::final_node(
-                            true,
-                            AuthorityLevel::Broadcaster as usize,
-                            Arc::new(|bot, _, _| bot.skip(false)),
-                        ),
-                    ],
-                },
-                CommandNode::Literal {
-                    literals: vec!["!unskip".to_owned()],
-                    child_nodes: vec![
-                        CommandNode::final_node(
-                            true,
-                            AuthorityLevel::Broadcaster as usize,
-                            Arc::new(|bot, _, _| bot.unskip(None)),
-                        ),
-                        CommandNode::Argument {
-                            argument_type: ArgumentType::Word,
-                            child_nodes: vec![CommandNode::final_node(
-                                true,
-                                AuthorityLevel::Broadcaster as usize,
-                                Arc::new(|bot, _, mut args| {
-                                    let author_name = args.remove(0);
-                                    bot.unskip(Some(&author_name))
-                                }),
-                            )],
-                        },
-                    ],
-                },
-                CommandNode::Literal {
-                    literals: vec!["!stop".to_owned()],
-                    child_nodes: vec![CommandNode::final_node(
-                        true,
-                        AuthorityLevel::Broadcaster as usize,
-                        Arc::new(|bot, _, _| {
-                            bot.set_current(None);
-                            Some("Current game set to None".to_owned())
-                        }),
-                    )],
-                },
-                CommandNode::Literal {
-                    literals: vec!["!force".to_owned()],
-                    child_nodes: vec![CommandNode::final_node(
-                        true,
-                        AuthorityLevel::Moderator as usize,
-                        Arc::new(|bot, _, _| bot.force()),
-                    )],
-                },
-                CommandNode::Literal {
-                    literals: vec!["!close".to_owned()],
-                    child_nodes: vec![CommandNode::final_node(
-                        true,
-                        AuthorityLevel::Moderator as usize,
-                        Arc::new(|bot, _, _| {
-                            bot.state.is_queue_open = false;
-                            bot.save_games().unwrap();
-                            Some("The queue is now closed".to_owned())
-                        }),
-                    )],
-                },
-                CommandNode::Literal {
-                    literals: vec!["!open".to_owned()],
-                    child_nodes: vec![CommandNode::final_node(
-                        true,
-                        AuthorityLevel::Moderator as usize,
-                        Arc::new(|bot, _, _| {
-                            bot.state.is_queue_open = true;
-                            bot.save_games().unwrap();
-                            Some("The queue is now open".to_owned())
-                        }),
-                    )],
-                },
-                CommandNode::Literal {
-                    literals: vec!["!raffle".to_owned()],
-                    child_nodes: vec![
-                        CommandNode::final_node(
-                            true,
-                            AuthorityLevel::Broadcaster as usize,
-                            Arc::new(|bot, _, _| bot.raffle_start()),
-                        ),
-                        CommandNode::Literal {
-                            literals: vec!["finish".to_owned()],
-                            child_nodes: vec![CommandNode::final_node(
-                                true,
-                                AuthorityLevel::Broadcaster as usize,
-                                Arc::new(|bot, _, _| bot.raffle_finish()),
-                            )],
-                        },
-                        CommandNode::Literal {
-                            literals: vec!["cancel".to_owned()],
-                            child_nodes: vec![CommandNode::final_node(
-                                true,
-                                AuthorityLevel::Broadcaster as usize,
-                                Arc::new(|bot, _, _| bot.raffle_cancel()),
-                            )],
-                        },
-                    ],
-                },
-                CommandNode::Literal {
-                    literals: vec!["!join".to_owned()],
-                    child_nodes: vec![CommandNode::final_node(
-                        true,
-                        AuthorityLevel::Viewer as usize,
-                        Arc::new(|bot, sender, _| bot.raffle_join(sender.name.clone())),
-                    )],
-                },
-                CommandNode::Literal {
-                    literals: vec!["!luck".to_owned()],
-                    child_nodes: vec![CommandNode::final_node(
-                        true,
-                        AuthorityLevel::Viewer as usize,
-                        Arc::new(|bot, sender, _| bot.luck(&sender.name)),
-                    )],
-                },
-                CommandNode::Literal {
-                    literals: vec!["!authors".to_owned()],
-                    child_nodes: vec![
-                        CommandNode::Literal {
-                            literals: vec!["add".to_owned()],
-                            child_nodes: vec![CommandNode::Argument {
-                                argument_type: ArgumentType::Word,
-                                child_nodes: vec![
-                                    CommandNode::Argument {
-                                        argument_type: ArgumentType::Word,
-                                        child_nodes: vec![CommandNode::final_node(
-                                            true,
-                                            AuthorityLevel::Moderator as usize,
-                                            Arc::new(|bot, sender, mut args| {
-                                                let game_link = args.remove(0);
-                                                let other_author = args.remove(0);
-                                                bot.authors_add(
-                                                    &sender.name,
-                                                    other_author,
-                                                    false,
-                                                    |game| game.link == game_link,
-                                                )
-                                            }),
-                                        )],
-                                    },
-                                    CommandNode::final_node(
-                                        true,
-                                        AuthorityLevel::Viewer as usize,
-                                        Arc::new(|bot, sender, mut args| {
-                                            let other_author = args.remove(0);
-                                            bot.authors_add(
-                                                &sender.name,
-                                                other_author,
-                                                true,
-                                                |game| game.authors.contains(&sender.name),
-                                            )
-                                        }),
-                                    ),
-                                ],
-                            }],
-                        },
-                        CommandNode::Literal {
-                            literals: vec!["remove".to_owned()],
-                            child_nodes: vec![CommandNode::Argument {
-                                argument_type: ArgumentType::Word,
-                                child_nodes: vec![
-                                    CommandNode::Argument {
-                                        argument_type: ArgumentType::Word,
-                                        child_nodes: vec![CommandNode::final_node(
-                                            true,
-                                            AuthorityLevel::Moderator as usize,
-                                            Arc::new(|bot, sender, mut args| {
-                                                let game_link = args.remove(0);
-                                                let other_author = args.remove(0);
-                                                bot.authors_remove(
-                                                    &sender.name,
-                                                    &other_author,
-                                                    false,
-                                                    |game| game.link == game_link,
-                                                )
-                                            }),
-                                        )],
-                                    },
-                                    CommandNode::final_node(
-                                        true,
-                                        AuthorityLevel::Viewer as usize,
-                                        Arc::new(|bot, sender, mut args| {
-                                            let other_author = args.remove(0);
-                                            bot.authors_remove(
-                                                &sender.name,
-                                                &other_author,
-                                                true,
-                                                |game| game.authors.contains(&sender.name),
-                                            )
-                                        }),
-                                    ),
-                                ],
-                            }],
-                        },
-                    ],
-                },
+                submit,
+                retur,
+                next,
+                cancel,
+                list,
+                current,
+                skip,
+                unskip,
+                stop,
+                force,
+                close,
+                open,
+                raffle,
+                join,
+                luck,
+                authors,
             ],
         }
     }
