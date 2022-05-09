@@ -58,6 +58,7 @@ async fn main() {
             let mut bot_lock = bot.lock().await;
             bot_lock.handle_server_message(&client_clone, message).await;
         }
+        bot.lock().await.queue_shutdown = true;
         bot.lock().await.log(LogType::Info, "Chat handle shut down");
     }));
 
@@ -89,6 +90,7 @@ async fn main() {
                 break;
             }
         }
+        bot.lock().await.queue_shutdown = true;
     }));
 
     // Launch server
@@ -125,6 +127,7 @@ async fn main() {
                 &format!("Server failed with error: {error}"),
             ),
         }
+        bot.lock().await.queue_shutdown = true;
     }));
 
     // Initialize update handle
@@ -149,6 +152,7 @@ async fn main() {
                 break;
             }
         }
+        bot.lock().await.queue_shutdown = true;
     });
 
     // Wait for all threads to finish
