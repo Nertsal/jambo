@@ -1,6 +1,5 @@
-use google_sheets4::{hyper, hyper_rustls, Sheets};
+use google_sheets4::{hyper, hyper_rustls, oauth2, Sheets};
 use std::collections::{HashMap, VecDeque};
-use yup_oauth2 as oauth2;
 
 use super::*;
 
