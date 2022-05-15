@@ -72,8 +72,13 @@ impl GamejamBot {
             .expect("Failed to create an authenticator for google service");
 
             bot.hub = Some(Sheets::new(
-                hyper::Client::builder()
-                    .build(hyper_rustls::HttpsConnector::with_native_roots()),
+                hyper::Client::builder().build(
+                    hyper_rustls::HttpsConnectorBuilder::new()
+                        .with_native_roots()
+                        .https_only()
+                        .enable_http1()
+                        .build(),
+                ),
                 auth,
             ));
         }
