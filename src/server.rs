@@ -1,4 +1,9 @@
-use rocket::{serde::json::Json, State};
+use rocket::{
+    response::stream::{Event, EventStream},
+    serde::json::Json,
+    tokio::time::{self, Duration},
+    State,
+};
 
 use super::*;
 
@@ -13,4 +18,17 @@ pub fn index() -> &'static str {
 pub async fn get_state(bot: &BotState) -> Json<Vec<SerializedBot>> {
     let bot = bot.lock().await;
     Json(bot.serialize().collect())
+}
+
+#[get("/events")]
+pub fn events(bot: &BotState) -> EventStream![Event + '_] {
+    EventStream! {
+        let mut interval = time::interval(Duration::from_secs(1));
+        loop{
+            let bot = bot.lock().await;
+            let state = bot.serialize().collect::<Vec<_>>();
+            yield Event::json(&state);
+            interval.tick().await;
+        }
+    }
 }

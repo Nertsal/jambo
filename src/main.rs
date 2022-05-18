@@ -115,7 +115,7 @@ async fn main() {
 
         let result = rocket::custom(config)
             .manage(Arc::clone(&bot))
-            .mount("/", routes![index, get_state])
+            .mount("/", routes![index, get_state, events])
             .launch()
             .await;
 
