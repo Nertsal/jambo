@@ -106,8 +106,9 @@ async fn main() {
             let mut bot_lock = bot.lock().await;
             bot_lock.handle_server_message(&client_clone, message).await;
         }
-        bot.lock().await.queue_shutdown = true;
-        bot.lock().await.log(LogType::Info, "Chat handle shut down");
+        let mut bot_lock = bot.lock().await;
+        bot_lock.log(LogType::Info, "Chat handle shut down");
+        bot_lock.queue_shutdown = true;
     }));
 
     // Launch server
@@ -136,7 +137,7 @@ async fn main() {
             .launch()
             .await;
 
-        let bot_lock = bot.lock().await;
+        let mut bot_lock = bot.lock().await;
         match result {
             Ok(_) => bot_lock.log(LogType::Info, &format!("Server shutdown succesfully")),
             Err(error) => bot_lock.log(
@@ -144,7 +145,7 @@ async fn main() {
                 &format!("Server failed with error: {error}"),
             ),
         }
-        bot.lock().await.queue_shutdown = true;
+        bot_lock.queue_shutdown = true;
     }));
 
     // Initialize update handle
@@ -174,14 +175,17 @@ async fn main() {
         bot.lock().await.queue_shutdown = true;
     });
 
-    // Wait for all threads to finish
     client.join(channel_login);
-    update_handle.await.unwrap();
-    message_handle.await.unwrap_err();
-    if let Some(console_handle) = console_handle {
-        console_handle.await.unwrap_err();
+    {
+        #![allow(unused_must_use)]
+        // Wait for all threads to finish
+        update_handle.await;
+        server_handle.await;
+        message_handle.await;
+        if let Some(console_handle) = console_handle {
+            console_handle.await;
+        }
     }
-    server_handle.await.unwrap_err();
 
     main_bot
         .lock()
