@@ -2,6 +2,30 @@ use super::*;
 
 impl MainBot {
     fn enable(&mut self, bot_name: &str) -> Response {
+        if bot_name == "all" {
+            let disabled = self
+                .bots
+                .constructors
+                .iter()
+                .filter(|(name, _)| !self.bots.active.contains_key(*name))
+                .collect::<Vec<_>>();
+            let mut res = String::new();
+            if disabled.is_empty() {
+                res += "Everyone is already active";
+            } else {
+                for (bot_name, constructor) in disabled {
+                    let bot = constructor(&self.cli);
+                    self.bots.active.insert(bot_name.to_owned(), bot);
+                    self.save_bots().expect("Failed to save state");
+                    res += &format!("{bot_name}, ");
+                }
+                res.pop();
+                res.pop();
+                res += " are now active";
+            }
+            return Some(res);
+        }
+
         if self.bots.active.contains_key(bot_name) {
             return Some(format!("{bot_name} is already active"));
         }
@@ -17,6 +41,27 @@ impl MainBot {
     }
 
     fn disable(&mut self, bot_name: &str) -> Response {
+        if bot_name == "all" {
+            let active = self
+                .bots
+                .active
+                .drain()
+                .map(|(name, _)| name)
+                .collect::<Vec<_>>();
+            let mut res = String::new();
+            if active.is_empty() {
+                res += "Everyone is already resting";
+            } else {
+                for bot_name in active {
+                    res += &format!("{bot_name}, ");
+                }
+                res.pop();
+                res.pop();
+                res += " are now resting";
+            }
+            return Some(res);
+        }
+
         match self.bots.active.remove(bot_name) {
             Some(_) => {
                 self.save_bots().expect("Failed to save state");
@@ -33,6 +78,9 @@ impl MainBot {
     }
 
     fn reset(&mut self, bot_name: &str) -> Response {
+        if bot_name == "all" {
+            return self.reset_all();
+        }
         self.disable(bot_name);
         self.enable(bot_name)
     }
@@ -93,19 +141,7 @@ impl MainBot {
         }
     }
 
-    pub fn commands() -> Commands<Self> {
-        let reset = CommandBuilder::<Self>::new().word().finalize(
-            true,
-            AuthorityLevel::Moderator as _,
-            Arc::new(|bot, _, args| bot.reset(&args[0])),
-        );
-
-        let reset_all = CommandBuilder::<Self>::new().literal(["all"]).finalize(
-            true,
-            AuthorityLevel::Moderator as _,
-            Arc::new(|bot, _, _| bot.reset_all()),
-        );
-
+    pub fn commands(available_bots: impl IntoIterator<Item = BotName>) -> Commands<Self> {
         let backup_create = CommandBuilder::<Self>::new()
             .literal(["create"])
             .word()
@@ -149,16 +185,23 @@ impl MainBot {
             );
 
         Commands::new(vec![
-            CommandBuilder::new().literal(["!enable"]).word().finalize(
-                true,
-                AuthorityLevel::Moderator as _,
-                Arc::new(|bot, _, args| bot.enable(&args[0])),
-            ),
-            CommandBuilder::new().literal(["!disable"]).word().finalize(
-                true,
-                AuthorityLevel::Moderator as _,
-                Arc::new(|bot, _, args| bot.disable(&args[0])),
-            ),
+            CommandBuilder::new()
+                .choice(["!enable", "!disable", "!reset"])
+                .choice(std::iter::once("all".to_owned()).chain(available_bots))
+                .finalize(
+                    true,
+                    AuthorityLevel::Moderator as _,
+                    Arc::new(|bot, _, args| {
+                        let bot_name = &args[1];
+                        let response = match args[0].as_str() {
+                            "!enable" => bot.enable(bot_name),
+                            "!disable" => bot.disable(bot_name),
+                            "!reset" => bot.reset(bot_name),
+                            _ => unreachable!(),
+                        };
+                        response
+                    }),
+                ),
             CommandBuilder::new().literal(["!shutdown"]).finalize(
                 true,
                 AuthorityLevel::Broadcaster as _,
@@ -167,9 +210,6 @@ impl MainBot {
                     Some(format!("Shutting down..."))
                 }),
             ),
-            CommandBuilder::new()
-                .literal(["!reset"])
-                .split([reset, reset_all]),
             CommandBuilder::new()
                 .literal(["!backup"])
                 .split([backup_create, backup_load, backup]),

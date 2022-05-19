@@ -45,7 +45,7 @@ impl MainBot {
     pub fn new(cli: Option<&Cli>, active_bots: ActiveBots) -> Self {
         Self {
             cli: cli.cloned(),
-            commands: Self::commands(),
+            commands: Self::commands(active_bots.iter().cloned()),
             bots: Bots::new(&cli.cloned(), active_bots),
             queue_shutdown: false,
         }
