@@ -6,7 +6,7 @@ mod timer;
 use timer::*;
 
 pub struct TimerBot {
-    cli: Cli,
+    cli: Option<Cli>,
     commands: Commands<Self>,
     timer: Timer,
 }
@@ -17,7 +17,7 @@ pub struct TimerSerialized {
 }
 
 impl TimerBot {
-    pub fn new(cli: &Cli) -> Box<dyn Bot> {
+    pub fn new(cli: &Option<Cli>) -> Box<dyn Bot> {
         Box::new(Self {
             cli: cli.clone(),
             commands: Self::commands(),

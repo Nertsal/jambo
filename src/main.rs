@@ -22,8 +22,17 @@ pub type Cli = Arc<linefeed::Interface<linefeed::DefaultTerminal>>;
 
 const CONSOLE_PREFIX_LENGTH: usize = 7;
 
+#[derive(clap::Parser, Debug)]
+struct Args {
+    #[clap(long)]
+    no_cli: bool,
+}
+
 #[tokio::main]
 async fn main() {
+    // Parse command line arguments
+    let args = <Args as clap::Parser>::parse();
+
     // Load config
     let login_config: LoginConfig = serde_json::from_reader(std::io::BufReader::new(
         std::fs::File::open("secrets/login.json").expect("Missing secrets/login.json"),
@@ -43,12 +52,51 @@ async fn main() {
     // Connect to Twitch
     let (mut incoming_messages, client) = async { TwitchClient::new(client_config) }.compat().await;
 
-    // Setup CLI
-    let cli = Arc::new(linefeed::Interface::new("nertsal-bot").unwrap());
-    let main_bot = MainBot::new(&cli, active_bots);
-    let main_bot = Arc::new(MutexBot::new(main_bot));
-    let completer = main_bot.clone();
-    cli.set_completer(completer);
+    let (main_bot, console_handle, console_abort) = if args.no_cli {
+        let main_bot = Arc::new(MutexBot::new(MainBot::new(None, active_bots)));
+        (main_bot, None, None)
+    } else {
+        // Setup CLI
+        let cli = Arc::new(linefeed::Interface::new("nertsal-bot").unwrap());
+        let main_bot = MainBot::new(Some(&cli), active_bots);
+        let main_bot = Arc::new(MutexBot::new(main_bot));
+        let completer = main_bot.clone();
+        cli.set_completer(completer);
+
+        // Initialize CLI handle
+        let bot = Arc::clone(&main_bot);
+        let client_clone = client.clone();
+        let channel_login_clone = channel_login.clone();
+        let (console_handle, console_abort) =
+            futures::future::abortable(tokio::spawn(async move {
+                cli.set_prompt(&format!("{:w$} > ", " ", w = CONSOLE_PREFIX_LENGTH))
+                    .unwrap();
+                while let linefeed::ReadResult::Input(input) = cli.read_line().unwrap() {
+                    let mut bot_lock = bot.lock().await;
+                    bot_lock
+                        .handle_message(
+                            &client_clone,
+                            &channel_login_clone,
+                            &CommandMessage {
+                                sender: Sender {
+                                    name: "Admin".to_owned(),
+                                    origin: MessageOrigin::Console,
+                                },
+                                message_text: input.clone(),
+                                authority_level: AuthorityLevel::Broadcaster as usize,
+                            },
+                        )
+                        .await;
+
+                    if bot_lock.queue_shutdown {
+                        break;
+                    }
+                }
+                bot.lock().await.queue_shutdown = true;
+            }));
+
+        (main_bot, Some(console_handle), Some(console_abort))
+    };
 
     // Initialize twitch handle
     let bot = Arc::clone(&main_bot);
@@ -60,37 +108,6 @@ async fn main() {
         }
         bot.lock().await.queue_shutdown = true;
         bot.lock().await.log(LogType::Info, "Chat handle shut down");
-    }));
-
-    // Initialize CLI handle
-    let bot = Arc::clone(&main_bot);
-    let client_clone = client.clone();
-    let channel_login_clone = channel_login.clone();
-    let (console_handle, console_abort) = futures::future::abortable(tokio::spawn(async move {
-        cli.set_prompt(&format!("{:w$} > ", " ", w = CONSOLE_PREFIX_LENGTH))
-            .unwrap();
-        while let linefeed::ReadResult::Input(input) = cli.read_line().unwrap() {
-            let mut bot_lock = bot.lock().await;
-            bot_lock
-                .handle_message(
-                    &client_clone,
-                    &channel_login_clone,
-                    &CommandMessage {
-                        sender: Sender {
-                            name: "Admin".to_owned(),
-                            origin: MessageOrigin::Console,
-                        },
-                        message_text: input.clone(),
-                        authority_level: AuthorityLevel::Broadcaster as usize,
-                    },
-                )
-                .await;
-
-            if bot_lock.queue_shutdown {
-                break;
-            }
-        }
-        bot.lock().await.queue_shutdown = true;
     }));
 
     // Launch server
@@ -146,7 +163,9 @@ async fn main() {
                 .await;
 
             if bot_lock.queue_shutdown {
-                console_abort.abort();
+                if let Some(console_abort) = console_abort {
+                    console_abort.abort();
+                }
                 message_abort.abort();
                 server_abort.abort();
                 break;
@@ -159,7 +178,9 @@ async fn main() {
     client.join(channel_login);
     update_handle.await.unwrap();
     message_handle.await.unwrap_err();
-    console_handle.await.unwrap_err();
+    if let Some(console_handle) = console_handle {
+        console_handle.await.unwrap_err();
+    }
     server_handle.await.unwrap_err();
 
     main_bot
@@ -185,12 +206,19 @@ pub enum LogType {
     Console,
 }
 
-pub fn log(cli: &Cli, log_type: LogType, message: &str) {
-    let mut writer = cli.lock_writer_erase().unwrap();
-    writeln!(writer, "{} {}", log_type, message).unwrap();
+pub fn log(cli: &Option<Cli>, log_type: LogType, message: &str) {
+    if let Some(cli) = cli {
+        let mut writer = cli.lock_writer_erase().unwrap();
+        writeln!(writer, "{} {}", log_type, message).unwrap();
+    }
 }
 
-pub async fn send_message(cli: &Cli, client: &TwitchClient, channel: String, message: String) {
+pub async fn send_message(
+    cli: &Option<Cli>,
+    client: &TwitchClient,
+    channel: String,
+    message: String,
+) {
     log(cli, LogType::Send, &format!("{}: {}", channel, message));
     client.say(channel, message).await.unwrap();
 }

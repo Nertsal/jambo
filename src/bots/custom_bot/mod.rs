@@ -5,7 +5,7 @@ use super::*;
 mod commands;
 
 pub struct CustomBot {
-    cli: Cli,
+    cli: Option<Cli>,
     config: CustomConfig,
     commands: Commands<Self>,
 }
@@ -16,7 +16,7 @@ pub struct CustomSerialized {
 }
 
 impl CustomBot {
-    pub fn new(cli: &Cli) -> Box<dyn Bot> {
+    pub fn new(cli: &Option<Cli>) -> Box<dyn Bot> {
         let config = match CustomConfig::load() {
             Ok(config) => config,
             Err(error) => match error.kind() {
@@ -31,7 +31,7 @@ impl CustomBot {
             },
         };
         let mut bot = Self {
-            cli: Arc::clone(cli),
+            cli: cli.clone(),
             commands: Self::commands(),
             config: config.clone(),
         };

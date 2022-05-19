@@ -35,18 +35,18 @@ fn constructors() -> impl IntoIterator<Item = (BotName, BotConstructor)> {
 pub struct MutexBot(Mutex<MainBot>);
 
 pub struct MainBot {
-    cli: Cli,
+    cli: Option<Cli>,
     commands: Commands<MainBot>,
     bots: Bots,
     pub queue_shutdown: bool,
 }
 
 impl MainBot {
-    pub fn new(cli: &Cli, active_bots: ActiveBots) -> Self {
+    pub fn new(cli: Option<&Cli>, active_bots: ActiveBots) -> Self {
         Self {
-            cli: cli.clone(),
+            cli: cli.cloned(),
             commands: Self::commands(),
-            bots: Bots::new(cli, active_bots),
+            bots: Bots::new(&cli.cloned(), active_bots),
             queue_shutdown: false,
         }
     }
@@ -99,8 +99,10 @@ impl MainBot {
     }
 
     pub fn log(&self, log_type: LogType, message: &str) {
-        let mut writer = self.cli.lock_writer_erase().unwrap();
-        writeln!(writer, "{} {}", log_type, message).unwrap();
+        if let Some(cli) = &self.cli {
+            let mut writer = cli.lock_writer_erase().unwrap();
+            writeln!(writer, "{} {}", log_type, message).unwrap();
+        }
     }
 
     pub async fn handle_message(
@@ -160,7 +162,7 @@ pub trait BotPerformer {
 
     async fn perform(
         &mut self,
-        cli: &Cli,
+        cli: &Option<Cli>,
         client: &TwitchClient,
         channel: &ChannelLogin,
         message: &CommandMessage,
@@ -203,7 +205,7 @@ impl std::ops::Deref for MutexBot {
     }
 }
 
-type BotConstructor = fn(&Cli) -> Box<dyn Bot>;
+type BotConstructor = fn(&Option<Cli>) -> Box<dyn Bot>;
 
 struct Bots {
     constructors: HashMap<BotName, BotConstructor>,
@@ -211,7 +213,7 @@ struct Bots {
 }
 
 impl Bots {
-    fn new(cli: &Cli, active_bots: ActiveBots) -> Self {
+    fn new(cli: &Option<Cli>, active_bots: ActiveBots) -> Self {
         let constructors = constructors().into_iter().collect::<HashMap<_, _>>();
         let mut active = HashMap::new();
         for bot_name in active_bots {

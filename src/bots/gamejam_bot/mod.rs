@@ -15,7 +15,7 @@ use google::*;
 
 pub struct GamejamBot {
     // Bot stuff
-    cli: Cli,
+    cli: Option<Cli>,
     config: GamejamConfig,
     commands: Commands<Self>,
 

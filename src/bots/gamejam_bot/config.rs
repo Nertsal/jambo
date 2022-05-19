@@ -37,7 +37,7 @@ pub struct GamejamConfig {
 }
 
 impl GamejamBot {
-    pub fn new(cli: &Cli) -> Box<dyn Bot> {
+    pub fn new(cli: &Option<Cli>) -> Box<dyn Bot> {
         // Read config
         let config: GamejamConfig = serde_json::from_reader(std::io::BufReader::new(
             std::fs::File::open(CONFIG_FILE).unwrap(),
@@ -52,7 +52,7 @@ impl GamejamBot {
 
         // Initialize bot
         let mut bot = Self {
-            cli: Arc::clone(cli),
+            cli: cli.clone(),
             config,
             commands: Self::commands(),
             hub: None,

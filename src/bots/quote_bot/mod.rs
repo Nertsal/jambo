@@ -10,7 +10,7 @@ struct QuoteConfig {
 }
 
 pub struct QuoteBot {
-    cli: Cli,
+    cli: Option<Cli>,
     config: QuoteConfig,
     commands: Commands<Self>,
 }
@@ -21,7 +21,7 @@ pub struct QuoteSerialized {
 }
 
 impl QuoteBot {
-    pub fn new(cli: &Cli) -> Box<dyn Bot> {
+    pub fn new(cli: &Option<Cli>) -> Box<dyn Bot> {
         let config = match QuoteConfig::load() {
             Ok(config) => config,
             Err(error) => match error.kind() {
@@ -34,7 +34,7 @@ impl QuoteBot {
             },
         };
         Box::new(Self {
-            cli: Arc::clone(cli),
+            cli: cli.clone(),
             config,
             commands: Self::commands(),
         })
