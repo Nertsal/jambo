@@ -11,12 +11,15 @@ impl QuoteBot {
             .collect::<Vec<&String>>()
             .choose(&mut rand::thread_rng())
         {
-            Some(format!(
-                "Quote {}: {}",
-                random_quote_name, self.config.quotes[random_quote_name as &str]
-            ))
+            Some(
+                format!(
+                    "Quote {}: {}",
+                    random_quote_name, self.config.quotes[random_quote_name as &str]
+                )
+                .into(),
+            )
         } else {
-            Some("No quotes yet. Add new ones with !quote add <quote>".to_string())
+            Some("No quotes yet. Add new ones with !quote add <quote>".into())
         }
     }
 
@@ -24,15 +27,12 @@ impl QuoteBot {
         if let std::collections::hash_map::Entry::Vacant(entry) =
             self.config.quotes.entry(quote_name.clone())
         {
-            let response = Some(format!("Added new quote {}: {}", quote_name, quote));
+            let response = format!("Added new quote {}: {}", quote_name, quote).into();
             entry.insert(quote);
             self.config.save().unwrap();
-            response
+            Some(response)
         } else {
-            Some(format!(
-                "A quote with the name {} already exists",
-                quote_name
-            ))
+            Some(format!("A quote with the name {} already exists", quote_name).into())
         }
     }
 
@@ -40,25 +40,25 @@ impl QuoteBot {
         match self.config.quotes.remove(quote_name) {
             Some(quote) => {
                 self.config.save().unwrap();
-                Some(format!("Deleted quote {:?}: {}", quote_name, quote))
+                Some(format!("Deleted quote {:?}: {}", quote_name, quote).into())
             }
-            None => Some(format!("I don't know any quote named {quote_name}. Try creating one with !quote new <quote_name> <quote>")),
+            None => Some(format!("I don't know any quote named {quote_name}. Try creating one with !quote new <quote_name> <quote>").into()),
         }
     }
 
     fn quote_edit(&mut self, quote_name: &str, new_quote: String) -> Response {
         match self.config.quotes.get_mut(quote_name) {
             Some(old_quote) => {
-                let response = Some(format!(
+                let response = format!(
                     "Edited quote {}: {}. New quote: {}",
                     quote_name, old_quote, new_quote
-                ));
+                ).into();
                 *old_quote = new_quote;
                 self.config.save().unwrap();
-                response
+                Some(response)
             }
             None => {
-                Some(format!("I don't know any quote named {quote_name}. Try creating one with !quote new <quote_name> <quote>"))
+                Some(format!("I don't know any quote named {quote_name}. Try creating one with !quote new <quote_name> <quote>").into())
             }
         }
     }
@@ -66,27 +66,25 @@ impl QuoteBot {
     fn quote_get(&mut self, quote_name: &str) -> Response {
         match self.config.quotes.get(quote_name) {
             Some(quote) => {
-                Some(quote.clone())
+                Some(quote.into())
             }
             None => {
-                Some(format!("I don't know any quote named {quote_name}. Try creating one with !quote new <quote_name> <quote>"))
+                Some(format!("I don't know any quote named {quote_name}. Try creating one with !quote new <quote_name> <quote>").into())
             },
         }
     }
 
     fn quote_rename(&mut self, quote_name: &str, new_name: String) -> Response {
         if self.config.quotes.contains_key(&new_name) {
-            Some(format!("A quote with name {} already exists", new_name))
+            Some(format!("A quote with name {} already exists", new_name).into())
         } else if let Some(quote) = self.config.quotes.remove(quote_name) {
-            let response = Some(format!(
-                "Changed quote's name from {} to {}",
-                quote_name, new_name
-            ));
+            let response =
+                format!("Changed quote's name from {} to {}", quote_name, new_name).into();
             self.config.quotes.insert(new_name, quote);
             self.config.save().unwrap();
-            response
+            Some(response)
         } else {
-            Some(format!("No quote with name {} found", quote_name))
+            Some(format!("No quote with name {} found", quote_name).into())
         }
     }
 

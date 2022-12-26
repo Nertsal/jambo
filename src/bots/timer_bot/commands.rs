@@ -7,7 +7,7 @@ impl TimerBot {
         let time = match time {
             Some(time) => match Timer::parse_duration(time) {
                 Ok(time) => Some(time),
-                Err(err) => return Some(format!("Failed to parse time argument: {err}")),
+                Err(err) => return Some(format!("Failed to parse time argument: {err}").into()),
             },
             None => None,
         };
@@ -23,8 +23,8 @@ impl TimerBot {
     fn timer_pause(&mut self, paused: bool) -> Response {
         self.timer.paused = paused;
         match paused {
-            true => Some("Timer has been paused".to_string()),
-            false => Some("Timer has been resumed".to_string()),
+            true => Some("Timer has been paused".into()),
+            false => Some("Timer has been resumed".into()),
         }
     }
 
@@ -39,11 +39,14 @@ impl TimerBot {
         };
         self.timer.mode = mode;
 
-        Some(format!(
-            "Changed timer to {} from {}",
-            self.timer.mode,
-            Timer::format_duration(self.timer.time)
-        ))
+        Some(
+            format!(
+                "Changed timer to {} from {}",
+                self.timer.mode,
+                Timer::format_duration(self.timer.time)
+            )
+            .into(),
+        )
     }
 
     pub fn commands() -> Commands<Self> {

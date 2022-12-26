@@ -17,7 +17,7 @@ impl GamejamBot {
         let reply = match game {
             Some(game) => {
                 self.update_status(&format!("Playing {}", game.to_string_name(true)));
-                let reply = format!("Now playing {}. ", game.to_string_link(true));
+                let reply = format!("Now playing {}. ", game.to_string_link(true)).into();
                 self.state.raffle_weights.remove(&game.link);
                 self.state.current_state = GameJamState::Playing { game };
                 Some(reply)
@@ -70,13 +70,9 @@ impl GamejamBot {
             .remove_game(|game| !check_main_author || game.authors[0] == *author_name)
         {
             Some(_) => {
-                let reply = format!("{}'s game has been removed from the queue", author_name);
-                Some(reply)
+                Some(format!("{}'s game has been removed from the queue", author_name).into())
             }
-            None => {
-                let reply = format!("Couldn't find a game from {}", author_name);
-                Some(reply)
-            }
+            None => Some(format!("Couldn't find a game from {}", author_name).into()),
         }
     }
 
@@ -106,17 +102,20 @@ impl GamejamBot {
                         game,
                     };
                     self.update_status(&format!("Waiting for response from {}", game_author));
-                    Some(format!(
-                        "@{}, we are about to play your game. Please reply in {} seconds.",
-                        game_author, response_time
-                    ))
+                    Some(
+                        format!(
+                            "@{}, we are about to play your game. Please reply in {} seconds.",
+                            game_author, response_time
+                        )
+                        .into(),
+                    )
                 } else {
                     self.set_current(Some(game))
                 }
             }
             Err(reply) => {
                 self.set_current(None);
-                Some(reply)
+                Some(reply.into())
             }
         };
         self.save_games().unwrap();
@@ -129,7 +128,7 @@ impl GamejamBot {
             GameJamState::Playing { game } | GameJamState::Waiting { game, .. } => {
                 self.state.current_state = GameJamState::Idle;
                 self.state.submissions.skipped.push(game);
-                let reply = "Game has been skipped.".to_owned();
+                let reply = "Game has been skipped.".into();
                 let reply = if auto_next {
                     self.next(None, true).unwrap_or(reply)
                 } else {
@@ -140,7 +139,7 @@ impl GamejamBot {
             }
             state => {
                 self.state.current_state = state;
-                Some("Not playing any game at the moment.".to_owned())
+                Some("Not playing any game at the moment.".into())
             }
         }
     }
@@ -150,7 +149,7 @@ impl GamejamBot {
             self.state.submissions.skipped.push(game);
         }
         self.save_games().unwrap();
-        Some("All games from the queue are moved to the skipped list.".to_string())
+        Some("All games from the queue are moved to the skipped list.".into())
     }
 
     fn unskip(&mut self, author_name: Option<&String>) -> Response {
@@ -182,7 +181,7 @@ impl GamejamBot {
                     })
                     .map(|index| self.state.submissions.skipped.remove(index));
                 match self.set_current(skipped) {
-                    Some(set_reply) => reply.push_str(&set_reply),
+                    Some(set_reply) => reply.push_str(&set_reply.message),
                     None => reply.push_str(&format!("No game from {} found", author_name)),
                 }
             }
@@ -194,7 +193,7 @@ impl GamejamBot {
                         .skipped
                         .remove(self.state.submissions.skipped.len() - 1);
                     if let Some(set_reply) = self.set_current(Some(skipped)) {
-                        reply.push_str(&set_reply)
+                        reply.push_str(&set_reply.message)
                     }
                 } else {
                     reply.push_str("No game has been skipped yet")
@@ -203,7 +202,7 @@ impl GamejamBot {
         }
 
         self.save_games().unwrap();
-        Some(reply)
+        Some(reply.into())
     }
 
     fn check_link(&self, game_link: &str) -> bool {
@@ -217,23 +216,18 @@ impl GamejamBot {
     fn submit(&mut self, game_link: String, sender: String) -> Response {
         // Check if submissions are closed
         if !self.state.is_queue_open {
-            return Some(
-                "The queue is closed. You can not submit your game at the moment.".to_owned(),
-            );
+            return Some("The queue is closed. You can not submit your game at the moment.".into());
         }
 
         // Check if the link is legal
         if !self.check_link(&game_link) {
-            return Some(format!("@{}, that link can not be submitted", sender));
+            return Some(format!("@{}, that link can not be submitted", sender).into());
         }
 
         // Check if the sender has already submitted a game
         let same_author = self.find_game(|game| game.authors.contains(&sender));
         if !self.config.multiple_submissions && same_author.is_some() {
-            return Some(format!(
-                "@{}, you can not submit more than one game",
-                sender
-            ));
+            return Some(format!("@{}, you can not submit more than one game", sender).into());
         }
 
         // Check if a game with the same link was already submitted
@@ -242,7 +236,7 @@ impl GamejamBot {
         if let Some((game, game_type)) = same_name {
             // Check if the game has already been played
             if let GameType::Played = &game_type {
-                return Some(format!("@{}, we have already played that game.", sender));
+                return Some(format!("@{}, we have already played that game.", sender).into());
             }
 
             // Check if sender should be added as another author
@@ -250,7 +244,8 @@ impl GamejamBot {
                 let response = format!(
                     "@{}, you have been marked as another author of this game",
                     sender
-                );
+                )
+                .into();
                 game.authors.push(sender);
                 self.save_games().unwrap();
                 return Some(response);
@@ -269,10 +264,10 @@ impl GamejamBot {
                 ),
                 _ => unreachable!(),
             };
-            return Some(response);
+            return Some(response.into());
         }
 
-        let response = format!("@{}, your game has been submitted!", sender);
+        let response = format!("@{}, your game has been submitted!", sender).into();
 
         self.state
             .submissions
@@ -293,22 +288,25 @@ impl GamejamBot {
         if let Some((game, game_type)) = game {
             // Check main author
             if check_main_author && game.authors[0] != *sender {
-                let response = format!("@{}, you do not have enough rights", sender);
-                return Err(Some(response));
+                return Err(Some(
+                    format!("@{}, you do not have enough rights", sender).into(),
+                ));
             }
 
             match game_type {
                 GameType::Current | GameType::Queued | GameType::Skipped => return Ok(game),
                 GameType::Played => {
-                    let response = format!("@{}, you cannot edit played games", sender);
-                    return Err(Some(response));
+                    return Err(Some(
+                        format!("@{}, you cannot edit played games", sender).into(),
+                    ));
                 }
             }
         }
 
         // No game from sender
-        let response = format!("@{}, you have not submitted a game yet", sender);
-        Err(Some(response))
+        Err(Some(
+            format!("@{}, you have not submitted a game yet", sender).into(),
+        ))
     }
 
     fn authors_add(
@@ -325,7 +323,8 @@ impl GamejamBot {
                 let response = format!(
                     "@{}, {} was marked as another author of the game",
                     sender, other_author
-                );
+                )
+                .into();
                 game.authors.push(other_author);
                 self.save_games().unwrap();
                 Some(response)
@@ -346,11 +345,13 @@ impl GamejamBot {
             Ok(game) => {
                 // Removing every author is prohibited
                 if game.authors.len() == 1 {
-                    let response = format!(
+                    return Some(
+                        format!(
                         "@{}, you cannot remove the only author of the game. Call !cancel instead",
                         sender
+                    )
+                        .into(),
                     );
-                    return Some(response);
                 }
 
                 let index = game
@@ -363,16 +364,15 @@ impl GamejamBot {
                     Some(index) => {
                         game.authors.remove(index);
                         self.save_games().unwrap();
-                        let response = format!(
-                            "@{}, {} was removed from the author list of the game",
-                            sender, other_author
-                        );
-                        Some(response)
+                        Some(
+                            format!(
+                                "@{}, {} was removed from the author list of the game",
+                                sender, other_author
+                            )
+                            .into(),
+                        )
                     }
-                    None => {
-                        let response = format!("@{}, {} was not found", sender, other_author);
-                        Some(response)
-                    }
+                    None => Some(format!("@{}, {} was not found", sender, other_author).into()),
                 }
             }
         }
@@ -381,7 +381,7 @@ impl GamejamBot {
     fn raffle_start(&mut self) -> Response {
         match &self.state.current_state {
             GameJamState::Raffle { .. } => {
-                Some("The raffle is in progress. Type !join to join the raffle.".to_string())
+                Some("The raffle is in progress. Type !join to join the raffle.".into())
             }
             _ => {
                 self.set_current(None);
@@ -389,7 +389,7 @@ impl GamejamBot {
                     joined: HashMap::new(),
                 };
                 self.update_status("The raffle is in progress. Type !join to join the raffle!");
-                Some("The raffle has started! Type !join to join the raffle.".to_string())
+                Some("The raffle has started! Type !join to join the raffle.".into())
             }
         }
     }
@@ -425,14 +425,14 @@ impl GamejamBot {
                     }
                     Err(_) => {
                         self.state.current_state = GameJamState::Idle;
-                        Some("Noone entered the raffle :(".to_string())
+                        Some("Noone entered the raffle :(".into())
                     }
                 };
 
                 self.save_games().unwrap();
                 reply
             }
-            _ => Some("The raffle should be started first: !raffle".to_string()),
+            _ => Some("The raffle should be started first: !raffle".into()),
         }
     }
 
@@ -449,8 +449,7 @@ impl GamejamBot {
                 Some((game, game_type)) => match game_type {
                     GameType::Played => {
                         // The game has already been played
-                        let response = format!("@{}, we have already played your game", sender);
-                        Some(response)
+                        Some(format!("@{}, we have already played your game", sender).into())
                     }
                     _ => {
                         let game_link = game.link.clone();
@@ -470,8 +469,7 @@ impl GamejamBot {
                 },
                 None => {
                     // Did not find a game from sender
-                    let response = format!("@{}, you cannot join the raffle", sender);
-                    Some(response)
+                    Some(format!("@{}, you cannot join the raffle", sender).into())
                 }
             }
         } else {
@@ -485,9 +483,9 @@ impl GamejamBot {
             GameJamState::Raffle { .. } => {
                 self.state.current_state = GameJamState::Idle;
                 self.save_games().unwrap();
-                Some("Raffle is now inactive".to_string())
+                Some("Raffle is now inactive".into())
             }
-            _ => Some("Raffle is not active anyway. Start the raffle with !raffle".to_string()),
+            _ => Some("Raffle is not active anyway. Start the raffle with !raffle".into()),
         }
     }
 
@@ -496,29 +494,22 @@ impl GamejamBot {
             return None;
         }
 
-        let reply = if let Some(index) = self
-            .state
+        self.state
             .submissions
             .skipped
             .iter()
             .enumerate()
             .find(|(_, game)| game.authors.contains(author_name))
-            .map(|(index, _)| index)
-        {
-            let game = self.state.submissions.skipped.remove(index);
-            match self.config.return_mode {
-                ReturnMode::Front => self.state.submissions.queue.return_game(game),
-                ReturnMode::Back => self.state.submissions.queue.queue_game(game),
-            }
-            self.save_games().unwrap();
-            Some(format!(
-                "@{}, your game was returned to the queue",
-                author_name
-            ))
-        } else {
-            None
-        };
-        reply
+            .map(|(i, _)| i)
+            .map(|index| {
+                let game = self.state.submissions.skipped.remove(index);
+                match self.config.return_mode {
+                    ReturnMode::Front => self.state.submissions.queue.return_game(game),
+                    ReturnMode::Back => self.state.submissions.queue.queue_game(game),
+                }
+                self.save_games().unwrap();
+                format!("@{}, your game was returned to the queue", author_name).into()
+            })
     }
 
     fn luck(&self, author_name: &String) -> Response {
@@ -533,18 +524,20 @@ impl GamejamBot {
 
                 match game {
                     None => {
-                        let response =
-                            format!("@{}, you need to first submit your game!", author_name);
-                        return Some(response);
+                        return Some(
+                            format!("@{}, you need to first submit your game!", author_name).into(),
+                        );
                     }
                     Some((_, game_type)) => match game_type {
                         GameType::Queued | GameType::Skipped => self.config.raffle_default_weight,
                         _ => {
-                            let response = format!(
-                                "@{}, you can no longer participate in raffles!",
-                                author_name
+                            return Some(
+                                (format!(
+                                    "@{}, you can no longer participate in raffles!",
+                                    author_name
+                                ))
+                                .into(),
                             );
-                            return Some(response);
                         }
                     },
                 }
@@ -552,8 +545,7 @@ impl GamejamBot {
         };
 
         // Respond
-        let response = format!("@{}, your current luck level is {}", author_name, luck);
-        Some(response)
+        Some(format!("@{}, your current luck level is {}", author_name, luck).into())
     }
 
     fn force(&mut self) -> Response {
@@ -562,7 +554,7 @@ impl GamejamBot {
             GameJamState::Waiting { game, .. } => self.set_current(Some(game)),
             state => {
                 self.state.current_state = state;
-                Some("Not waiting for response at the moment".to_owned())
+                Some("Not waiting for response at the moment".into())
             }
         }
     }
@@ -612,7 +604,7 @@ impl GamejamBot {
         }
 
         if !reply.is_empty() {
-            Some(reply)
+            Some(reply.into())
         } else {
             None
         }
@@ -705,9 +697,9 @@ impl GamejamBot {
                 AuthorityLevel::Viewer as usize,
                 Arc::new(|bot, _, _| match &bot.state.current_state {
                     GameJamState::Playing { game } => {
-                        Some(format!("Current game is: {}", game.to_string_link(false)))
+                        Some(format!("Current game is: {}", game.to_string_link(false)).into())
                     }
-                    _ => Some("Not playing any game at the moment".to_owned()),
+                    _ => Some("Not playing any game at the moment".into()),
                 }),
             );
 
@@ -758,7 +750,7 @@ impl GamejamBot {
             AuthorityLevel::Broadcaster as usize,
             Arc::new(|bot, _, _| {
                 bot.set_current(None);
-                Some("Current game set to None".to_owned())
+                Some("Current game set to None".into())
             }),
         );
 
@@ -774,7 +766,7 @@ impl GamejamBot {
             Arc::new(|bot, _, _| {
                 bot.state.is_queue_open = false;
                 bot.save_games().unwrap();
-                Some("The queue is now closed".to_owned())
+                Some("The queue is now closed".into())
             }),
         );
 
@@ -784,7 +776,7 @@ impl GamejamBot {
             Arc::new(|bot, _, _| {
                 bot.state.is_queue_open = true;
                 bot.save_games().unwrap();
-                Some("The queue is now open".to_owned())
+                Some("The queue is now open".into())
             }),
         );
 

@@ -3,13 +3,13 @@ use super::*;
 impl VoteBot {
     pub fn vote_start(&mut self) -> Response {
         match &self.state.vote_mode {
-            VoteMode::Active { .. } => Some("The voting is in progress.".to_string()),
+            VoteMode::Active { .. } => Some("The voting is in progress.".into()),
             VoteMode::Inactive => {
                 self.state.vote_mode = VoteMode::Active {
                     votes: HashMap::new(),
                 };
                 self.update_status("The voting is in progress");
-                Some("The voting has started. Type !vote <your vote>".to_string())
+                Some("The voting has started. Type !vote <your vote>".into())
             }
         }
     }
@@ -29,17 +29,16 @@ impl VoteBot {
                     votes_count
                 };
                 self.update_status(&serde_json::to_string(&votes_count).unwrap());
-                let response = Some(format!(
+                let response = format!(
                     "The voting has finished with the total of {} votes and {} unique ones.",
                     voters,
                     votes_count.len(),
-                ));
+                )
+                .into();
                 self.state.last_vote = votes_count;
-                response
+                Some(response)
             }
-            VoteMode::Inactive => {
-                Some("The voting should be started first: !vote start".to_string())
-            }
+            VoteMode::Inactive => Some("The voting should be started first: !vote start".into()),
         }
     }
 

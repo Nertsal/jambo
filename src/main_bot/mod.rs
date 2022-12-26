@@ -171,14 +171,14 @@ pub trait BotPerformer {
         let commands = self.commands();
         let matched = commands.find_commands(message).collect::<Vec<_>>();
         for (command, args) in matched {
-            if let Some(command_reply) = command(self, &message.sender, args) {
-                match message_origin {
-                    MessageOrigin::Twitch => {
-                        send_message(cli, client, channel.clone(), command_reply).await;
-                    }
-                    MessageOrigin::Console => {
-                        log(cli, LogType::Console, &command_reply);
-                    }
+            if let Some(mut response) = command(self, &message.sender, args) {
+                if let MessageOrigin::Twitch = message_origin {
+                    response.send_to_twitch = true;
+                }
+                if response.send_to_twitch {
+                    send_message(cli, client, channel.clone(), response.message).await;
+                } else {
+                    log(cli, LogType::Console, &response.message);
                 }
             }
         }

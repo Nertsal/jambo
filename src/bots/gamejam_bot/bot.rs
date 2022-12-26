@@ -17,7 +17,7 @@ impl Bot for GamejamBot {
         message: &CommandMessage,
     ) {
         if let Some(reply) = self.check_message(message) {
-            send_message(&self.cli, client, channel.to_owned(), reply).await;
+            send_message(&self.cli, client, channel.to_owned(), reply.message).await;
         }
         self.perform(&self.cli.clone(), client, channel, message)
             .await;
@@ -25,7 +25,7 @@ impl Bot for GamejamBot {
 
     async fn update(&mut self, client: &TwitchClient, channel_login: &String, delta_time: f32) {
         if let Some(reply) = self.update(delta_time) {
-            send_message(&self.cli, client, channel_login.clone(), reply).await;
+            send_message(&self.cli, client, channel_login.clone(), reply.message).await;
         }
 
         if self.update_sheets_queued {

@@ -23,20 +23,20 @@ impl MainBot {
                 res.pop();
                 res += " are now active";
             }
-            return Some(res);
+            return Some(res.into());
         }
 
         if self.bots.active.contains_key(bot_name) {
-            return Some(format!("{bot_name} is already active"));
+            return Some(format!("{bot_name} is already active").into());
         }
         match self.bots.constructors.get(bot_name) {
             Some(constructor) => {
                 let bot = constructor(&self.cli);
                 self.bots.active.insert(bot_name.to_owned(), bot);
                 self.save_bots().expect("Failed to save state");
-                Some(format!("{bot_name} is now active"))
+                Some(format!("{bot_name} is now active").into())
             }
-            None => Some(format!("I don't know about {bot_name}")),
+            None => Some(format!("I don't know about {bot_name}").into()),
         }
     }
 
@@ -59,19 +59,19 @@ impl MainBot {
                 res.pop();
                 res += " are now resting";
             }
-            return Some(res);
+            return Some(res.into());
         }
 
         match self.bots.active.remove(bot_name) {
             Some(_) => {
                 self.save_bots().expect("Failed to save state");
-                Some(format!("{bot_name} is now resting"))
+                Some(format!("{bot_name} is now resting").into())
             }
             None => {
                 if self.bots.constructors.contains_key(bot_name) {
-                    Some(format!("{bot_name} is already off"))
+                    Some(format!("{bot_name} is already off").into())
                 } else {
-                    Some(format!("I don't know about {bot_name}"))
+                    Some(format!("I don't know about {bot_name}").into())
                 }
             }
         }
@@ -95,11 +95,11 @@ impl MainBot {
         let mut res = String::new();
         for bot_name in active {
             if let Some(ans) = self.enable(&bot_name) {
-                res += ans.as_str();
+                res += ans.message.as_str();
                 res += ". ";
             }
         }
-        Some(res)
+        Some(res.into())
     }
 
     fn backup_create(&self, backup_path: impl AsRef<std::path::Path>) -> std::io::Result<Response> {
@@ -108,7 +108,7 @@ impl MainBot {
         clear_dir(path)?;
         copy_dir::copy_dir("config", path.join("config"))?;
         copy_dir::copy_dir("status", path.join("status"))?;
-        Ok(Some("Backup created".to_string()))
+        Ok(Some("Backup created".into()))
     }
 
     fn backup_load(
@@ -131,12 +131,12 @@ impl MainBot {
             Ok(_) => {
                 self.reset_all();
                 std::fs::remove_dir_all("backups/temp")?;
-                Ok(Some("Backup loaded".to_string()))
+                Ok(Some("Backup loaded".into()))
             }
             Err(err) => {
                 self.log(LogType::Error, &format!("Failed to load backup: {err}"));
                 load("temp")?;
-                Ok(Some("Failed to load backup".to_string()))
+                Ok(Some("Failed to load backup".into()))
             }
         }
     }
@@ -152,7 +152,7 @@ impl MainBot {
                     Ok(response) => response,
                     Err(err) => {
                         bot.log(LogType::Error, &format!("Failed to create backup: {err}"));
-                        Some("Failed to create backup".to_string())
+                        Some("Failed to create backup".into())
                     }
                 }),
             );
@@ -164,7 +164,7 @@ impl MainBot {
                 Ok(response) => response,
                 Err(err) => {
                     bot.log(LogType::Error, &format!("Failed to create backup: {err}"));
-                    Some("Failed to create backup".to_string())
+                    Some("Failed to create backup".into())
                 }
             }),
         );
@@ -179,7 +179,7 @@ impl MainBot {
                     Ok(response) => response,
                     Err(err) => {
                         bot.log(LogType::Error, &format!("Failed to load backup: {err}"));
-                        Some("Failed to load backup".to_string())
+                        Some("Failed to load backup".into())
                     }
                 }),
             );
@@ -207,7 +207,7 @@ impl MainBot {
                 AuthorityLevel::Broadcaster as _,
                 Arc::new(|bot, _, _| {
                     bot.queue_shutdown = true;
-                    Some("Shutting down...".to_string())
+                    Some("Shutting down...".into())
                 }),
             ),
             CommandBuilder::new()
@@ -217,8 +217,9 @@ impl MainBot {
                 "!echo";
                 line;
                 true, AuthorityLevel::Server as _, Arc::new(|_, _, args| {
-                    let message = &args[0];
-                    Some(message.to_string())
+                    let mut response = ResponseMsg::new(&args[0]);
+                    response.send_to_twitch = true;
+                    Some(response)
                 })
             ],
         ])

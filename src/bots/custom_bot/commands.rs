@@ -3,13 +3,15 @@ use super::*;
 impl CustomBot {
     fn command_new(&mut self, command_name: String, command_response: String) -> Response {
         if self.config.commands.contains_key(&command_name) {
-            Some(format!(
+            Some(
+                format!(
                 "A command with that name already exists. Try !edit {command_name} <new response>"
-            ))
+            )
+                .into(),
+            )
         } else {
-            let response = Some(format!(
-                "Added new command: {command_name}: {command_response}"
-            ));
+            let response =
+                Some(format!("Added new command: {command_name}: {command_response}").into());
             self.command_edit(command_name, command_response);
             self.config.save().unwrap();
             response
@@ -21,18 +23,15 @@ impl CustomBot {
             Some(command_response) => {
                 self.remove_command(command_name);
                 self.config.save().unwrap();
-                Some(format!(
-                    "Removed the command: {command_name}: {command_response}"
-                ))
+                Some(format!("Removed the command: {command_name}: {command_response}").into())
             }
-            None => Some("A command with that name does not exist".to_string()),
+            None => Some("A command with that name does not exist".into()),
         }
     }
 
     fn command_edit(&mut self, command_name: String, command_response: String) -> Response {
-        let response = Some(format!(
-            "Updated command to {command_name}: {command_response}"
-        ));
+        let response =
+            Some(format!("Updated command to {command_name}: {command_response}").into());
         self.config
             .commands
             .insert(command_name.clone(), command_response);
@@ -57,7 +56,7 @@ impl CustomBot {
             child_nodes: vec![CommandNode::final_node(
                 true,
                 AuthorityLevel::Viewer as usize,
-                Arc::new(move |bot, _, _| Some(bot.config.commands[&command_name].clone())),
+                Arc::new(move |bot, _, _| Some((&bot.config.commands[&command_name]).into())),
             )],
         });
     }
