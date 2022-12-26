@@ -25,6 +25,7 @@ pub enum AuthorityLevel {
     Viewer = 0,
     Moderator = 1,
     Broadcaster = 2,
+    Server = 3,
 }
 
 impl AuthorityLevel {

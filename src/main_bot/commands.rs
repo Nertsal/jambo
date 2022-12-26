@@ -213,6 +213,14 @@ impl MainBot {
             CommandBuilder::new()
                 .literal(["!backup"])
                 .split([backup_create, backup_load, backup]),
+            command![
+                "!echo";
+                line;
+                true, AuthorityLevel::Server as _, Arc::new(|_, _, args| {
+                    let message = &args[0];
+                    Some(message.to_string())
+                })
+            ],
         ])
     }
 }

@@ -79,11 +79,11 @@ async fn main() {
                             &channel_login_clone,
                             &CommandMessage {
                                 sender: Sender {
-                                    name: "Admin".to_owned(),
+                                    name: "Server".to_owned(),
                                     origin: MessageOrigin::Console,
                                 },
                                 message_text: input.clone(),
-                                authority_level: AuthorityLevel::Broadcaster as usize,
+                                authority_level: AuthorityLevel::Server as usize,
                             },
                         )
                         .await;
