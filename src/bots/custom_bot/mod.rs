@@ -16,7 +16,7 @@ pub struct CustomSerialized {
 }
 
 impl CustomBot {
-    pub fn new(cli: &Option<Cli>) -> Box<dyn Bot> {
+    pub fn new_boxed(cli: &Option<Cli>) -> Box<dyn Bot> {
         let config = match CustomConfig::load() {
             Ok(config) => config,
             Err(error) => match error.kind() {

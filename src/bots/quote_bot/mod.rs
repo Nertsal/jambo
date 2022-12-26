@@ -21,7 +21,7 @@ pub struct QuoteSerialized {
 }
 
 impl QuoteBot {
-    pub fn new(cli: &Option<Cli>) -> Box<dyn Bot> {
+    pub fn new_boxed(cli: &Option<Cli>) -> Box<dyn Bot> {
         let config = match QuoteConfig::load() {
             Ok(config) => config,
             Err(error) => match error.kind() {

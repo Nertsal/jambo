@@ -54,8 +54,8 @@ impl Submission {
     fn name_from_link(link: &str) -> Option<String> {
         // Ludumdare
         let ludumdare = "https://ldjam.com/events/ludum-dare/";
-        if link.starts_with(ludumdare) {
-            let mut args = link[ludumdare.len()..].split('/');
+        if let Some(stripped) = link.strip_prefix(ludumdare) {
+            let mut args = stripped.split('/');
             let _ld_number = args.next()?;
             let game_name = args.next()?;
             Some(game_name.to_owned())

@@ -15,18 +15,18 @@ pub enum SerializedBot {
     Quote(QuoteSerialized),
     Timer(TimerSerialized),
     Vote(VoteSerialized),
-    Gamejam(GamejamSerialized),
+    Gamejam(Box<GamejamSerialized>),
 }
 
 fn constructors() -> impl IntoIterator<Item = (BotName, BotConstructor)> {
     // Add a line below to make constructing the bot possible
     [
         // Insert here
-        (CustomBot::NAME.to_owned(), CustomBot::new as _),
-        (QuoteBot::NAME.to_owned(), QuoteBot::new as _),
-        (TimerBot::NAME.to_owned(), TimerBot::new as _),
-        (VoteBot::NAME.to_owned(), VoteBot::new as _),
-        (GamejamBot::NAME.to_owned(), GamejamBot::new as _),
+        (CustomBot::NAME.to_owned(), CustomBot::new_boxed as _),
+        (QuoteBot::NAME.to_owned(), QuoteBot::new_boxed as _),
+        (TimerBot::NAME.to_owned(), TimerBot::new_boxed as _),
+        (VoteBot::NAME.to_owned(), VoteBot::new_boxed as _),
+        (GamejamBot::NAME.to_owned(), GamejamBot::new_boxed as _),
     ]
 }
 
@@ -125,7 +125,7 @@ impl MainBot {
         }
     }
 
-    pub fn serialize<'a>(&'a self) -> impl Iterator<Item = SerializedBot> + 'a {
+    pub fn serialize(&self) -> impl Iterator<Item = SerializedBot> + '_ {
         self.bots.active.values().map(|bot| bot.serialize())
     }
 }

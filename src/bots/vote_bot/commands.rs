@@ -37,16 +37,15 @@ impl VoteBot {
                 self.state.last_vote = votes_count;
                 response
             }
-            VoteMode::Inactive => Some("The voting should be started first: !vote start".to_string()),
+            VoteMode::Inactive => {
+                Some("The voting should be started first: !vote start".to_string())
+            }
         }
     }
 
     pub fn vote(&mut self, voter: String, vote: String) -> Response {
-        match &mut self.state.vote_mode {
-            VoteMode::Active { votes } => {
-                votes.insert(voter, vote.to_lowercase());
-            }
-            _ => (),
+        if let VoteMode::Active { votes } = &mut self.state.vote_mode {
+            votes.insert(voter, vote.to_lowercase());
         }
         None
     }

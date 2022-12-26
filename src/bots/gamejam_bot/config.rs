@@ -37,7 +37,7 @@ pub struct GamejamConfig {
 }
 
 impl GamejamBot {
-    pub fn new(cli: &Option<Cli>) -> Box<dyn Bot> {
+    pub fn new_boxed(cli: &Option<Cli>) -> Box<dyn Bot> {
         // Read config
         let config: GamejamConfig = serde_json::from_reader(std::io::BufReader::new(
             std::fs::File::open(CONFIG_FILE).unwrap(),

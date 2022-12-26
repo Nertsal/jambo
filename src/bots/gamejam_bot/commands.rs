@@ -193,9 +193,8 @@ impl GamejamBot {
                         .submissions
                         .skipped
                         .remove(self.state.submissions.skipped.len() - 1);
-                    match self.set_current(Some(skipped)) {
-                        Some(set_reply) => reply.push_str(&set_reply),
-                        None => (),
+                    if let Some(set_reply) = self.set_current(Some(skipped)) {
+                        reply.push_str(&set_reply)
                     }
                 } else {
                     reply.push_str("No game has been skipped yet")
@@ -381,7 +380,9 @@ impl GamejamBot {
 
     fn raffle_start(&mut self) -> Response {
         match &self.state.current_state {
-            GameJamState::Raffle { .. } => Some("The raffle is in progress. Type !join to join the raffle.".to_string()),
+            GameJamState::Raffle { .. } => {
+                Some("The raffle is in progress. Type !join to join the raffle.".to_string())
+            }
             _ => {
                 self.set_current(None);
                 self.state.current_state = GameJamState::Raffle {
@@ -436,50 +437,47 @@ impl GamejamBot {
     }
 
     fn raffle_join(&mut self, sender: String) -> Response {
-        match &mut self.state.current_state {
-            GameJamState::Raffle { joined } => {
-                // Find the game from sender
-                // Only those who have submitted a game and whose game has not been played yet
-                // are allowed to join the raffle
-                let game = self
-                    .state
-                    .submissions
-                    .find_game(|game| game.authors.contains(&sender));
-                match game {
-                    Some((game, game_type)) => match game_type {
-                        GameType::Played => {
-                            // The game has already been played
-                            let response = format!("@{}, we have already played your game", sender);
-                            return Some(response);
-                        }
-                        _ => {
-                            let game_link = game.link.clone();
-                            // Get weight
-                            let weight = *self
-                                .state
-                                .raffle_weights
-                                .entry(game_link.clone())
-                                .or_insert(self.config.raffle_default_weight);
-
-                            // Join
-                            joined.insert(game_link, weight);
-
-                            // Return with no response
-                            return None;
-                        }
-                    },
-                    None => {
-                        // Did not find a game from sender
-                        let response = format!("@{}, you cannot join the raffle", sender);
-                        return Some(response);
+        if let GameJamState::Raffle { joined } = &mut self.state.current_state {
+            // Find the game from sender
+            // Only those who have submitted a game and whose game has not been played yet
+            // are allowed to join the raffle
+            let game = self
+                .state
+                .submissions
+                .find_game(|game| game.authors.contains(&sender));
+            match game {
+                Some((game, game_type)) => match game_type {
+                    GameType::Played => {
+                        // The game has already been played
+                        let response = format!("@{}, we have already played your game", sender);
+                        Some(response)
                     }
+                    _ => {
+                        let game_link = game.link.clone();
+                        // Get weight
+                        let weight = *self
+                            .state
+                            .raffle_weights
+                            .entry(game_link.clone())
+                            .or_insert(self.config.raffle_default_weight);
+
+                        // Join
+                        joined.insert(game_link, weight);
+
+                        // Return with no response
+                        None
+                    }
+                },
+                None => {
+                    // Did not find a game from sender
+                    let response = format!("@{}, you cannot join the raffle", sender);
+                    Some(response)
                 }
             }
-            _ => (),
+        } else {
+            // Not doing a raffle at the moment
+            None
         }
-
-        // Not doing a raffle at the moment
-        None
     }
 
     fn raffle_cancel(&mut self) -> Response {

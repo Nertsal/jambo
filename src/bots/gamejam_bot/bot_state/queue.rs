@@ -35,7 +35,7 @@ impl GamesQueue {
             .or_else(|| self.games_queue.pop_front())
     }
 
-    pub fn drain_all<'a>(&'a mut self) -> impl Iterator<Item = Submission> + 'a {
+    pub fn drain_all(&mut self) -> impl Iterator<Item = Submission> + '_ {
         self.returned_queue
             .drain(..)
             .chain(self.games_queue.drain(..))

@@ -54,9 +54,9 @@ impl Bot for GamejamBot {
     }
 
     fn serialize(&self) -> SerializedBot {
-        SerializedBot::Gamejam(GamejamSerialized {
+        SerializedBot::Gamejam(Box::new(GamejamSerialized {
             config: self.config.clone(),
             state: self.state.clone(),
-        })
+        }))
     }
 }
