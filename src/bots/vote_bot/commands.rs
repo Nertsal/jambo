@@ -3,13 +3,13 @@ use super::*;
 impl VoteBot {
     pub fn vote_start(&mut self) -> Response {
         match &self.state.vote_mode {
-            VoteMode::Active { .. } => Some(format!("The voting is in progress.")),
+            VoteMode::Active { .. } => Some("The voting is in progress.".to_string()),
             VoteMode::Inactive => {
                 self.state.vote_mode = VoteMode::Active {
                     votes: HashMap::new(),
                 };
                 self.update_status("The voting is in progress");
-                Some(format!("The voting has started. Type !vote <your vote>"))
+                Some("The voting has started. Type !vote <your vote>".to_string())
             }
         }
     }
@@ -37,7 +37,7 @@ impl VoteBot {
                 self.state.last_vote = votes_count;
                 response
             }
-            VoteMode::Inactive => Some(format!("The voting should be started first: !vote start")),
+            VoteMode::Inactive => Some("The voting should be started first: !vote start".to_string()),
         }
     }
 

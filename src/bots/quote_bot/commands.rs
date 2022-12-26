@@ -16,23 +16,23 @@ impl QuoteBot {
                 random_quote_name, self.config.quotes[random_quote_name as &str]
             ))
         } else {
-            Some(format!(
-                "No quotes yet. Add new ones with !quote add <quote>"
-            ))
+            Some("No quotes yet. Add new ones with !quote add <quote>".to_string())
         }
     }
 
     fn quote_new(&mut self, quote_name: String, quote: String) -> Response {
-        if self.config.quotes.contains_key(&quote_name) {
+        if let std::collections::hash_map::Entry::Vacant(entry) =
+            self.config.quotes.entry(quote_name.clone())
+        {
+            let response = Some(format!("Added new quote {}: {}", quote_name, quote));
+            entry.insert(quote);
+            self.config.save().unwrap();
+            response
+        } else {
             Some(format!(
                 "A quote with the name {} already exists",
                 quote_name
             ))
-        } else {
-            let response = Some(format!("Added new quote {}: {}", quote_name, quote));
-            self.config.quotes.insert(quote_name, quote);
-            self.config.save().unwrap();
-            response
         }
     }
 

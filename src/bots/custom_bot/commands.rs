@@ -25,7 +25,7 @@ impl CustomBot {
                     "Removed the command: {command_name}: {command_response}"
                 ))
             }
-            None => Some(format!("A command with that name does not exist")),
+            None => Some("A command with that name does not exist".to_string()),
         }
     }
 

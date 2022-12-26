@@ -45,7 +45,7 @@ impl Timer {
     }
 
     pub fn time_status(&self) -> String {
-        Timer::format_duration(self.time).to_string()
+        Timer::format_duration(self.time)
     }
 
     pub fn parse_duration(s: &str) -> Result<std::time::Duration, Box<dyn std::error::Error>> {

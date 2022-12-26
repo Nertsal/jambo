@@ -108,7 +108,7 @@ impl MainBot {
         clear_dir(path)?;
         copy_dir::copy_dir("config", path.join("config"))?;
         copy_dir::copy_dir("status", path.join("status"))?;
-        Ok(Some(format!("Backup created")))
+        Ok(Some("Backup created".to_string()))
     }
 
     fn backup_load(
@@ -131,12 +131,12 @@ impl MainBot {
             Ok(_) => {
                 self.reset_all();
                 std::fs::remove_dir_all("backups/temp")?;
-                Ok(Some(format!("Backup loaded")))
+                Ok(Some("Backup loaded".to_string()))
             }
             Err(err) => {
                 self.log(LogType::Error, &format!("Failed to load backup: {err}"));
                 load("temp")?;
-                Ok(Some(format!("Failed to load backup")))
+                Ok(Some("Failed to load backup".to_string()))
             }
         }
     }
@@ -148,11 +148,11 @@ impl MainBot {
             .finalize(
                 true,
                 AuthorityLevel::Moderator as _,
-                Arc::new(|bot, _, args| match bot.backup_create(args[0].to_owned()) {
+                Arc::new(|bot, _, args| match bot.backup_create(&args[0]) {
                     Ok(response) => response,
                     Err(err) => {
                         bot.log(LogType::Error, &format!("Failed to create backup: {err}"));
-                        Some(format!("Failed to create backup"))
+                        Some("Failed to create backup".to_string())
                     }
                 }),
             );
@@ -164,7 +164,7 @@ impl MainBot {
                 Ok(response) => response,
                 Err(err) => {
                     bot.log(LogType::Error, &format!("Failed to create backup: {err}"));
-                    Some(format!("Failed to create backup"))
+                    Some("Failed to create backup".to_string())
                 }
             }),
         );
@@ -175,11 +175,11 @@ impl MainBot {
             .finalize(
                 true,
                 AuthorityLevel::Moderator as _,
-                Arc::new(|bot, _, args| match bot.backup_load(args[0].to_owned()) {
+                Arc::new(|bot, _, args| match bot.backup_load(&args[0]) {
                     Ok(response) => response,
                     Err(err) => {
                         bot.log(LogType::Error, &format!("Failed to load backup: {err}"));
-                        Some(format!("Failed to load backup"))
+                        Some("Failed to load backup".to_string())
                     }
                 }),
             );
@@ -207,7 +207,7 @@ impl MainBot {
                 AuthorityLevel::Broadcaster as _,
                 Arc::new(|bot, _, _| {
                     bot.queue_shutdown = true;
-                    Some(format!("Shutting down..."))
+                    Some("Shutting down...".to_string())
                 }),
             ),
             CommandBuilder::new()

@@ -139,7 +139,7 @@ async fn main() {
 
         let mut bot_lock = bot.lock().await;
         match result {
-            Ok(_) => bot_lock.log(LogType::Info, &format!("Server shutdown succesfully")),
+            Ok(_) => bot_lock.log(LogType::Info, "Server shutdown succesfully"),
             Err(error) => bot_lock.log(
                 LogType::Error,
                 &format!("Server failed with error: {error}"),

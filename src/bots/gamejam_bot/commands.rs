@@ -8,7 +8,7 @@ impl GamejamBot {
         let state = std::mem::take(&mut self.state.current_state);
         match state {
             GameJamState::Playing { game } | GameJamState::Waiting { game, .. } => {
-                self.state.submissions.played_games.push(game.clone());
+                self.state.submissions.played_games.push(game);
                 save_into(&self.state.submissions.played_games, PLAYED_GAMES_FILE).unwrap();
             }
             _ => (),
@@ -92,7 +92,7 @@ impl GamejamBot {
             },
             None => match self.state.submissions.queue.next() {
                 Some(game) => Ok(game),
-                None => Err(format!("The queue is empty. !submit <your game>. ")),
+                None => Err("The queue is empty. !submit <your game>. ".to_string()),
             },
         };
 
@@ -150,9 +150,7 @@ impl GamejamBot {
             self.state.submissions.skipped.push(game);
         }
         self.save_games().unwrap();
-        Some(format!(
-            "All games from the queue are moved to the skipped list."
-        ))
+        Some("All games from the queue are moved to the skipped list.".to_string())
     }
 
     fn unskip(&mut self, author_name: Option<&String>) -> Response {
@@ -189,7 +187,7 @@ impl GamejamBot {
                 }
             }
             None => {
-                if self.state.submissions.skipped.len() > 0 {
+                if !self.state.submissions.skipped.is_empty() {
                     let skipped = self
                         .state
                         .submissions
@@ -383,18 +381,14 @@ impl GamejamBot {
 
     fn raffle_start(&mut self) -> Response {
         match &self.state.current_state {
-            GameJamState::Raffle { .. } => Some(format!(
-                "The raffle is in progress. Type !join to join the raffle."
-            )),
+            GameJamState::Raffle { .. } => Some("The raffle is in progress. Type !join to join the raffle.".to_string()),
             _ => {
                 self.set_current(None);
                 self.state.current_state = GameJamState::Raffle {
                     joined: HashMap::new(),
                 };
                 self.update_status("The raffle is in progress. Type !join to join the raffle!");
-                Some(format!(
-                    "The raffle has started! Type !join to join the raffle."
-                ))
+                Some("The raffle has started! Type !join to join the raffle.".to_string())
             }
         }
     }
@@ -430,14 +424,14 @@ impl GamejamBot {
                     }
                     Err(_) => {
                         self.state.current_state = GameJamState::Idle;
-                        Some(format!("Noone entered the raffle :("))
+                        Some("Noone entered the raffle :(".to_string())
                     }
                 };
 
                 self.save_games().unwrap();
                 reply
             }
-            _ => Some(format!("The raffle should be started first: !raffle")),
+            _ => Some("The raffle should be started first: !raffle".to_string()),
         }
     }
 
@@ -493,11 +487,9 @@ impl GamejamBot {
             GameJamState::Raffle { .. } => {
                 self.state.current_state = GameJamState::Idle;
                 self.save_games().unwrap();
-                Some(format!("Raffle is now inactive"))
+                Some("Raffle is now inactive".to_string())
             }
-            _ => Some(format!(
-                "Raffle is not active anyway. Start the raffle with !raffle"
-            )),
+            _ => Some("Raffle is not active anyway. Start the raffle with !raffle".to_string()),
         }
     }
 

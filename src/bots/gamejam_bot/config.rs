@@ -1,8 +1,8 @@
 use super::*;
 
-const CONFIG_FILE: &'static str = "config/gamejam/gamejam_config.json";
-pub const SAVE_FILE: &'static str = "config/gamejam/gamejam_nertsalbot.json";
-pub const PLAYED_GAMES_FILE: &'static str = "config/gamejam/games_played.json";
+const CONFIG_FILE: &str = "config/gamejam/gamejam_config.json";
+pub const SAVE_FILE: &str = "config/gamejam/gamejam_nertsalbot.json";
+pub const PLAYED_GAMES_FILE: &str = "config/gamejam/games_played.json";
 
 macro_rules! load {
     ( $path: expr ) => {

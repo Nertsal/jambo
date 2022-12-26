@@ -16,15 +16,15 @@ impl TimerBot {
             "set" => self.timer_set(TimerMode::Idle, time),
             "countup" => self.timer_set(TimerMode::Countup, time),
             "countdown" => self.timer_set(TimerMode::Countdown, time),
-            _ => return None,
+            _ => None,
         }
     }
 
     fn timer_pause(&mut self, paused: bool) -> Response {
         self.timer.paused = paused;
         match paused {
-            true => Some(format!("Timer has been paused")),
-            false => Some(format!("Timer has been resumed")),
+            true => Some("Timer has been paused".to_string()),
+            false => Some("Timer has been resumed".to_string()),
         }
     }
 
