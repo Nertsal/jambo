@@ -11,8 +11,10 @@ use twitch_bot::prelude::*;
 mod bots;
 mod main_bot;
 mod server;
+mod traits;
 
 use main_bot::*;
+use traits::*;
 
 pub type BotName = String;
 pub type ChannelLogin = String;
