@@ -210,6 +210,7 @@ pub enum LogType {
     Chat,
     Send,
     Console,
+    Event,
 }
 
 pub fn log(cli: &Option<Cli>, log_type: LogType, message: &str) {
@@ -231,7 +232,7 @@ pub async fn send_message(
 
 impl Display for LogType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        use colored::*;
+        use colored::Colorize;
         let w = CONSOLE_PREFIX_LENGTH;
         match &self {
             LogType::Info => write!(f, "{:>w$} >", "INFO".white(), w = w),
@@ -240,6 +241,7 @@ impl Display for LogType {
             LogType::Chat => write!(f, "{:>w$} >", "CHAT".cyan(), w = w),
             LogType::Send => write!(f, "{:>w$} >", "SEND".green(), w = w),
             LogType::Console => write!(f, "{:>w$} >", "CONSOLE".magenta(), w = w),
+            LogType::Event => write!(f, "{:>w$} >", "EVENT".bright_yellow(), w = w),
         }
     }
 }

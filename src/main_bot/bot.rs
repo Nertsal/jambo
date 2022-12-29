@@ -54,6 +54,9 @@ impl MainBot {
                 )
                 .await;
             }
+            ServerMessage::UserNotice(message) => {
+                self.log(LogType::Event, &message.system_message);
+            }
             _ => (),
         }
     }
