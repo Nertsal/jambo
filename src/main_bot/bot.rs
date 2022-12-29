@@ -5,6 +5,19 @@ pub struct MainBot {
     pub(super) commands: Commands<MainBot>,
     pub(super) bots: Bots,
     pub queue_shutdown: bool,
+    users: HashMap<String, User>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct User {
+    color: Option<Color>,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+struct Color {
+    r: u8,
+    g: u8,
+    b: u8,
 }
 
 impl MainBot {
@@ -14,6 +27,7 @@ impl MainBot {
             commands: Self::commands(active_bots.iter().cloned()),
             bots: Bots::new(&cli.cloned(), active_bots),
             queue_shutdown: false,
+            users: HashMap::new(),
         }
     }
 
@@ -32,20 +46,7 @@ impl MainBot {
                 }
             }
             ServerMessage::Privmsg(message) => {
-                use colored::*;
-                let sender_name = match &message.name_color {
-                    Some(color) => message
-                        .sender
-                        .name
-                        .truecolor(color.r, color.g, color.b)
-                        .to_string(),
-                    None => message.sender.name.clone(),
-                };
-                log(
-                    &self.cli,
-                    LogType::Chat,
-                    &format!("{}: {}", sender_name, message.message_text),
-                );
+                self.log_chat_message(&message);
                 self.handle_message(
                     client,
                     &message.channel_login,
@@ -65,10 +66,7 @@ impl MainBot {
     }
 
     pub fn log(&self, log_type: LogType, message: &str) {
-        if let Some(cli) = &self.cli {
-            let mut writer = cli.lock_writer_erase().unwrap();
-            writeln!(writer, "{} {}", log_type, message).unwrap();
-        }
+        log(&self.cli, log_type, message)
     }
 
     pub async fn handle_message(
@@ -93,6 +91,59 @@ impl MainBot {
 
     pub fn serialize(&self) -> impl Iterator<Item = SerializedBot> + '_ {
         self.bots.active.values().map(|bot| bot.serialize())
+    }
+
+    fn log_chat_message(&mut self, message: &twitch_irc::message::PrivmsgMessage) {
+        use colored::Colorize;
+
+        // Color the user's name
+        let (sender_name, color) = match &message.name_color {
+            Some(color) => (
+                message
+                    .sender
+                    .name
+                    .truecolor(color.r, color.g, color.b)
+                    .to_string(),
+                Some(Color {
+                    r: color.r,
+                    g: color.g,
+                    b: color.b,
+                }),
+            ),
+            None => (message.sender.name.clone(), None),
+        };
+        // Register the user
+        self.users
+            .entry(message.sender.name.to_lowercase())
+            .or_insert(User { color: None })
+            .color = color;
+
+        // Print the colored message
+        if let Some(cli) = &self.cli {
+            let colored =
+                self.color_message(&format!("{}: {}", sender_name, &message.message_text));
+            let mut writer = cli.lock_writer_erase().unwrap();
+            write!(writer, "{}", LogType::Chat).unwrap();
+            for word in colored {
+                write!(writer, " {}", word).unwrap();
+            }
+            writeln!(writer).unwrap();
+        }
+    }
+
+    fn color_message(&self, message: &str) -> Vec<colored::ColoredString> {
+        use colored::Colorize;
+
+        message
+            .split_whitespace()
+            .map(|word| {
+                self.users
+                    .get(&word.to_lowercase())
+                    .and_then(|user| user.color)
+                    .map(|color| word.truecolor(color.r, color.g, color.b))
+                    .unwrap_or_else(|| word.clear())
+            })
+            .collect()
     }
 }
 
