@@ -21,3 +21,4 @@ rocket = { version = "=0.5.0-rc.2", features = ["json"] }
 enum_derive = "0.1.7"
 google-sheets4 = "=3.1.0"
 clap = { version = "3.1.18", features = ["derive"] }
+regex = "1.7.0"

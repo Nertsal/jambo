@@ -126,9 +126,9 @@ impl MainBot {
             let colored =
                 self.color_message(&format!("{}: {}", sender_name, &message.message_text));
             let mut writer = cli.lock_writer_erase().unwrap();
-            write!(writer, "{}", LogType::Chat).unwrap();
+            write!(writer, "{} ", LogType::Chat).unwrap();
             for word in colored {
-                write!(writer, " {}", word).unwrap();
+                write!(writer, "{}", word).unwrap();
             }
             writeln!(writer).unwrap();
         }
@@ -137,16 +137,71 @@ impl MainBot {
     fn color_message(&self, message: &str) -> Vec<colored::ColoredString> {
         use colored::Colorize;
 
-        message
-            .split_whitespace()
-            .map(|word| {
-                self.users
-                    .get(&word.to_lowercase())
-                    .and_then(|user| user.color)
-                    .map(|color| word.truecolor(color.r, color.g, color.b))
-                    .unwrap_or_else(|| word.clear())
+        #[derive(Debug)]
+        enum Slice<'a> {
+            Raw(&'a str),
+            Colored(colored::ColoredString),
+        }
+
+        let mut result = vec![Slice::Raw(message)];
+        let mut users: Vec<_> = self
+            .users
+            .iter()
+            .filter_map(|(name, user)| user.color.map(|color| (name, color)))
+            .collect();
+        users.sort_by_key(|(name, _)| std::cmp::Reverse(name.len()));
+        for (user, color) in users {
+            let regex = regex::RegexBuilder::new(&regex::escape(user))
+                .case_insensitive(true)
+                .build()
+                .unwrap();
+            result = result
+                .into_iter()
+                .flat_map(|slice| match slice {
+                    Slice::Raw(slice) => {
+                        let mut last_match = 0;
+                        let mut res: Vec<_> = regex
+                            .find_iter(slice)
+                            .flat_map(|mat| {
+                                let mut res = Vec::with_capacity(3);
+                                if mat.start() > 0 {
+                                    res.push(Slice::Raw(&slice[last_match..mat.start()]));
+                                }
+                                res.push(Slice::Colored(
+                                    mat.as_str().truecolor(color.r, color.g, color.b),
+                                ));
+                                last_match = mat.end();
+                                res
+                            })
+                            .collect();
+                        if last_match < slice.len() {
+                            res.push(Slice::Raw(&slice[last_match..]));
+                        }
+                        res
+                    }
+                    colored => vec![colored],
+                })
+                .collect();
+        }
+
+        result
+            .into_iter()
+            .map(|slice| match slice {
+                Slice::Raw(raw) => raw.clear(),
+                Slice::Colored(colored) => colored,
             })
             .collect()
+
+        // message
+        //     .split_whitespace()
+        //     .map(|word| {
+        //         self.users
+        //             .get(&word.to_lowercase())
+        //             .and_then(|user| user.color)
+        //             .map(|color| word.truecolor(color.r, color.g, color.b))
+        //             .unwrap_or_else(|| word.clear())
+        //     })
+        //     .collect()
     }
 }
 
